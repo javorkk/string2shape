@@ -148,7 +148,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>_OPENMP;THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>
+      </Defines>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -174,7 +175,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>_OPENMP;THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>
+      </Defines>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -203,7 +205,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>_OPENMP;THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>
+      </Defines>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -233,7 +236,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>_OPENMP;THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>
+      </Defines>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -9,3 +9,5 @@ bin/
 *.pdb
 *.db
 scenes/
+*.opendb
+.vs/

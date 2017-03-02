@@ -1,0 +1,11 @@
+*.suo
+obj2string/build/
+tests/build/
+ipch/
+*.pyd
+*.dll
+*.pyc
+bin/
+*.pdb
+*.db
+scenes/

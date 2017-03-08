@@ -5,6 +5,8 @@
 #include <stdio.h>
 
 #include "UniformGridSortBuilderTest.h"
+#include "GraphTest.h"
+#include "CollisionTest.h"
 
 
 int main()
@@ -16,9 +18,17 @@ int main()
 		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
 		return 1;
 	}
+	CollisionTest collTest;
+	collTest.testAll("../scenes/castle.obj");
 
 	UniformGridSortBuildTest uniformGridTest;
 	uniformGridTest.testAll("../scenes/castle.obj", 32, 32, 32);
+
+	GraphTest graphTest;
+	graphTest.testAll(100);
+	//graphTest.testAll(1000);
+
+
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.

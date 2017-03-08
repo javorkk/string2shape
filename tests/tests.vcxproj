@@ -191,6 +191,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CollisionTest.h" />
+    <ClInclude Include="GraphTest.h" />
     <ClInclude Include="UniformGridSortBuilderTest.h" />
   </ItemGroup>
   <ItemGroup>

@@ -21,6 +21,8 @@
   <ItemGroup>
     <ClInclude Include="Algebra.h" />
     <ClInclude Include="BBox.h" />
+    <ClInclude Include="CollisionDetector.h" />
+    <ClInclude Include="Graph.h" />
     <ClInclude Include="obj2string.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Primitive.h" />
@@ -49,6 +51,8 @@
     <ClCompile Include="WFObjWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="CollisionDetector.cu" />
+    <CudaCompile Include="Graph.cu" />
     <CudaCompile Include="UniformGridSortBuilder.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

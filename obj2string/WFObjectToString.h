@@ -13,6 +13,11 @@ __declspec(dllexport) extern char * WFObjectToString(char * aFilename);
 
 __declspec(dllexport) extern int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ);
 
+__declspec(dllexport) extern int testGraphConstruction(int aGraphSize);
+
+__declspec(dllexport) extern int testCollisionGraphConstruction(const char * aFilename);
+
+
 #ifdef __cplusplus
 }
 #endif

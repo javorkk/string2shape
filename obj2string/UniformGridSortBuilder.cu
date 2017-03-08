@@ -336,7 +336,10 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	thrust::device_vector<float3> device_vertices(aGeometry.vertices.begin(), aGeometry.vertices.end());
 	//compute scene bounding box
 	oGrid.vtx[0] = thrust::reduce(device_vertices.begin(), device_vertices.end(), make_float3( FLT_MAX,  FLT_MAX,  FLT_MAX), binary_float3_min());
+	oGrid.vtx[0] -= make_float3(0.0001f, 0.0001f, 0.0001f);
 	oGrid.vtx[1] = thrust::reduce(device_vertices.begin(), device_vertices.end(), make_float3(-FLT_MAX, -FLT_MAX,- FLT_MAX), binary_float3_max());
+	oGrid.vtx[1] += make_float3(0.0001f, 0.0001f, 0.0001f);
+
 
 	//count triangle-cell intersections
 	thrust::device_vector<unsigned int> fragment_counts(device_indices.size() + 1);
@@ -394,4 +397,90 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 		extract_ranges);
 
 	return oGrid;
+}
+
+__host__ int UniformGridSortBuilder::test(UniformGrid& aGrid, WFObject & aGeometry)
+{
+	thrust::host_vector<uint2> host_cells(aGrid.cells);
+	thrust::host_vector<unsigned int> host_primitives(aGrid.primitives);
+
+	for (int z = 0; z < aGrid.res[2]; ++z)
+	{
+		for (int y = 0; y < aGrid.res[1]; ++y)
+		{
+			for (int x = 0; x < aGrid.res[0]; ++x)
+			{
+				uint2 cell = host_cells[x + y * aGrid.res[0] + z * aGrid.res[0] * aGrid.res[1]];
+
+				if (cell.x > cell.y)
+				{
+					std::cerr << "Grid cell (" << x << ", " << y << ", " << z << ") has invalid range (" << cell.x << ", " << cell.y << ")\n";
+					return 1;
+				}
+
+				for (size_t refId = cell.x; refId < cell.y; ++refId)
+				{
+					if (refId >= host_primitives.size())
+					{
+						std::cerr << "Ivalid primitive reference " << refId << " in cell (" << x << ", " << y << ", " << z << ")\n";
+						return 2;
+					}
+
+					unsigned int triId = host_primitives[refId];
+					if (triId >= aGeometry.faces.size())
+					{
+						std::cerr << "Ivalid primitive index " << triId << " in cell (" << x << ", " << y << ", " << z << ")\n";
+						return 3;
+					}
+
+					Triangle prim;
+					prim.vtx[0] = aGeometry.vertices[(unsigned int)aGeometry.faces[triId].vert1];
+					prim.vtx[1] = aGeometry.vertices[(unsigned int)aGeometry.faces[triId].vert2];
+					prim.vtx[2] = aGeometry.vertices[(unsigned int)aGeometry.faces[triId].vert3];
+
+					BBox bounds = BBoxExtractor<Triangle>::get(prim);
+
+					float3 minCellIdf = (bounds.vtx[0] - aGrid.vtx[0]) * aGrid.getCellSizeRCP();
+					const float3 maxCellIdPlus1f = (bounds.vtx[1] - aGrid.vtx[0]) * aGrid.getCellSizeRCP() + rep(1.f);
+
+					const int minCellIdX = std::max(0, (int)(minCellIdf.x));
+					const int minCellIdY = std::max(0, (int)(minCellIdf.y));
+					const int minCellIdZ = std::max(0, (int)(minCellIdf.z));
+
+					const int maxCellIdP1X = std::min(aGrid.res[0], (int)(maxCellIdPlus1f.x));
+					const int maxCellIdP1Y = std::min(aGrid.res[1], (int)(maxCellIdPlus1f.y));
+					const int maxCellIdP1Z = std::min(aGrid.res[2], (int)(maxCellIdPlus1f.z));
+
+					if (x < minCellIdX || maxCellIdP1X <= x ||
+						y < minCellIdY || maxCellIdP1Y <= y ||
+						z < minCellIdZ || maxCellIdP1Z <= z   )
+					{
+						std::cerr << "Primitive " << triId << " inserted in wrong cell (" << x << ", " << y << ", " << z << ")\n";
+						return 4;
+
+					}
+
+				}
+			}
+		}
+	}
+
+	for (size_t primId = 0; primId < aGeometry.faces.size(); ++primId)
+	{
+		bool inserted = false;
+		for (size_t refId = 0; refId < host_primitives.size(); ++refId)
+		{
+			if (host_primitives[refId] == primId)
+			{
+				inserted = true;
+				break;
+			}
+		}
+		if (!inserted)
+		{
+			std::cerr << "Primitive " << primId << " not inserted in the grid!\n";
+			return 5;
+		}
+	}
+	return 0;
 }

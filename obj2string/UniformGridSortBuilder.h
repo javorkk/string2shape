@@ -19,8 +19,9 @@ public:
 		const int                       aResY,
 		const int                       aResZ);
 
-	//__host__ void cleanup();
-	//__host__ void outputStats();
+	__host__ int test(
+		UniformGrid&		aGrid,
+		WFObject&			aGeometry);
 
 };
 

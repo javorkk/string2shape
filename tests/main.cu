@@ -19,10 +19,10 @@ int main()
 		return 1;
 	}
 	CollisionTest collTest;
-	collTest.testAll("../scenes/castle.obj");
+	collTest.testAll("../scenes/church/church.obj");
 
 	UniformGridSortBuildTest uniformGridTest;
-	uniformGridTest.testAll("../scenes/castle.obj", 32, 32, 32);
+	uniformGridTest.testAll("../scenes/castle/castle.obj", 32, 32, 32);
 
 	GraphTest graphTest;
 	graphTest.testAll(100);

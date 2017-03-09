@@ -11,3 +11,5 @@ bin/
 scenes/
 *.opendb
 .vs/
+tests/collision_graph.mtl
+tests/collision_graph.obj

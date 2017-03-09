@@ -7,6 +7,7 @@
 
 #include "Graph.h"
 #include "CollisionDetector.h"
+#include "CollisionGraphExporter.h"
 
 
 #ifdef __cplusplus
@@ -18,7 +19,7 @@ extern "C" {
 		char* testFileName = "scenes/castle.obj";
 		WFObject testObj;
 
-		testObj.loadWFObj(testFileName);
+		testObj.read(testFileName);
 	
 		UniformGridSortBuilder builder;
 		UniformGrid grid = builder.build(testObj, 24, 24, 24);
@@ -29,7 +30,7 @@ extern "C" {
 	int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ)
 	{
 		WFObject testObj;
-		testObj.loadWFObj(aFilename);
+		testObj.read(aFilename);
 
 		UniformGridSortBuilder builder;
 		UniformGrid grid = 	builder.build(testObj, aResX, aResY, aResZ);
@@ -80,6 +81,9 @@ extern "C" {
 
 		CollisionDetector detector;
 		Graph testGraph = detector.computeCollisionGraph(testObj, 0.01f);
+
+		CollisionGraphExporter exporter;
+		exporter.exportCollisionGraph("collision_graph", testObj, testGraph);
 
 		return 0;
 	}

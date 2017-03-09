@@ -22,6 +22,7 @@
     <ClInclude Include="Algebra.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="CollisionDetector.h" />
+    <ClInclude Include="CollisionGraphExporter.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="obj2string.h" />
     <ClInclude Include="pch.h" />
@@ -52,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="CollisionDetector.cu" />
+    <CudaCompile Include="CollisionGraphExporter.cu" />
     <CudaCompile Include="Graph.cu" />
     <CudaCompile Include="UniformGridSortBuilder.cu" />
   </ItemGroup>

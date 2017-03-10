@@ -7,7 +7,9 @@
 #include "Primitive.h"
 #include "BBox.h"
 
+#include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#include <thrust/copy.h>
 #include <thrust/fill.h>
 #include <thrust/reduce.h>
 #include <thrust/transform.h>
@@ -16,20 +18,25 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
+#include "DebugUtils.h"
+
 class FragmentCounter
 {
 public:
 	int							gridRes[3];
 	const float3                minBound;
+	const float3                cellSize;
 	const float3                cellSizeRCP;
 	thrust::device_ptr<float3>  vertexArray;
 
 	FragmentCounter(
 		int aGridResX, int aGridResY, int aGridResZ,
 		float3 aMinBound,
+		float3 aCellSize,
 		float3 aCellSizeRCP,
 		thrust::device_ptr<float3> aVtxArray): 		 
 		minBound(aMinBound), 
+		cellSize(aCellSize),
 		cellSizeRCP(aCellSizeRCP), 
 		vertexArray(aVtxArray)
 	{
@@ -47,8 +54,8 @@ public:
 
 		BBox bounds = BBoxExtractor<Triangle>::get(prim);
 
-		float3 minCellIdf = (bounds.vtx[0] - minBound) * cellSizeRCP;
-		const float3 maxCellIdPlus1f = (bounds.vtx[1] - minBound) * cellSizeRCP + rep(1.f);
+		float3 minCellIdf = (bounds.vtx[0] - minBound - cellSize * 0.001f) * cellSizeRCP;
+		const float3 maxCellIdPlus1f = (bounds.vtx[1] - minBound + cellSize * 0.001f) * cellSizeRCP + rep(1.f);
 
 		const int minCellIdX = max(0, (int)(minCellIdf.x));
 		const int minCellIdY = max(0, (int)(minCellIdf.y));
@@ -161,8 +168,8 @@ public:
 
 		BBox bounds = BBoxExtractor<Triangle>::get(triangle);
 
-		float3 minCellIdf = (bounds.vtx[0] - minBound) * cellSizeRCP;
-		const float3 maxCellIdPlus1f = (bounds.vtx[1] - minBound) * cellSizeRCP + rep(1.f);
+		float3 minCellIdf = (bounds.vtx[0] - minBound - cellSize * 0.001f) * cellSizeRCP;
+		const float3 maxCellIdPlus1f = (bounds.vtx[1] - minBound + cellSize * 0.001f) * cellSizeRCP + rep(1.f);
 
 		const int minCellIdX = max(0, (int)(minCellIdf.x));
 		const int minCellIdY = max(0, (int)(minCellIdf.y));
@@ -260,7 +267,7 @@ public:
 						continue;
 					}
 
-					outKeys[nextSlot] = x +	y * gridRes[0] + z * (gridRes[1] * gridRes[2]);
+					outKeys[nextSlot] = x +	y * gridRes[0] + z * (gridRes[0] * gridRes[1]);
 
 					outValues[nextSlot] = (uint)triangleId;
 
@@ -323,7 +330,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	thrust::fill(dev_ptr_uint, dev_ptr_uint + 2 * oGrid.res[0] * oGrid.res[1] * oGrid.res[2], 0u);
 
 	//compute vertex index buffer for the triangles
-	std::vector<uint3> host_indices(aGeometry.faces.size());
+	thrust::host_vector<uint3> host_indices(aGeometry.faces.size());
 	for (size_t i = 0; i < aGeometry.faces.size(); i++)
 	{
 		host_indices[i].x = (unsigned int)aGeometry.faces[i].vert1;
@@ -331,14 +338,21 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 		host_indices[i].z = (unsigned int)aGeometry.faces[i].vert3;
 	}
 	//copy the vertex index buffer to the device
-	thrust::device_vector<uint3> device_indices(host_indices.begin(), host_indices.end());
+	thrust::device_vector<uint3> device_indices(aGeometry.faces.size());
+	thrust::copy(host_indices.begin(), host_indices.end(), device_indices.begin());
+
 	//copy the vertex buffer to the device
 	thrust::device_vector<float3> device_vertices(aGeometry.vertices.begin(), aGeometry.vertices.end());
 	//compute scene bounding box
 	oGrid.vtx[0] = thrust::reduce(device_vertices.begin(), device_vertices.end(), make_float3( FLT_MAX,  FLT_MAX,  FLT_MAX), binary_float3_min());
-	oGrid.vtx[0] -= make_float3(0.0001f, 0.0001f, 0.0001f);
 	oGrid.vtx[1] = thrust::reduce(device_vertices.begin(), device_vertices.end(), make_float3(-FLT_MAX, -FLT_MAX,- FLT_MAX), binary_float3_max());
-	oGrid.vtx[1] += make_float3(0.0001f, 0.0001f, 0.0001f);
+
+	const float boundsDiagonal = len(oGrid.vtx[1] - oGrid.vtx[0]);
+	const float myEpsilon = boundsDiagonal * 0.0005773f;//0.57735026918962576450914878050196 =  1.0 / sqrt(3.0)
+
+	//extend scene bounding box with epsilon in each dimension
+	oGrid.vtx[0] -= make_float3(myEpsilon, myEpsilon, myEpsilon);
+	oGrid.vtx[1] += make_float3(myEpsilon, myEpsilon, myEpsilon);
 
 
 	//count triangle-cell intersections
@@ -346,6 +360,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	FragmentCounter frag_count(
 		oGrid.res[0], oGrid.res[1], oGrid.res[2],
 		oGrid.vtx[0],
+		oGrid.getCellSize(),
 		oGrid.getCellSizeRCP(),
 		device_vertices.data()
 	);
@@ -353,6 +368,10 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	thrust::transform(device_indices.begin(), device_indices.end(), fragment_counts.begin(), frag_count);
 
 	thrust::exclusive_scan(fragment_counts.begin(), fragment_counts.end(), fragment_counts.begin());
+
+//#ifdef _DEBUG
+//	outputDeviceVector("Scanned  counts: ", fragment_counts);
+//#endif
 
 	size_t num_fragments = fragment_counts[device_indices.size()];
 
@@ -382,6 +401,11 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	//sort the pairs
 	thrust::sort_by_key(fragment_keys.begin(), fragment_keys.end(), oGrid.primitives.begin());
 	
+//#ifdef _DEBUG
+//	outputDeviceVector("sorted keys: ", fragment_keys);
+//	outputDeviceVector("sorted vals: ", oGrid.primitives);
+//#endif
+
 	//initilize the grid cells
 	CellExtractor extract_ranges(
 		oGrid.res[0], oGrid.res[1], oGrid.res[2],
@@ -395,6 +419,15 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 		thrust::make_zip_iterator(thrust::make_tuple(fragment_keys.begin(), fragment_keys.begin() + 1, first_pair)),
 		thrust::make_zip_iterator(thrust::make_tuple(fragment_keys.end() - 1, fragment_keys.end(), last_pair)),
 		extract_ranges);
+
+//#ifdef _DEBUG
+//	thrust::device_vector<unsigned int> cells_x(oGrid.cells.size());
+//	thrust::device_vector<unsigned int> cells_y(oGrid.cells.size());
+//	thrust::transform(oGrid.cells.begin(), oGrid.cells.end(), cells_x.begin(), uint2_get_x());
+//	thrust::transform(oGrid.cells.begin(), oGrid.cells.end(), cells_y.begin(), uint2_get_y());
+//	outputDeviceVector("Grid cells x: ", cells_x);
+//	outputDeviceVector("Grid cells y: ", cells_y);
+//#endif
 
 	return oGrid;
 }
@@ -440,8 +473,8 @@ __host__ int UniformGridSortBuilder::test(UniformGrid& aGrid, WFObject & aGeomet
 
 					BBox bounds = BBoxExtractor<Triangle>::get(prim);
 
-					float3 minCellIdf = (bounds.vtx[0] - aGrid.vtx[0]) * aGrid.getCellSizeRCP();
-					const float3 maxCellIdPlus1f = (bounds.vtx[1] - aGrid.vtx[0]) * aGrid.getCellSizeRCP() + rep(1.f);
+					float3 minCellIdf = (bounds.vtx[0] - aGrid.vtx[0] - aGrid.getCellSize() * 0.001f) * aGrid.getCellSizeRCP();
+					const float3 maxCellIdPlus1f = (bounds.vtx[1] - aGrid.vtx[0] + aGrid.getCellSize() * 0.001f) * aGrid.getCellSizeRCP() + rep(1.f);
 
 					const int minCellIdX = std::max(0, (int)(minCellIdf.x));
 					const int minCellIdY = std::max(0, (int)(minCellIdf.y));

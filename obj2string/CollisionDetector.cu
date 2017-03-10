@@ -6,13 +6,32 @@
 
 #include "UniformGrid.h"
 #include "UniformGridSortBuilder.h"
+#include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/transform.h>
 #include <thrust/for_each.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sort.h>
 #include <thrust/unique.h>
+
+#include "DebugUtils.h"
+#include <thrust/functional.h>
+
+class nonEmptyCell
+{
+public:
+
+	template <typename Tuple>
+	__host__ __device__	bool operator()(Tuple t1)
+	{
+		const unsigned int range_start = thrust::get<0>(t1);
+		const unsigned int range_end = thrust::get<1>(t1);
+		return range_start < range_end;
+	}
+
+};
 
 class CellTrimmer
 {
@@ -72,16 +91,23 @@ public:
 			return 0u;
 
 		unsigned int numCollisions = 0u;
+		uint2 lastRecordedPair = make_uint2(objIds[primIds[aCellRange.x]], objIds[primIds[aCellRange.x]]);
+
 		for (unsigned int refId = aCellRange.x; refId < aCellRange.y; ++refId)
 		{
-			unsigned int myPrimId = primIds[refId];
-			unsigned int myObjId = objIds[myPrimId];
+			unsigned int myObjId = objIds[primIds[refId]];
 			for (unsigned int otherRefId = refId + 1; otherRefId < aCellRange.y; ++otherRefId)
 			{
-				unsigned int otherPrimId = primIds[otherRefId];
-				unsigned int otherObjId = objIds[otherPrimId];
-				if (myObjId != otherObjId)
+				unsigned int otherObjId = objIds[primIds[otherRefId]];
+				if (myObjId != otherObjId &&
+					!(myObjId == lastRecordedPair.x && otherObjId == lastRecordedPair.y ||
+						myObjId == lastRecordedPair.y && otherObjId == lastRecordedPair.x)
+					)
+				{
 					numCollisions += 2u;
+					lastRecordedPair.x = myObjId;
+					lastRecordedPair.y = otherObjId;
+				}
 			}
 		}
 		return numCollisions;
@@ -122,15 +148,17 @@ public:
 		if (aCellRange.x >= aCellRange.y)
 			return;
 
+		uint2 lastRecordedPair = make_uint2(objIds[primIds[aCellRange.x]], objIds[primIds[aCellRange.x]]);
 		for (unsigned int refId = aCellRange.x; refId < aCellRange.y; ++refId)
 		{
-			unsigned int myPrimId = primIds[refId];
-			unsigned int myObjId = objIds[myPrimId];
+			unsigned int myObjId = objIds[primIds[refId]];
 			for (unsigned int otherRefId = refId + 1; otherRefId < aCellRange.y; ++otherRefId)
 			{
-				unsigned int otherPrimId = primIds[otherRefId];
-				unsigned int otherObjId = objIds[otherPrimId];
-				if (myObjId != otherObjId)
+				unsigned int otherObjId = objIds[primIds[otherRefId]];
+				if (myObjId != otherObjId && 
+					!(myObjId == lastRecordedPair.x && otherObjId == lastRecordedPair.y ||
+					myObjId == lastRecordedPair.y && otherObjId == lastRecordedPair.x)
+					)
 				{
 					keys[outputPosition] = myObjId;
 					vals[outputPosition] = otherObjId;
@@ -138,6 +166,8 @@ public:
 					keys[outputPosition] = otherObjId;
 					vals[outputPosition] = myObjId;
 					++outputPosition;
+					lastRecordedPair.x = myObjId;
+					lastRecordedPair.y = otherObjId;
 				}
 			}
 		}
@@ -175,47 +205,76 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 		maxBound = max(*it, maxBound);
 	}
 
-	float cellDiagonal = len(maxBound - minBound) * aRelativeThreshold;
-	float3 res = (maxBound - minBound) / (cellDiagonal * 0.3333333f);
-
-	//compute vertex index buffer for the triangles
-	std::vector<uint3> host_indices(aObj.faces.size());
-	for (size_t i = 0; i < aObj.faces.size(); i++)
-	{
-		host_indices[i].x = (unsigned int)aObj.faces[i].vert1;
-		host_indices[i].y = (unsigned int)aObj.faces[i].vert2;
-		host_indices[i].z = (unsigned int)aObj.faces[i].vert3;
-	}
-	//copy the vertex index buffer to the device
-	thrust::device_vector<uint3> device_indices(host_indices.begin(), host_indices.end());
+	float boundsDiagonal = len(maxBound - minBound);
+	float3 res = (maxBound - minBound) / (boundsDiagonal * 0.577350269f * aRelativeThreshold); //0.577350269 ~ sqrtf(3.f)
 
 	UniformGridSortBuilder builder;
 	UniformGrid grid = builder.build(aObj, (int)res.x, (int)res.y, (int)res.z);
 
+//#ifdef _DEBUG
+//	builder.test(grid, aObj);
+//#endif
+
 	//compute per-face object id
-	std::vector<unsigned int> objectIdPerFaceHost(host_indices.size());
+	thrust::host_vector<unsigned int> objectIdPerFaceHost(aObj.faces.size());
 	for (size_t i = 0; i < aObj.objects.size(); ++i)
 	{
 		int2 range = aObj.objects[i];
-		for (size_t faceId = (size_t)range.x; faceId < (size_t)range.y; ++faceId)
+		for (int faceId = range.x; faceId < range.y; ++faceId)
 		{
 			objectIdPerFaceHost[faceId] = (unsigned int)i;//set object id
 		}
 	}
+
 	//copy the obj ids to the device
-	thrust::device_vector<unsigned int> objectIdPerFaceDevice(objectIdPerFaceHost);
+	thrust::device_vector<unsigned int> objectIdPerFaceDevice(aObj.faces.size());
+	thrust::copy(objectIdPerFaceHost.begin(), objectIdPerFaceHost.end(), objectIdPerFaceDevice.begin());
+
+//#ifdef _DEBUG
+//	outputDeviceVector("Obj id per face: ", objectIdPerFaceDevice);
+//#endif
 
 	//delete all grid cells that contain primitives from a single object
 	thrust::device_vector<uint2> trimmed_cells(grid.cells.size());
 	CellTrimmer trimmCells(objectIdPerFaceDevice.data(), grid.primitives.data());
 	thrust::transform(grid.cells.begin(), grid.cells.end(), trimmed_cells.begin(), trimmCells);
 
+//#ifdef _DEBUG
+//	thrust::device_vector<unsigned int> trimmed_cells_x(grid.cells.size());
+//	thrust::device_vector<unsigned int> trimmed_cells_y(grid.cells.size());
+//	thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells_x.begin(), uint2_get_x());
+//	thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells_y.begin(), uint2_get_y());
+//	auto begin_iterator_dbg = thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells_x.begin(), trimmed_cells_y.begin()));
+//	auto end_iterator_dbg = thrust::copy_if(
+//		begin_iterator_dbg,
+//		thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells_x.end(), trimmed_cells_y.end())),
+//		begin_iterator_dbg,
+//		nonEmptyCell());
+//	thrust::device_vector<unsigned int> non_empty_cells_x(end_iterator_dbg - begin_iterator_dbg);
+//	thrust::device_vector<unsigned int> non_empty_cells_y(end_iterator_dbg - begin_iterator_dbg);
+//	thrust::copy(
+//		begin_iterator_dbg,
+//		end_iterator_dbg,
+//		thrust::make_zip_iterator(thrust::make_tuple(non_empty_cells_x.begin(), non_empty_cells_y.begin()))
+//	);
+//	outputDeviceVector("Non-empty cells x: ", non_empty_cells_x);
+//	outputDeviceVector("Non-empty cells y: ", non_empty_cells_y);
+//#endif // _DEBUG
+
 	//count all obj-obj collisions
 	thrust::device_vector<unsigned int> collision_counts(grid.cells.size() + 1);
 	CollisionCounter countCollisions(objectIdPerFaceDevice.data(), grid.primitives.data());
 	thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), collision_counts.begin(), countCollisions);
 
+//#ifdef _DEBUG
+//	outputDeviceVector("Collision counts: ", collision_counts);
+//#endif
+
 	thrust::exclusive_scan(collision_counts.begin(), collision_counts.end(), collision_counts.begin());
+
+//#ifdef _DEBUG
+//	outputDeviceVector("Scanned counts  : ", collision_counts);
+//#endif
 
 	//allocate storage for obj-obj collisions
 	unsigned int numCollisions = collision_counts[collision_counts.size() - 1];
@@ -225,15 +284,26 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	//write all obj-obj collisions
 	CollisionWriter writeCollisions(objectIdPerFaceDevice.data(), grid.primitives.data(),
 		collision_keys.data(), collision_vals.data());
-	
+
 	thrust::for_each(
 		thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells.begin(), collision_counts.begin())),
 		thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells.end(), collision_counts.end() - 1)),
 		writeCollisions);
 
+#ifdef _DEBUG
+	outputDeviceVector("Collision keys: ", collision_keys);
+	outputDeviceVector("Collision vals: ", collision_vals);
+#endif
+
 	//sort all obj-obj collisions
 	//sort the pairs
-	thrust::sort_by_key(collision_keys.begin(), collision_keys.end(), collision_vals.begin());
+	thrust::sort_by_key(collision_vals.begin(), collision_vals.end(), collision_keys.begin());
+	thrust::stable_sort_by_key(collision_keys.begin(), collision_keys.end(), collision_vals.begin());
+
+#ifdef _DEBUG
+	outputDeviceVector("Sorted keys: ", collision_keys);
+	outputDeviceVector("Sorted vals: ", collision_vals);
+#endif
 
 	//remove all duplicate obj-obj collisions
 	//thrust::device_vector<unsigned int> collision_keys_unique;

@@ -8,6 +8,8 @@
 #include <thrust/transform_scan.h>
 #include <thrust/fill.h>
 
+#include "DebugUtils.h"
+
 struct isEdge
 { 
 	__host__ __device__ unsigned int operator()(const unsigned int& x) const
@@ -156,7 +158,14 @@ __host__ void Graph::fromAdjacencyList(size_t aNumNodes)
 	thrust::counting_iterator<size_t> last(adjacencyKeys.size());
 
 	thrust::for_each(
-		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin() + 1, first)),
-		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end() - 1, adjacencyVals.end(), last)),
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyKeys.begin() + 1, first)),
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end() - 1, adjacencyKeys.end(), last)),
 		extractIntervals);
+
+#ifdef _DEBUG
+	outputDeviceVector("Edge X: ", adjacencyKeys);
+	outputDeviceVector("Edge Y: ", adjacencyVals);
+
+	outputDeviceVector("Extracted intervals: ", intervals);
+#endif
 }

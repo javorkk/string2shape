@@ -23,6 +23,7 @@
     <ClInclude Include="BBox.h" />
     <ClInclude Include="CollisionDetector.h" />
     <ClInclude Include="CollisionGraphExporter.h" />
+    <ClInclude Include="DebugUtils.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="obj2string.h" />
     <ClInclude Include="pch.h" />
@@ -156,6 +157,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <Defines>
       </Defines>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -183,6 +186,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <Defines>
       </Defines>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -213,6 +218,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <Defines>
       </Defines>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -244,6 +251,8 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <Defines>
       </Defines>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

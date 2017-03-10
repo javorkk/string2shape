@@ -80,7 +80,7 @@ extern "C" {
 		testObj.loadWFObj(aFilename);
 
 		CollisionDetector detector;
-		Graph testGraph = detector.computeCollisionGraph(testObj, 0.01f);
+		Graph testGraph = detector.computeCollisionGraph(testObj, 0.1f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph("collision_graph", testObj, testGraph);

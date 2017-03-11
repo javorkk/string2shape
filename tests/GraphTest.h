@@ -13,9 +13,9 @@ class GraphTest
 
 public:
 
-	__host__ void testAll(const int aSize)
+	__host__ int testAll(const int aSize)
 	{
-		testGraphConstruction(aSize);
+		return testGraphConstruction(aSize);
 	}
 };
 

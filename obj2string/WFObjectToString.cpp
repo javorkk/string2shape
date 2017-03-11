@@ -67,6 +67,7 @@ extern "C" {
 				std::cerr << " device " << adjacencyMatrixDevice[i] << " ";
 				std::cerr << " host " << adjacencyMatrixHost[i] << " ";
 				std::cerr << "\n";
+				return 1;
 			}
 		}
 
@@ -77,10 +78,10 @@ extern "C" {
 	int testCollisionGraphConstruction(const char * aFilename)
 	{
 		WFObject testObj;
-		testObj.loadWFObj(aFilename);
+		testObj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph testGraph = detector.computeCollisionGraph(testObj, 0.1f);
+		Graph testGraph = detector.computeCollisionGraph(testObj, 0.05f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph("collision_graph", testObj, testGraph);

@@ -12,7 +12,7 @@ class UniformGridSortBuildTest
 
 public:
 
-	__host__ void testAll(
+	__host__ int testAll(
 		const char* aFileName,
 		const int                       aResX,
 		const int                       aResY,

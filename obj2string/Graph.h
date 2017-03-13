@@ -46,7 +46,7 @@ public:
 	//assumes that the lists are copied in adjacencyKeys and adjacencyVals
 	__host__ void fromAdjacencyList(size_t aNumNodes);
 
-
+	__host__ int testGraphConstruction(int aGraphSize);
 };
 
 #endif // GRAPH_H_2FBC6906_D571_4BD5_AAD5_86D60FAC5013

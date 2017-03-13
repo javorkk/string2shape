@@ -281,18 +281,20 @@ public:
 class CellExtractor
 {
 public:
-	int			gridRes[3];
-	uint2*		cells;
+	int		gridRes[3];
+	uint2*	cells_ptr;
 
 	CellExtractor(
 		int aGridResX, int aGridResY, int aGridResZ,
-		thrust::device_ptr<uint2> aCellsPtr)	
+		uint2* aCellsPtr)	
 	{
 		gridRes[0] = aGridResX;
 		gridRes[1] = aGridResY;
 		gridRes[2] = aGridResZ;
-		cells = thrust::raw_pointer_cast(aCellsPtr);
+		cells_ptr = aCellsPtr;
 	}
+	
+	__host__ ~CellExtractor(void) {}
 
 	template <typename Tuple>
 	__host__ __device__	void operator()(Tuple t)
@@ -305,9 +307,10 @@ public:
 		if (myCellIndex != nextCellIndex)
 		{
 			//end of range for the cell at myCellIndex
-			cells[myCellIndex].y = (unsigned int)myId + 1u;
+			cells_ptr[myCellIndex].y = (unsigned int)myId + 1u;
 			//start of range for the cell at nextCellIndex
-			cells[nextCellIndex].x = (unsigned int)myId + 1u;
+			if (nextCellIndex < (unsigned int)gridRes[0] * gridRes[1] * gridRes[2])
+				cells_ptr[nextCellIndex].x = (unsigned int)myId + 1u;
 		}
 	}
 
@@ -373,6 +376,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 //	outputDeviceVector("Scanned  counts: ", fragment_counts);
 //#endif
 
+
 	size_t num_fragments = fragment_counts[device_indices.size()];
 
 	//allocate cell index and triangle index buffers
@@ -409,8 +413,9 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	//initilize the grid cells
 	CellExtractor extract_ranges(
 		oGrid.res[0], oGrid.res[1], oGrid.res[2],
-		oGrid.cells.data()
+		thrust::raw_pointer_cast(oGrid.cells.data())
 	);
+
 
 	thrust::counting_iterator<size_t> first_pair(0u);
 	thrust::counting_iterator<size_t> last_pair(num_fragments - 1);

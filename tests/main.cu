@@ -18,9 +18,9 @@ int main()
 		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
 		return 1;
 	}
-
+	
 	UniformGridSortBuildTest uniformGridTest;
-	int ugrid_test_result = uniformGridTest.testAll("../scenes/castle/castle.obj", 32, 16, 24);
+	int ugrid_test_result = uniformGridTest.testAll("../scenes/church/boxes.obj", 32, 16, 24);
 	if (ugrid_test_result != 0)
 	{
 		fprintf(stderr, "Uniform grid construction test failed!\n");

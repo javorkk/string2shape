@@ -66,7 +66,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFileName, WFObje
 		int faceId = (aObj.objects.begin() + objId)->x;
 		WFObject::Material mat = aObj.materials[aObj.faces[faceId].material];
 
-		output.writeDiffuseMaterial(objId, mat.diffuseCoeff.x * M_PI, mat.diffuseCoeff.y * M_PI, mat.diffuseCoeff.z * M_PI);
+		output.writeDiffuseMaterial(objId, mat.diffuseCoeff.x * (float)M_PI, mat.diffuseCoeff.y * (float)M_PI, mat.diffuseCoeff.z * (float)M_PI);
 		int offset = (int)objCenters.size() + objId * 8;
 
 		//xy quads

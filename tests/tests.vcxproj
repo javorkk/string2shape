@@ -115,6 +115,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaLink>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
     </CudaLink>
+    <CudaCompile>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -133,6 +138,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
@@ -160,6 +168,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaLink>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
     </CudaLink>
+    <CudaCompile>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -182,6 +195,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>

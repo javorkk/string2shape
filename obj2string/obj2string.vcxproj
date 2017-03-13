@@ -154,11 +154,9 @@ echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>
-      </Defines>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -183,11 +181,9 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>
-      </Defines>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -215,11 +211,9 @@ echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>
-      </Defines>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -248,11 +242,9 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <Defines>
-      </Defines>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
+      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -23,6 +23,7 @@ public:
 	void writeVertexNormal(float aX, float aY, float aZ);
 	void writeObjectHeader(int aObjId);
 	void writeTriangleIndices(int aA, int aB, int aC);
+	void writeTriangleIndices(int aA, int aB, int aC, int aNormalA, int aNormalB, int aNormalC);
 	void writePointIndex(int aA);
 	void writeLineIndices(int aA, int aB);
 	void writeDiffuseMaterial(int aId, float aR, float aG, float aB);

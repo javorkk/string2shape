@@ -66,35 +66,20 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFileName, WFObje
 		int faceId = (aObj.objects.begin() + objId)->x;
 		WFObject::Material mat = aObj.materials[aObj.faces[faceId].material];
 
-		output.writeDiffuseMaterial(objId, mat.diffuseCoeff.x, mat.diffuseCoeff.y, mat.diffuseCoeff.z);
+		output.writeDiffuseMaterial(objId, mat.diffuseCoeff.x * M_PI, mat.diffuseCoeff.y * M_PI, mat.diffuseCoeff.z * M_PI);
 		int offset = (int)objCenters.size() + objId * 8;
 
-		//output.writeTriangleIndices(offset + 0, offset + 1, offset + 3);
-		//output.writeTriangleIndices(offset + 0, offset + 3, offset + 2);
-		//output.writeTriangleIndices(offset + 1, offset + 6, offset + 2);
-		//output.writeTriangleIndices(offset + 6, offset + 1, offset + 5);
-		//output.writeTriangleIndices(offset + 4, offset + 6, offset + 7);
-		//output.writeTriangleIndices(offset + 4, offset + 7, offset + 5);
-		//output.writeTriangleIndices(offset + 2, offset + 6, offset + 3);
-		//output.writeTriangleIndices(offset + 6, offset + 7, offset + 3);
-		//output.writeTriangleIndices(offset + 0, offset + 3, offset + 7);
-		//output.writeTriangleIndices(offset + 0, offset + 7, offset + 4);
-		//output.writeTriangleIndices(offset + 0, offset + 5, offset + 1);
-		//output.writeTriangleIndices(offset + 0, offset + 4, offset + 5);
-
-
-
 		//xy quads
-		output.writeTriangleIndices(offset + 0, offset + 1, offset + 3);
-		output.writeTriangleIndices(offset + 0, offset + 3, offset + 2);
-		output.writeTriangleIndices(offset + 4, offset + 7, offset + 5);
-		output.writeTriangleIndices(offset + 4, offset + 6, offset + 7);
+		output.writeTriangleIndices(offset + 0, offset + 3, offset + 1);
+		output.writeTriangleIndices(offset + 0, offset + 2, offset + 3);
+		output.writeTriangleIndices(offset + 4, offset + 5, offset + 7);
+		output.writeTriangleIndices(offset + 4, offset + 7, offset + 6);
 
 		//yz quads
-		output.writeTriangleIndices(offset + 0, offset + 2, offset + 6);
-		output.writeTriangleIndices(offset + 0, offset + 6, offset + 4);
-		output.writeTriangleIndices(offset + 1, offset + 7, offset + 3);
-		output.writeTriangleIndices(offset + 1, offset + 5, offset + 7);
+		output.writeTriangleIndices(offset + 0, offset + 6, offset + 2);
+		output.writeTriangleIndices(offset + 0, offset + 4, offset + 6);
+		output.writeTriangleIndices(offset + 1, offset + 3, offset + 7);
+		output.writeTriangleIndices(offset + 1, offset + 7, offset + 5);
 
 		//xz quads
 		output.writeTriangleIndices(offset + 0, offset + 1, offset + 5);

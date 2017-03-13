@@ -46,7 +46,7 @@ int main()
 	}
 
 	CollisionTest collTest;
-	collTest.testAll("../scenes/church/church.obj");
+	collTest.testAll("../scenes/castle/castle.obj");
 	fprintf(stderr, "Collision detection test passed. (check collision graph)\n");
 
     // cudaDeviceReset must be called before exiting in order for profiling and

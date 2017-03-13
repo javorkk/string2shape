@@ -52,9 +52,17 @@ void ObjWriter::writeObjectHeader(int aObjId)
 void ObjWriter::writeTriangleIndices(int aA, int aB, int aC)
 {
 	objFileStream << "f ";
-	objFileStream << aA + 1 << "//" << aA + 1 << " ";
-	objFileStream << aB + 1 << "//" << aB + 1 << " ";
-	objFileStream << aC + 1 << "//" << aC + 1 << "\n";
+	objFileStream << aA + 1 << " ";
+	objFileStream << aB + 1 << " ";
+	objFileStream << aC + 1 << "\n";
+}
+
+void ObjWriter::writeTriangleIndices(int aA, int aB, int aC, int aNormalA, int aNormalB, int aNormalC)
+{
+	objFileStream << "f ";
+	objFileStream << aA + 1 << "//" << aNormalA + 1 << " ";
+	objFileStream << aB + 1 << "//" << aNormalB + 1 << " ";
+	objFileStream << aC + 1 << "//" << aNormalC + 1 << "\n";
 }
 
 void ObjWriter::writePointIndex(int aA)

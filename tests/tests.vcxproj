@@ -73,7 +73,7 @@
     <LibraryPath>..\bin\$(Configuration)$(Platform);$(LIB64);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <OutDir>$(SolutionDir)bin\$(Configuration)$(Platform)\</OutDir>
     <IntDir>build\$(Configuration)$(Platform)\</IntDir>
-    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
+    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(BIN);$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -81,21 +81,21 @@
     <LibraryPath>..\bin\$(Configuration)$(Platform);$(LIB64);$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <OutDir>$(SolutionDir)bin\$(Configuration)$(Platform)\</OutDir>
     <IntDir>build\$(Configuration)$(Platform)\</IntDir>
-    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
+    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(BIN);$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>..\obj2string;$(INCLUDE);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>..\bin\$(Configuration)$(Platform);$(LIB64);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <OutDir>$(SolutionDir)bin\$(Configuration)$(Platform)\</OutDir>
     <IntDir>build\$(Configuration)$(Platform)\</IntDir>
-    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
+    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(BIN);$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>..\obj2string;$(INCLUDE);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>..\bin\$(Configuration)$(Platform);$(LIB64);$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <OutDir>$(SolutionDir)bin\$(Configuration)$(Platform)\</OutDir>
     <IntDir>build\$(Configuration)$(Platform)\</IntDir>
-    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
+    <ExecutablePath>..\bin\$(Configuration)$(Platform);$(BIN);$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -116,9 +116,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
     </CudaLink>
     <CudaCompile>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -138,9 +136,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
@@ -169,9 +165,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
     </CudaLink>
     <CudaCompile>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -195,9 +189,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>..\obj2string\lib\$(Configuration)$(Platform)\</AdditionalLibraryDirectories>
@@ -210,9 +202,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="CollisionTest.h" />
     <ClInclude Include="GraphTest.h" />
     <ClInclude Include="UniformGridSortBuilderTest.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="UniformGridSortBuilderTest.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

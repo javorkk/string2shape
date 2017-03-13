@@ -282,7 +282,7 @@ class CellExtractor
 {
 public:
 	int		gridRes[3];
-	uint2*	cells_ptr;
+	uint*	cells_ptr;
 
 	CellExtractor(
 		int aGridResX, int aGridResY, int aGridResZ,
@@ -291,11 +291,9 @@ public:
 		gridRes[0] = aGridResX;
 		gridRes[1] = aGridResY;
 		gridRes[2] = aGridResZ;
-		cells_ptr = aCellsPtr;
+		cells_ptr = (uint*)aCellsPtr;
 	}
 	
-	__host__ ~CellExtractor(void) {}
-
 	template <typename Tuple>
 	__host__ __device__	void operator()(Tuple t)
 	{
@@ -307,10 +305,10 @@ public:
 		if (myCellIndex != nextCellIndex)
 		{
 			//end of range for the cell at myCellIndex
-			cells_ptr[myCellIndex].y = (unsigned int)myId + 1u;
+			cells_ptr[2u * myCellIndex + 1u] = (unsigned int)myId + 1u;
 			//start of range for the cell at nextCellIndex
 			if (nextCellIndex < (unsigned int)gridRes[0] * gridRes[1] * gridRes[2])
-				cells_ptr[nextCellIndex].x = (unsigned int)myId + 1u;
+				cells_ptr[2u * nextCellIndex] = (unsigned int)myId + 1u;
 		}
 	}
 

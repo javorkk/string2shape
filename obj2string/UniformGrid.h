@@ -19,9 +19,7 @@ public:
 	thrust::device_vector<unsigned int> primitives;
 
 	//uint  numPrimitiveReferences;
-
-	__host__ ~UniformGrid(void){};
-
+	
 	__host__ __device__ const float3 getResolution() const
 	{
 		float3 retval;

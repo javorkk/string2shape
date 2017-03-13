@@ -20,10 +20,10 @@ extern "C" {
 		WFObject testObj;
 
 		testObj.read(testFileName);
-	
+
 		UniformGridSortBuilder builder;
 		UniformGrid grid = builder.build(testObj, 24, 24, 24);
-		
+
 		return testFileName;
 	}
 
@@ -33,8 +33,8 @@ extern "C" {
 		testObj.read(aFilename);
 
 		UniformGridSortBuilder builder;
-		UniformGrid grid = 	builder.build(testObj, aResX, aResY, aResZ);
-		
+		UniformGrid grid = builder.build(testObj, aResX, aResY, aResZ);
+
 		return builder.test(grid, testObj);
 	}
 

@@ -3,10 +3,27 @@
 #include "CollisionDetector.h"
 #include "WFObjWriter.h"
 
+#include "DebugUtils.h"
+
 #include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 void CollisionGraphExporter::exportCollisionGraph(const char * aFileName, WFObject & aObj, Graph & aGraph) const
 {
+	size_t numNodes;
+	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
+	aGraph.toTypedAdjacencyMatrix(adjMatrixDevice, numNodes);
+
+	if (numNodes != aObj.objects.size())
+		std::cerr << "Collision graph error! Expected " << aObj.objects.size() << " nodes, got " << numNodes << ".\n";
+
+#ifdef _DEBUG
+	outputDeviceVector("adjacency matrix: ", adjMatrixDevice);
+#endif
+
+	thrust::host_vector<Graph::EdgeType> adjMatrixHost(adjMatrixDevice);
+
+
 	ObjWriter output;
 	output.init(aFileName);
 
@@ -91,7 +108,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFileName, WFObje
 	}
 
 
-	//edges
+	//spanning tree edges
 	output.writeObjectHeader((int)objCenters.size());
 	output.writeDiffuseMaterial((int)objCenters.size(), 0.8f, 0.8f, 0.8f);
 
@@ -102,9 +119,24 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFileName, WFObje
 	{
 		if (edgesA[edgeId] > edgesB[edgeId])
 			continue; // do not output duplicate edges
+		int edgeLinearId = edgesA[edgeId] + (int)numNodes * edgesB[edgeId];
+		if (adjMatrixHost[edgeLinearId] != Graph::EdgeType::SPANNING_TREE)
+			continue;
 		output.writeLineIndices(edgesA[edgeId], edgesB[edgeId]);
 	}
 
+	//removed cycle edges
+	output.writeObjectHeader((int)objCenters.size() + 1);
+	output.writeDiffuseMaterial((int)objCenters.size() + 1, 0.8f, 0.8f, 0.0f);
+	for (int edgeId = 0; edgeId < edgesA.size(); ++edgeId)
+	{
+		if (edgesA[edgeId] > edgesB[edgeId])
+			continue; // do not output duplicate edges
+		int edgeLinearId = edgesA[edgeId] + (int)numNodes * edgesB[edgeId];
+		if (adjMatrixHost[edgeLinearId] != Graph::EdgeType::CYCLE)
+			continue;
+		output.writeLineIndices(edgesA[edgeId], edgesB[edgeId]);
+	}
 
 	output.cleanup();
 }

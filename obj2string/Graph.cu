@@ -74,6 +74,68 @@ public:
 
 };
 
+class EdgeTypeMatrixWriter
+{
+public:
+	size_t stride;
+	thrust::device_ptr<Graph::EdgeType> matrix;
+	thrust::device_ptr<unsigned int> adjIntervals;
+	thrust::device_ptr<unsigned int> neighborIds;
+
+
+	EdgeTypeMatrixWriter(
+		size_t aStride,
+		thrust::device_ptr<Graph::EdgeType> aMatrix,
+		thrust::device_ptr<unsigned int> aIntervals,
+		thrust::device_ptr<unsigned int> aNeighbors
+		) :stride(aStride), matrix(aMatrix),
+		adjIntervals(aIntervals), neighborIds(aNeighbors)
+	{}
+
+	template <typename Tuple>
+	__host__ __device__	void operator()(Tuple t)
+	{
+		const unsigned int myNodeId0 = thrust::get<0>(t);
+		const unsigned int myNodeId1 = thrust::get<1>(t);
+
+		//make sure node 0 has neighbors
+		if (adjIntervals[myNodeId0] >= adjIntervals[myNodeId0 + 1])
+		{
+			matrix[myNodeId0 + myNodeId1 * stride] = Graph::EdgeType::NOT_CONNECTED;
+			return;//isolated node1
+		}
+		//make sure node 1 has neighbors
+		if (adjIntervals[myNodeId1] >= adjIntervals[myNodeId1 + 1])
+		{
+			matrix[myNodeId0 + myNodeId1 * stride] = Graph::EdgeType::NOT_CONNECTED;
+			return;//isolated node2
+		}
+		//the spanning tree connects each node to its first neighbor in the adjacency list
+		const unsigned int bestNeighbor0 = neighborIds[adjIntervals[myNodeId0]];
+		const unsigned int bestNeighbor1 = neighborIds[adjIntervals[myNodeId1]];
+		bool edgeOnTree = bestNeighbor0 == myNodeId1 || bestNeighbor1 == myNodeId0;
+
+		matrix[myNodeId0 + myNodeId1 * stride] = edgeOnTree ? Graph::EdgeType::SPANNING_TREE : Graph::EdgeType::CYCLE;
+
+		//if (bestNeighbor0 == myNodeId1 || bestNeighbor1 == myNodeId0)
+		//{
+		//	matrix[myNodeId0 + myNodeId1 * stride] = Graph::EdgeType::SPANNING_TREE;
+		//	return;
+		//}
+
+		////nodes are not on the spanning tree, if connected mark the edge as cycle
+		//bool connected = false;
+		//for (unsigned int nbrId = adjIntervals[myNodeId0] + 1; nbrId < adjIntervals[myNodeId0 + 1] && !connected; ++nbrId)
+		//{
+		//	if (neighborIds[nbrId] == myNodeId1)
+		//		connected = true;
+		//}
+		//
+		//matrix[myNodeId0 + myNodeId1 * stride] = connected ? Graph::EdgeType::CYCLE : Graph::EdgeType::NOT_CONNECTED;
+	}
+
+};
+
 class IntervalExtractor
 {
 public:
@@ -143,6 +205,22 @@ __host__ void Graph::toAdjacencyMatrix(thrust::device_vector<unsigned int>& oAdj
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin())),
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end(), adjacencyVals.end())),
 		writeEdges);
+}
+
+__host__ void Graph::toTypedAdjacencyMatrix(thrust::device_vector<EdgeType>& oAdjacencyMatrix, size_t & oStride)
+{
+	if (intervals.size() < 2u)
+		return; //emtpy graph
+
+	oStride = intervals.size() - 1u;
+	oAdjacencyMatrix = thrust::device_vector<EdgeType>(oStride * oStride, NOT_CONNECTED);
+	
+	EdgeTypeMatrixWriter writeEdgeTypes(oStride, oAdjacencyMatrix.data(), intervals.data(), adjacencyVals.data());
+
+	thrust::for_each(
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin())),
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end(), adjacencyVals.end())),
+	writeEdgeTypes);
 }
 
 __host__ void Graph::fromAdjacencyList(size_t aNumNodes)

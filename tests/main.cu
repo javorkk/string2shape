@@ -11,13 +11,13 @@
 
 int main()
 {
-	cudaError_t cudaStatus;
-	// Choose which GPU to run on, change this on a multi-GPU system.
-	cudaStatus = cudaSetDevice(0);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-		return 1;
-	}
+	//cudaError_t cudaStatus;
+	//// Choose which GPU to run on, change this on a multi-GPU system.
+	//cudaStatus = cudaSetDevice(0);
+	//if (cudaStatus != cudaSuccess) {
+	//	fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+	//	return 1;
+	//}
 	
 	UniformGridSortBuildTest uniformGridTest;
 	int ugrid_test_result = uniformGridTest.testAll("../scenes/church/boxes.obj", 32, 16, 24);
@@ -51,11 +51,11 @@ int main()
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceReset failed!");
-        return 1;
-    }
+    //cudaStatus = cudaDeviceReset();
+    //if (cudaStatus != cudaSuccess) {
+    //    fprintf(stderr, "cudaDeviceReset failed!");
+    //    return 1;
+    //}
 
     return 0;
 }

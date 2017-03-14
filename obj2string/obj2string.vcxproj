@@ -155,11 +155,15 @@
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
+copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
+echo python setup.py build_ext -l$(OutDir)obj2string
+python setup.py build_ext -l$(OutDir)obj2string
+echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
+copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -181,12 +185,16 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
+copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
+echo python setup.py build_ext -l$(OutDir)obj2string
+python setup.py build_ext -l$(OutDir)obj2string
+echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
+copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -212,11 +220,15 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
+copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
+echo python setup.py build_ext -l$(OutDir)obj2string
+python setup.py build_ext -l$(OutDir)obj2string
+echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
+copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -242,12 +254,16 @@ copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-copy "$(OutDir)obj2string.dll" "$(SolutionDir)"</Command>
+copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
+echo python setup.py build_ext -l$(OutDir)obj2string
+python setup.py build_ext -l$(OutDir)obj2string
+echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
+copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>

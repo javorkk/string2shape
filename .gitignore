@@ -13,3 +13,4 @@ scenes/
 .vs/
 tests/collision_graph.mtl
 tests/collision_graph.obj
+build/

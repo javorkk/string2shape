@@ -35,6 +35,7 @@
     <Folder Include="obj2string\" />
   </ItemGroup>
   <ItemGroup>
+    <InterpreterReference Include="{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}\3.5" />
     <InterpreterReference Include="{da5f84ed-87fa-41b3-a8d0-379f933d1fcc}\3.5" />
   </ItemGroup>
   <PropertyGroup>

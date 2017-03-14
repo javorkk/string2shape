@@ -16,7 +16,7 @@ extern "C" {
 
 	char * WFObjectToString(char * aFilename)
 	{
-		char* testFileName = "scenes/castle.obj";
+		char* testFileName = "scenes/castle/castle.obj";
 		WFObject testObj;
 
 		testObj.read(testFileName);

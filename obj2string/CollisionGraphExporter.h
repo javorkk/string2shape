@@ -11,7 +11,7 @@
 class CollisionGraphExporter
 {
 public:
-	void exportCollisionGraph(const char* aFileName, WFObject& aObj, Graph& aGraph) const;
+	void exportCollisionGraph(const char* aFilePath, WFObject& aObj, Graph& aGraph) const;
 };
 
 

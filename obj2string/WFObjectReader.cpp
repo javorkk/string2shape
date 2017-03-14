@@ -257,7 +257,7 @@ void WFObject::read(const char* aFileName)
 
     materialMap.insert(std::make_pair(defaultMaterial.name, (size_t)0));
 
-    if (true || fileExtension == std::string(".obj"))
+    if (fileExtension == std::string(".obj"))
     {
         loadWFObj(aFileName);
         //normalize reflectance coefficients

@@ -53,7 +53,7 @@ extern "C" {
 		Graph testGraph = detector.computeCollisionGraph(testObj, 0.05f);
 
 		CollisionGraphExporter exporter;
-		exporter.exportCollisionGraph("collision_graph", testObj, testGraph);
+		exporter.exportCollisionGraph(aFilename, testObj, testGraph);
 
 		return 0;
 	}

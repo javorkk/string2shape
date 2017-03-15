@@ -10,8 +10,19 @@
 
 class CollisionDetector
 {
+	float totalTime;
+	float initTime;
+	float trimmTime;
+	float adjMatTime;
+	float countTime;
+	float writeTime;
+	float sortTime;
+	float uniqueTime;
+	float graphTime;
+
 public:
-	Graph computeCollisionGraph(WFObject& aObj, float aRelativeThreshold) const;
+	__host__ Graph computeCollisionGraph(WFObject& aObj, float aRelativeThreshold);
+	__host__ void stats();
 };
 
 

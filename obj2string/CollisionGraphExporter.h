@@ -10,8 +10,11 @@
 
 class CollisionGraphExporter
 {
+	float totalTime;
 public:
-	void exportCollisionGraph(const char* aFilePath, WFObject& aObj, Graph& aGraph) const;
+	__host__ void exportCollisionGraph(const char* aFilePath, WFObject& aObj, Graph& aGraph);
+	__host__ void stats();
+
 };
 
 

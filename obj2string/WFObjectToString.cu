@@ -34,6 +34,7 @@ extern "C" {
 
 		UniformGridSortBuilder builder;
 		UniformGrid grid = builder.build(testObj, aResX, aResY, aResZ);
+		builder.stats();
 
 		return builder.test(grid, testObj);
 	}
@@ -51,9 +52,11 @@ extern "C" {
 
 		CollisionDetector detector;
 		Graph testGraph = detector.computeCollisionGraph(testObj, 0.05f);
+		detector.stats();
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, testObj, testGraph);
+		exporter.stats();
 
 		return 0;
 	}

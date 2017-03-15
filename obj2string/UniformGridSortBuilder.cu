@@ -20,6 +20,8 @@
 
 #include "DebugUtils.h"
 
+#include "Timer.h"
+
 class FragmentCounter
 {
 public:
@@ -316,6 +318,8 @@ public:
 
 __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const int aResX, const int aResY, const int aResZ)
 {
+	cudastd::timer timer;
+
 	UniformGrid oGrid;
 	//initialize grid resolution
 	oGrid.res[0] = thrust::max<int>(aResX, 1);
@@ -432,6 +436,12 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 //	outputDeviceVector("Grid cells y: ", cells_y);
 //#endif
 
+	totalTime = timer.get();
+	timer.cleanup();
+
+	resX = aResX;
+	resY = aResY;
+	resZ = aResZ;
 	return oGrid;
 }
 
@@ -519,4 +529,9 @@ __host__ int UniformGridSortBuilder::test(UniformGrid& aGrid, WFObject & aGeomet
 		}
 	}
 	return 0;
+}
+
+__host__ void UniformGridSortBuilder::stats()
+{
+	std::cerr << "[" << resX << " x " << resY << " x " << resZ << "] grid build in " << totalTime << "ms\n";
 }

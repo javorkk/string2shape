@@ -9,6 +9,7 @@
 #include <thrust/fill.h>
 
 #include "DebugUtils.h"
+#include "Timer.h"
 
 struct isEdge
 { 
@@ -158,6 +159,26 @@ public:
 
 };
 
+class MatrixRowCopy
+{
+	unsigned int stride;
+	thrust::device_ptr<unsigned int> matPrefix;
+	thrust::device_ptr<unsigned int> intervals;
+public:
+	MatrixRowCopy(
+		unsigned int aStride,
+		thrust::device_ptr<unsigned int> aPrefix,
+		thrust::device_ptr<unsigned int> aIntervals
+	) : stride(aStride), matPrefix(aPrefix), intervals(aIntervals)
+	{}
+
+	__host__ __device__	void operator()(unsigned int aRowId)
+	{
+		intervals[aRowId] = matPrefix[stride * aRowId];
+	}
+
+};
+
 
 __host__ void Graph::fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aAdjacencyMatrix, size_t aStride)
 {
@@ -170,10 +191,17 @@ __host__ void Graph::fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aA
 	thrust::exclusive_scan(matrixPrefix.begin(), matrixPrefix.end(), matrixPrefix.begin());
 
 	intervals = thrust::device_vector<unsigned int>(aStride + 1);
-	for (size_t rowId = 0; rowId < aStride + 1; ++rowId)
-	{
-		intervals[rowId] = matrixPrefix[aStride * rowId];
-	}
+	
+	thrust::counting_iterator<size_t> firstRowId(0u);
+	thrust::counting_iterator<size_t> lastRowIdP1(aStride + 1);
+	MatrixRowCopy copyOp(aStride, matrixPrefix.data(), intervals.data());
+	thrust::for_each(firstRowId, lastRowIdP1, copyOp);
+
+	//for (size_t rowId = 0; rowId < aStride + 1; ++rowId)
+	//{
+	//	intervals[rowId] = matrixPrefix[aStride * rowId];
+	//}
+
 
 	unsigned int numEdges = matrixPrefix[aAdjacencyMatrix.size()];
 
@@ -263,6 +291,9 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 			}
 		}
 	}
+
+	cudastd::timer timer;
+
 	thrust::device_vector<unsigned int> adjacencyMatrixDevice(aGraphSize * aGraphSize);
 	thrust::copy(adjacencyMatrixHost.begin(), adjacencyMatrixHost.end(), adjacencyMatrixDevice.begin());
 	//Graph testGraph;
@@ -272,6 +303,10 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 	size_t newGrapSize;
 	//testGraph.toAdjacencyMatrix(adjacencyMatrixDevice, newGrapSize);
 	toAdjacencyMatrix(adjacencyMatrixDevice, newGrapSize);
+	
+	float totalTime = timer.get();
+	timer.cleanup();
+	
 	for (size_t i = 0; i < aGraphSize * aGraphSize; ++i)
 	{
 		if (adjacencyMatrixDevice[i] != adjacencyMatrixHost[i])
@@ -283,6 +318,8 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 			return 1;
 		}
 	}
+
+	std::cerr << "Converted graph to and from adjacency matrix in "<< totalTime << "ms\n";
 
 	return 0;
 }

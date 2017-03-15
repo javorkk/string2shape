@@ -4,6 +4,7 @@
 #include "WFObjWriter.h"
 
 #include "DebugUtils.h"
+#include "Timer.h"
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
@@ -30,8 +31,10 @@ std::string getDirName(const std::string& _name)
 }
 
 
-void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObject & aObj, Graph & aGraph) const
+void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObject & aObj, Graph & aGraph)
 {
+	cudastd::timer timer;
+
 	size_t numNodes;
 	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
 	aGraph.toTypedAdjacencyMatrix(adjMatrixDevice, numNodes);
@@ -168,4 +171,12 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 	}
 
 	output.cleanup();
+
+	totalTime = timer.get();
+	timer.cleanup();
+}
+
+__host__ void CollisionGraphExporter::stats()
+{
+	std::cerr << "Collision graph exported in " << totalTime << "ms\n";
 }

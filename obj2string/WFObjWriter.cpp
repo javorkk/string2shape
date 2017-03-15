@@ -27,8 +27,15 @@ void ObjWriter::init(const char * aFilename)
 	}
 #endif
 
+	std::string fileNameMtl = aFileNameStr + ".mtl";
+	if (fileNameMtl.find_last_of("/\\") == std::string::npos)
+		fileNameMtl = fileNameMtl.substr(0, fileNameMtl.size() - 5);
+	else
+		fileNameMtl = fileNameMtl.substr(fileNameMtl.find_last_of("/\\") + 1, fileNameMtl.size() - fileNameMtl.find_last_of("/\\") - 5);
+
+
 	objFileStream << "mtllib ";
-	objFileStream << aFileNameStr;
+	objFileStream << fileNameMtl;
 	objFileStream << ".mtl\n";
 }
 

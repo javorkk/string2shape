@@ -17,6 +17,7 @@
 #include <thrust/unique.h>
 
 #include "DebugUtils.h"
+#include "Timer.h"
 #include <thrust/functional.h>
 
 class nonEmptyCell
@@ -31,6 +32,18 @@ public:
 		return range_start < range_end;
 	}
 
+};
+
+class nonEmptyRange
+{
+public:
+
+	__host__ __device__	bool operator()(const uint2& aCellRange)
+	{
+		const unsigned int range_start = aCellRange.x;
+		const unsigned int range_end = aCellRange.y;
+		return range_start < range_end;
+	}
 };
 
 class CellTrimmer
@@ -67,6 +80,57 @@ public:
 			return aCellRange;
 		else
 			return make_uint2(0u,0u);
+	}
+
+};
+
+class CollisionOperator
+{
+public:
+	thrust::device_ptr<unsigned int>  objIds;
+	thrust::device_ptr<unsigned int>  primIds;
+
+	unsigned int stride;
+	thrust::device_ptr<unsigned int>  adjMatrix;
+
+	CollisionOperator(
+		thrust::device_ptr<unsigned int> aObjIds,
+		thrust::device_ptr<unsigned int> aPrimIds,
+		unsigned int					 aStride,
+		thrust::device_ptr<unsigned int> aMatrix
+	) :
+		objIds(aObjIds),
+		primIds(aPrimIds),
+		stride(aStride),
+		adjMatrix(aMatrix)
+	{}
+
+	__host__ __device__	void operator()(const uint2& aCellRange)
+	{
+		if (aCellRange.x >= aCellRange.y)
+			return;
+
+		uint2 lastRecordedPair = make_uint2(objIds[primIds[aCellRange.x]], objIds[primIds[aCellRange.x]]);
+		for (unsigned int refId = aCellRange.x; refId < aCellRange.y; ++refId)
+		{
+			unsigned int myPrimId = primIds[refId];
+			unsigned int myObjId = objIds[myPrimId];
+			for (unsigned int otherRefId = refId + 1; otherRefId < aCellRange.y; ++otherRefId)
+			{
+				unsigned int otherPrimId = primIds[otherRefId];
+				unsigned int otherObjId = objIds[primIds[otherRefId]];
+				if (myObjId != otherObjId &&
+					!(myObjId == lastRecordedPair.x && otherObjId == lastRecordedPair.y ||
+						myObjId == lastRecordedPair.y && otherObjId == lastRecordedPair.x)
+					)
+				{
+					adjMatrix[myObjId + stride * otherObjId] = 1u;
+					adjMatrix[otherObjId + stride * myObjId] = 1u;
+					lastRecordedPair.x = myObjId;
+					lastRecordedPair.y = otherObjId;
+				}
+			}
+		}
 	}
 
 };
@@ -154,6 +218,7 @@ public:
 			unsigned int myObjId = objIds[primIds[refId]];
 			for (unsigned int otherRefId = refId + 1; otherRefId < aCellRange.y; ++otherRefId)
 			{
+
 				unsigned int otherObjId = objIds[primIds[otherRefId]];
 				if (myObjId != otherObjId && 
 					!(myObjId == lastRecordedPair.x && otherObjId == lastRecordedPair.y ||
@@ -194,8 +259,11 @@ public:
 };
 
 
-Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeThreshold) const
+Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeThreshold)
 {
+	cudastd::timer timer;
+	cudastd::timer intermTimer;
+
 	//compute scene diagonal
 	float3 minBound = rep( FLT_MAX);
 	float3 maxBound = rep(-FLT_MAX);
@@ -210,7 +278,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 	UniformGridSortBuilder builder;
 	UniformGrid grid = builder.build(aObj, (int)res.x, (int)res.y, (int)res.z);
-
+	
 //#ifdef _DEBUG
 //	builder.test(grid, aObj);
 //#endif
@@ -230,6 +298,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	thrust::device_vector<unsigned int> objectIdPerFaceDevice(aObj.faces.size());
 	thrust::copy(objectIdPerFaceHost.begin(), objectIdPerFaceHost.end(), objectIdPerFaceDevice.begin());
 
+	initTime = intermTimer.get();
+	intermTimer.start();
+
 //#ifdef _DEBUG
 //	outputDeviceVector("Obj id per face: ", objectIdPerFaceDevice);
 //#endif
@@ -238,6 +309,11 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	thrust::device_vector<uint2> trimmed_cells(grid.cells.size());
 	CellTrimmer trimmCells(objectIdPerFaceDevice.data(), grid.primitives.data());
 	thrust::transform(grid.cells.begin(), grid.cells.end(), trimmed_cells.begin(), trimmCells);
+
+	auto trimmed_cells_end = thrust::copy_if(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells.begin(), nonEmptyRange());
+
+	trimmTime = intermTimer.get();
+	intermTimer.start();
 
 //#ifdef _DEBUG
 //	thrust::device_vector<unsigned int> trimmed_cells_x(grid.cells.size());
@@ -261,6 +337,25 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 //	outputDeviceVector("Non-empty cells y: ", non_empty_cells_y);
 //#endif // _DEBUG
 
+#define SINGLE_KERNEL_COLLISION
+#ifdef  SINGLE_KERNEL_COLLISION //faster than multi-kernel approach
+	thrust::device_vector<unsigned int> adjMatrix(aObj.objects.size() * aObj.objects.size());
+	CollisionOperator collide(
+		objectIdPerFaceDevice.data(),
+		grid.primitives.data(),
+		(unsigned int)aObj.objects.size(),
+		adjMatrix.data());
+
+	thrust::for_each(trimmed_cells.begin(), trimmed_cells_end, collide);
+
+	adjMatTime = intermTimer.get();
+	intermTimer.start();
+
+	//build a collision graph
+	Graph result;
+
+	result.fromAdjacencyMatrix(adjMatrix, aObj.objects.size());
+#else
 	//count all obj-obj collisions
 	thrust::device_vector<unsigned int> collision_counts(grid.cells.size() + 1);
 	CollisionCounter countCollisions(objectIdPerFaceDevice.data(), grid.primitives.data());
@@ -278,6 +373,10 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 	//allocate storage for obj-obj collisions
 	unsigned int numCollisions = collision_counts[collision_counts.size() - 1];
+
+	countTime = intermTimer.get();
+	intermTimer.start();
+
 	thrust::device_vector<unsigned int> collision_keys(numCollisions);
 	thrust::device_vector<unsigned int> collision_vals(numCollisions);
 
@@ -295,6 +394,10 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	outputDeviceVector("Collision vals: ", collision_vals);
 #endif
 
+	writeTime = intermTimer.get();
+	intermTimer.start();
+
+
 	//sort all obj-obj collisions
 	//sort the pairs
 	thrust::sort_by_key(collision_vals.begin(), collision_vals.end(), collision_keys.begin());
@@ -305,6 +408,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	outputDeviceVector("Sorted vals: ", collision_vals);
 #endif
 
+	sortTime = intermTimer.get();
+	intermTimer.start();
+
 	//remove all duplicate obj-obj collisions
 	//thrust::device_vector<unsigned int> collision_keys_unique;
 	//thrust::device_vector<unsigned int> collision_vals_unique;
@@ -314,6 +420,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 		thrust::make_zip_iterator(thrust::make_tuple(collision_keys.end(), collision_vals.end())),
 		begin_iterator,
 		isEqualCollision());
+
+	uniqueTime = intermTimer.get();
+	intermTimer.start();
 
 	//build a collision graph
 	Graph result;
@@ -328,6 +437,34 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	);
 
 	result.fromAdjacencyList(aObj.objects.size());
-	
+
+#endif
+
+	graphTime = intermTimer.get();
+	intermTimer.cleanup();
+
+	totalTime = timer.get();
+	timer.cleanup();
+
+	builder.stats();
+
 	return result;
 }
+
+__host__ void CollisionDetector::stats()
+{
+	std::cerr << "Collision detection in " <<  totalTime << "ms\n";
+	std::cerr << "Initialization in      " <<   initTime << "ms\n";
+	std::cerr << "Empty cells removal in " <<  trimmTime << "ms\n";
+#ifdef SINGLE_KERNEL_COLLISION
+	std::cerr << "Adjacency matrix in    " << adjMatTime << "ms\n";
+#else
+	std::cerr << "Collisions count in    " <<  countTime << "ms\n";
+	std::cerr << "Collisions write in    " <<  writeTime << "ms\n";
+	std::cerr << "Two-way sort in        " <<   sortTime << "ms\n";
+	std::cerr << "Duplicate removal in   " << uniqueTime << "ms\n";
+#endif
+	std::cerr << "Graph extraction in    " <<  graphTime << "ms\n";
+
+}
+

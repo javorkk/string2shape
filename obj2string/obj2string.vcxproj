@@ -29,6 +29,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Timer.h" />
     <ClInclude Include="UniformGrid.h" />
     <ClInclude Include="UniformGridSortBuilder.h" />
     <ClInclude Include="WFObject.h" />

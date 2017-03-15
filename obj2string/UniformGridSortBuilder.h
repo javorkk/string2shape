@@ -10,7 +10,10 @@
 
 class UniformGridSortBuilder
 {
-
+	int resX;
+	int resY;
+	int resZ;
+	float totalTime;
 public:
 
 	__host__ UniformGrid build(
@@ -22,6 +25,8 @@ public:
 	__host__ int test(
 		UniformGrid&		aGrid,
 		WFObject&			aGeometry);
+
+	__host__ void stats();
 
 };
 

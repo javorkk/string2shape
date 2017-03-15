@@ -7,10 +7,12 @@
 #include "GraphTest.h"
 #include "CollisionTest.h"
 
+#include <thrust/detail/config.h>
+
 int main()
 {
 
-#if THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+#if 0 //THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
 	cudaError_t cudaStatus;
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	cudaStatus = cudaSetDevice(0);
@@ -53,7 +55,7 @@ int main()
 
 	std::cerr << "Collision detection test passed. \n";
 
-#if THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+#if 0// THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
      //cudaDeviceReset must be called before exiting in order for profiling and
      //tracing tools such as Nsight and Visual Profiler to show complete traces.
     cudaStatus = cudaDeviceReset();

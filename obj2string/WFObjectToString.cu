@@ -51,7 +51,7 @@ extern "C" {
 		testObj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph testGraph = detector.computeCollisionGraph(testObj, 0.05f);
+		Graph testGraph = detector.computeCollisionGraph(testObj, 0.01f);
 		detector.stats();
 
 		CollisionGraphExporter exporter;

@@ -37,7 +37,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 
 	size_t numNodes;
 	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
-	aGraph.toTypedAdjacencyMatrix(adjMatrixDevice, numNodes);
+	aGraph.toSpanningTree(adjMatrixDevice, numNodes);
 
 	if (numNodes != aObj.objects.size())
 		std::cerr << "Collision graph error! Expected " << aObj.objects.size() << " nodes, got " << numNodes << ".\n";

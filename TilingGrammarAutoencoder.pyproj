@@ -6,7 +6,7 @@
     <ProjectGuid>ec291c1b-22f6-480f-bd4c-4220175c567f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>TilingGrammarAutoencoder.py</StartupFile>
-    <SearchPath>$(SolutionDir)\bin\ReleaseWin32;$(SolutionDir)\bin\Releasex64;$(SolutionDir)\obj2string\lib\Releasex64;$(SolutionDir)\obj2string\lib\ReleaseWin32</SearchPath>
+    <SearchPath>$(SolutionDir)\bin\Releasex64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>TilingGrammarAutoencoder</Name>
@@ -35,6 +35,7 @@
     <Folder Include="obj2string\" />
   </ItemGroup>
   <ItemGroup>
+    <InterpreterReference Include="{9a7a9026-48c1-4688-9d5d-e5699d47d074}\3.5" />
     <InterpreterReference Include="{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}\3.5" />
     <InterpreterReference Include="{da5f84ed-87fa-41b3-a8d0-379f933d1fcc}\3.5" />
   </ItemGroup>

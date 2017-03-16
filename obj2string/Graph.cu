@@ -7,6 +7,7 @@
 #include <thrust/scan.h>
 #include <thrust/transform_scan.h>
 #include <thrust/fill.h>
+#include <thrust/sequence.h>
 
 #include "DebugUtils.h"
 #include "Timer.h"
@@ -137,6 +138,154 @@ public:
 
 };
 
+class EdgeIdMatrixVoter
+{
+public:
+	unsigned int stride;
+	thrust::device_ptr<unsigned int> matrix;
+	thrust::device_ptr<unsigned int> adjIntervals;
+	thrust::device_ptr<unsigned int> neighborIds;
+	thrust::device_ptr<unsigned int> superNodeIds;
+
+
+	EdgeIdMatrixVoter(
+		size_t aStride,
+		thrust::device_ptr<unsigned int> aMatrix,
+		thrust::device_ptr<unsigned int> aIntervals,
+		thrust::device_ptr<unsigned int> aNeighbors,
+		thrust::device_ptr<unsigned int> aSuperNodeIds
+	) :stride((unsigned int)aStride), matrix(aMatrix),
+		adjIntervals(aIntervals), neighborIds(aNeighbors),
+		superNodeIds(aSuperNodeIds)
+	{}
+
+	__host__ __device__	void operator()(const unsigned int& aNodeId)
+	{
+		const unsigned int myNodeId = aNodeId;
+		const unsigned int mySuperNodeId = superNodeIds[myNodeId];
+
+		for (unsigned int edgeId = adjIntervals[myNodeId]; edgeId < adjIntervals[myNodeId + 1]; ++edgeId)
+		{
+			const unsigned int nbrNodeId = neighborIds[edgeId];
+			const unsigned int nbrSuperNodeId = superNodeIds[nbrNodeId];
+
+			if (mySuperNodeId == nbrSuperNodeId)
+				continue;
+			//found an edge connecting different super nodes
+			//try to write it the adj matrix
+			const unsigned int fistSuperNodeId   = min(mySuperNodeId, nbrSuperNodeId);
+			const unsigned int secondSuperNodeId = max(mySuperNodeId, nbrSuperNodeId);
+			//will overwrite other edges connecting the same two super nodes
+			//matrix[fistSuperNodeId + stride * secondSuperNodeId] = edgeId;
+			matrix[secondSuperNodeId + stride * fistSuperNodeId] = edgeId;
+
+			break;
+		}
+	}
+};
+
+class EdgeFlagSetter
+{
+public:
+	unsigned int stride;
+	unsigned int numEdges;
+
+	thrust::device_ptr<unsigned int> matrix;
+	//thrust::device_ptr<unsigned int> adjIntervals;
+	//thrust::device_ptr<unsigned int> neighborIds;
+	thrust::device_ptr<unsigned int> superNodeIds;
+	thrust::device_ptr<unsigned int> edgeFlags;
+
+
+	EdgeFlagSetter(
+		size_t aStride,
+		thrust::device_ptr<unsigned int> aMatrix,
+		size_t aNumEdges,
+		//thrust::device_ptr<unsigned int> aIntervals,
+		//thrust::device_ptr<unsigned int> aNeighbors,
+		thrust::device_ptr<unsigned int> aSuperNodeIds,
+		thrust::device_ptr<unsigned int> aEdgeFlags
+	) : stride((unsigned int)aStride), 
+		matrix(aMatrix),
+		numEdges((unsigned int)aNumEdges),
+		superNodeIds(aSuperNodeIds),
+		edgeFlags(aEdgeFlags)
+	{}
+
+	__host__ __device__	void operator()(const unsigned int& aNodePairId)
+	{
+		const unsigned int myNodeId0 = aNodePairId % stride;
+		const unsigned int myNodeId1 = aNodePairId / stride;
+
+		const unsigned int mySuperNodeId0 = superNodeIds[myNodeId0];
+		const unsigned int mySuperNodeId1 = superNodeIds[myNodeId1];
+		
+		const unsigned int fistSuperNodeId   = min(mySuperNodeId0, mySuperNodeId1);
+		const unsigned int secondSuperNodeId = max(mySuperNodeId0, mySuperNodeId1);
+
+		const unsigned int edgeId = matrix[secondSuperNodeId + stride * fistSuperNodeId];
+
+		if (edgeId >= numEdges) 
+			return; 
+		
+		const unsigned int edgeFlag = edgeFlags[edgeId];
+
+		if (edgeFlag != 0)
+			return;
+
+		//super nodes are connected via this edge
+		//add edge to spanning tree and merge the two supernodes
+		edgeFlags[edgeId] = 1u;
+		superNodeIds[secondSuperNodeId] = fistSuperNodeId;
+		//set a flag indicating that we merged at least one super-node-pair
+		superNodeIds[stride] = 1;
+	}
+};
+
+class SuperNodeIdUpdater
+{
+public:
+	thrust::device_ptr<unsigned int> superNodeIds;
+
+	SuperNodeIdUpdater(thrust::device_ptr<unsigned int> aSuperNodeIds) : 
+		superNodeIds(aSuperNodeIds)
+	{}
+
+	__host__ __device__	void operator()(const unsigned int& aNodeId)
+	{
+		const unsigned int mySuperNodeId = superNodeIds[aNodeId];
+		const unsigned int itsSuperNodeId = superNodeIds[mySuperNodeId];
+		superNodeIds[aNodeId] = itsSuperNodeId;
+	}
+};
+
+
+class SpanningTreeMatrixWriter
+{
+public:
+	size_t stride;
+	thrust::device_ptr<Graph::EdgeType> matrix;
+
+
+	SpanningTreeMatrixWriter(
+		size_t aStride,
+		thrust::device_ptr<Graph::EdgeType> aMatrix
+	) :stride(aStride), matrix(aMatrix)
+	{}
+
+	template <typename Tuple>
+	__host__ __device__	void operator()(Tuple t)
+	{
+		const unsigned int myNodeId0 = thrust::get<0>(t);
+		const unsigned int myNodeId1 = thrust::get<1>(t);
+		const unsigned int edgeFlag  = thrust::get<2>(t);
+
+		matrix[myNodeId0 + myNodeId1 * stride] = edgeFlag != 0 ? Graph::EdgeType::SPANNING_TREE : Graph::EdgeType::CYCLE;
+		matrix[myNodeId1 + myNodeId0 * stride] = edgeFlag != 0 ? Graph::EdgeType::SPANNING_TREE : Graph::EdgeType::CYCLE;
+	}
+
+};
+
 class IntervalExtractor
 {
 public:
@@ -249,6 +398,78 @@ __host__ void Graph::toTypedAdjacencyMatrix(thrust::device_vector<EdgeType>& oAd
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin())),
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end(), adjacencyVals.end())),
 	writeEdgeTypes);
+}
+
+__host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyMatrix, size_t & oStride)
+{
+	if (intervals.size() < 2u)
+		return; //emtpy graph
+
+	cudastd::timer timer;
+
+	oStride = intervals.size() - 1u;
+	const unsigned int numEdges = adjacencyVals.size();
+	thrust::device_vector<unsigned int> edgeFlags(numEdges, 0u);
+	thrust::device_vector<unsigned int> superNodeIds(oStride + 1); //last element is a termination flag
+	thrust::sequence(superNodeIds.begin(), superNodeIds.end());
+
+	thrust::device_vector<unsigned int> adjMatrix(oStride * oStride, numEdges);
+
+	EdgeIdMatrixVoter edgeVote(oStride, adjMatrix.data(), intervals.data(), adjacencyVals.data(), superNodeIds.data());
+
+	EdgeFlagSetter setFlag(oStride, adjMatrix.data(), numEdges, superNodeIds.data(), edgeFlags.data());
+
+	SuperNodeIdUpdater updateSuperNodeId(superNodeIds.data());
+
+
+	for (size_t numIterations = 0; numIterations < (oStride + 1) / 2; ++numIterations)
+	{
+		thrust::counting_iterator<unsigned int> firstNode(0u);
+		thrust::counting_iterator<unsigned int> lastNode(oStride);
+
+		thrust::for_each(firstNode, lastNode, edgeVote);
+
+#ifdef _DEBUG
+		outputDeviceVector("adj matrix: ", adjMatrix);	
+#endif
+		superNodeIds[oStride] = 0;
+
+		thrust::counting_iterator<unsigned int> firstNodePair(0u);
+		thrust::counting_iterator<unsigned int> lastNodePair(oStride * oStride);
+
+		thrust::for_each(firstNodePair,	lastNodePair, setFlag);
+
+#ifdef _DEBUG
+		outputDeviceVector("edge flags: ", edgeFlags);
+#endif
+
+		if (superNodeIds[oStride] != 0)
+		{
+			thrust::for_each(firstNode, lastNode, updateSuperNodeId);
+#ifdef _DEBUG
+			outputDeviceVector("supernode ids: ", superNodeIds);
+#endif
+		}
+		else
+			break;
+	}
+
+	superNodeIds.clear();
+	adjMatrix.clear();
+
+	//write output
+	oAdjacencyMatrix = thrust::device_vector<EdgeType>(oStride * oStride, NOT_CONNECTED);
+
+	SpanningTreeMatrixWriter writeEdgeTypes(oStride, oAdjacencyMatrix.data());
+
+	thrust::for_each(
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin(), edgeFlags.begin())),
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end(), adjacencyVals.end(), edgeFlags.end())),
+		writeEdgeTypes);
+
+	float totalTime = timer.get();
+	timer.cleanup();
+	std::cerr << "Spanning tree computed in " << totalTime << "ms\n";
 }
 
 __host__ void Graph::fromAdjacencyList(size_t aNumNodes)

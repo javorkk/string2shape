@@ -46,7 +46,9 @@ public:
 	__host__ void toAdjacencyMatrix(thrust::device_vector<unsigned int>& oAdjacencyMatrix, size_t& oStride);
 
 	__host__ void toTypedAdjacencyMatrix(thrust::device_vector<EdgeType>& oAdjacencyMatrix, size_t& oStride);
-	
+
+	__host__ void toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyMatrix, size_t& oStride);
+
 	//assumes that the lists are copied in adjacencyKeys and adjacencyVals
 	__host__ void fromAdjacencyList(size_t aNumNodes);
 

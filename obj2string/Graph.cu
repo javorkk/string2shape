@@ -259,15 +259,40 @@ public:
 	}
 };
 
-
-class SpanningTreeMatrixWriter
+class SpanningTreeEdgeInitializer
 {
 public:
 	size_t stride;
 	thrust::device_ptr<Graph::EdgeType> matrix;
 
 
-	SpanningTreeMatrixWriter(
+	SpanningTreeEdgeInitializer(
+		size_t aStride,
+		thrust::device_ptr<Graph::EdgeType> aMatrix
+	) :stride(aStride), matrix(aMatrix)
+	{}
+
+	template <typename Tuple>
+	__host__ __device__	void operator()(Tuple t)
+	{
+		const unsigned int myNodeId0 = thrust::get<0>(t);
+		const unsigned int myNodeId1 = thrust::get<1>(t);
+		const unsigned int edgeFlag = thrust::get<2>(t);
+
+		matrix[myNodeId0 + myNodeId1 * stride] = Graph::EdgeType::CYCLE;
+		matrix[myNodeId1 + myNodeId0 * stride] = Graph::EdgeType::CYCLE;
+	}
+
+};
+
+class SpanningTreeEdgeWriter
+{
+public:
+	size_t stride;
+	thrust::device_ptr<Graph::EdgeType> matrix;
+
+
+	SpanningTreeEdgeWriter(
 		size_t aStride,
 		thrust::device_ptr<Graph::EdgeType> aMatrix
 	) :stride(aStride), matrix(aMatrix)
@@ -280,8 +305,11 @@ public:
 		const unsigned int myNodeId1 = thrust::get<1>(t);
 		const unsigned int edgeFlag  = thrust::get<2>(t);
 
-		matrix[myNodeId0 + myNodeId1 * stride] = edgeFlag != 0 ? Graph::EdgeType::SPANNING_TREE : Graph::EdgeType::CYCLE;
-		matrix[myNodeId1 + myNodeId0 * stride] = edgeFlag != 0 ? Graph::EdgeType::SPANNING_TREE : Graph::EdgeType::CYCLE;
+		if (edgeFlag != 0)
+		{
+			matrix[myNodeId0 + myNodeId1 * stride] = Graph::EdgeType::SPANNING_TREE;
+			matrix[myNodeId1 + myNodeId0 * stride] = Graph::EdgeType::SPANNING_TREE;
+		}
 	}
 
 };
@@ -460,7 +488,14 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 	//write output
 	oAdjacencyMatrix = thrust::device_vector<EdgeType>(oStride * oStride, NOT_CONNECTED);
 
-	SpanningTreeMatrixWriter writeEdgeTypes(oStride, oAdjacencyMatrix.data());
+	SpanningTreeEdgeInitializer initEdgeTypes(oStride, oAdjacencyMatrix.data());
+
+	thrust::for_each(
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin(), edgeFlags.begin())),
+		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end(), adjacencyVals.end(), edgeFlags.end())),
+		initEdgeTypes);
+
+	SpanningTreeEdgeWriter writeEdgeTypes(oStride, oAdjacencyMatrix.data());
 
 	thrust::for_each(
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin(), edgeFlags.begin())),

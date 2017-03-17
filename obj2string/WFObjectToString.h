@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-__declspec(dllexport) extern char * WFObjectToString(char * aFilename);
+__declspec(dllexport) extern const char * WFObjectToString(char * aFilename);
 
 __declspec(dllexport) extern int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ);
 

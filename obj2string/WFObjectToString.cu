@@ -8,23 +8,23 @@
 #include "Graph.h"
 #include "CollisionDetector.h"
 #include "CollisionGraphExporter.h"
+#include "Graph2String.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	char * WFObjectToString(char * aFilename)
+	const char * WFObjectToString(char * aFilename)
 	{
-		char* testFileName = "scenes/castle/castle.obj";
-		WFObject testObj;
+		WFObject obj;
+		obj.read(aFilename);
 
-		testObj.read(testFileName);
+		CollisionDetector detector;
+		Graph graph = detector.computeCollisionGraph(obj, 0.01f);
 
-		UniformGridSortBuilder builder;
-		UniformGrid grid = builder.build(testObj, 24, 24, 24);
-
-		return testFileName;
+		GraphToStringConverter converter;
+		return converter(obj, graph).c_str();
 	}
 
 	int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ)

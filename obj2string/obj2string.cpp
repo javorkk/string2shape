@@ -6,9 +6,9 @@
 extern "C" {
 #endif
 
-char * obj2string(char * aFilename)
+const char * obj2string(char * aFilename)
 {	
-	char * retval = WFObjectToString(aFilename);
+	const char * retval = WFObjectToString(aFilename);
 	return retval;
 }
 
@@ -17,7 +17,6 @@ char * obj2string(char * aFilename)
 static PyObject * obj2string_wrapper(PyObject * self, PyObject * args)
 {
 	char * input;
-	char * result;
 	PyObject * ret;
 
 	// parse arguments
@@ -26,7 +25,7 @@ static PyObject * obj2string_wrapper(PyObject * self, PyObject * args)
 	}
 
 	// run the actual function
-	result = obj2string(input);
+	const char* result = obj2string(input);
 
 	// build the resulting string into a Python object.
 	ret = PyUnicode_FromString(result);

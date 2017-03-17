@@ -19,6 +19,10 @@ public:
 	//edge types : 0 not connected, 1 spanning tree, 2 cycle
 	enum EdgeType {NOT_CONNECTED = 0, SPANNING_TREE = 1, CYCLE = 2};
 
+	__host__ __device__ FORCE_INLINE size_t numNodes() const { return intervals.size() > 1u ? intervals.size() - 1u : 0u; }
+
+	__host__ __device__ FORCE_INLINE size_t numEdges() const { return adjacencyVals.size(); }
+
 	__host__ __device__ FORCE_INLINE unsigned int neighborsBegin(const unsigned int aNodeId)
 	{
 		if (aNodeId >= intervals.size() - 2)
@@ -44,9 +48,7 @@ public:
 	__host__ void fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aAdjacencyMatrix, size_t aStride);
 	
 	__host__ void toAdjacencyMatrix(thrust::device_vector<unsigned int>& oAdjacencyMatrix, size_t& oStride);
-
-	__host__ void toTypedAdjacencyMatrix(thrust::device_vector<EdgeType>& oAdjacencyMatrix, size_t& oStride);
-
+	
 	__host__ void toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyMatrix, size_t& oStride);
 
 	//assumes that the lists are copied in adjacencyKeys and adjacencyVals

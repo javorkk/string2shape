@@ -159,9 +159,9 @@ public:
 		superNodeIds(aSuperNodeIds)
 	{}
 
-	__host__ __device__	void operator()(const unsigned int& aNodeId)
+	__host__ __device__	void operator()(const size_t& aNodeId)
 	{
-		const unsigned int myNodeId = aNodeId;
+		const unsigned int myNodeId = (unsigned int)aNodeId;
 		const unsigned int mySuperNodeId = superNodeIds[myNodeId];
 
 		for (unsigned int edgeId = adjIntervals[myNodeId]; edgeId < adjIntervals[myNodeId + 1]; ++edgeId)
@@ -171,9 +171,8 @@ public:
 
 			if (mySuperNodeId == nbrSuperNodeId)
 				continue;
-			//found an edge connecting different super nodes
-			//try to write it the adj matrix
-			const unsigned int fistSuperNodeId   = min(mySuperNodeId, nbrSuperNodeId);
+
+			const unsigned int fistSuperNodeId = min(mySuperNodeId, nbrSuperNodeId);
 			const unsigned int secondSuperNodeId = max(mySuperNodeId, nbrSuperNodeId);
 			//will overwrite other edges connecting the same two super nodes
 			//matrix[fistSuperNodeId + stride * secondSuperNodeId] = edgeId;
@@ -212,10 +211,10 @@ public:
 		edgeFlags(aEdgeFlags)
 	{}
 
-	__host__ __device__	void operator()(const unsigned int& aNodePairId)
+	__host__ __device__	void operator()(const size_t& aNodePairId)
 	{
-		const unsigned int myNodeId0 = aNodePairId % stride;
-		const unsigned int myNodeId1 = aNodePairId / stride;
+		const unsigned int myNodeId0 = (unsigned int)aNodePairId % stride;
+		const unsigned int myNodeId1 = (unsigned int)aNodePairId / stride;
 
 		const unsigned int mySuperNodeId0 = superNodeIds[myNodeId0];
 		const unsigned int mySuperNodeId1 = superNodeIds[myNodeId1];
@@ -251,10 +250,15 @@ public:
 		superNodeIds(aSuperNodeIds)
 	{}
 
-	__host__ __device__	void operator()(const unsigned int& aNodeId)
+	__host__ __device__	void operator()(const size_t& aNodeId)
 	{
-		const unsigned int mySuperNodeId = superNodeIds[aNodeId];
-		const unsigned int itsSuperNodeId = superNodeIds[mySuperNodeId];
+		unsigned int mySuperNodeId = superNodeIds[aNodeId];
+		unsigned int itsSuperNodeId = superNodeIds[mySuperNodeId];
+		while (mySuperNodeId != itsSuperNodeId)
+		{
+			mySuperNodeId = itsSuperNodeId;
+			itsSuperNodeId = superNodeIds[mySuperNodeId];
+		}
 		superNodeIds[aNodeId] = itsSuperNodeId;
 	}
 };
@@ -338,18 +342,18 @@ public:
 
 class MatrixRowCopy
 {
-	unsigned int stride;
+	size_t stride;
 	thrust::device_ptr<unsigned int> matPrefix;
 	thrust::device_ptr<unsigned int> intervals;
 public:
 	MatrixRowCopy(
-		unsigned int aStride,
+		size_t aStride,
 		thrust::device_ptr<unsigned int> aPrefix,
 		thrust::device_ptr<unsigned int> aIntervals
 	) : stride(aStride), matPrefix(aPrefix), intervals(aIntervals)
 	{}
 
-	__host__ __device__	void operator()(unsigned int aRowId)
+	__host__ __device__	void operator()(size_t aRowId)
 	{
 		intervals[aRowId] = matPrefix[stride * aRowId];
 	}
@@ -370,15 +374,9 @@ __host__ void Graph::fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aA
 	intervals = thrust::device_vector<unsigned int>(aStride + 1);
 	
 	thrust::counting_iterator<size_t> firstRowId(0u);
-	thrust::counting_iterator<size_t> lastRowIdP1(aStride + 1);
+	thrust::counting_iterator<size_t> lastRowIdP1(aStride + 1u);
 	MatrixRowCopy copyOp(aStride, matrixPrefix.data(), intervals.data());
 	thrust::for_each(firstRowId, lastRowIdP1, copyOp);
-
-	//for (size_t rowId = 0; rowId < aStride + 1; ++rowId)
-	//{
-	//	intervals[rowId] = matrixPrefix[aStride * rowId];
-	//}
-
 
 	unsigned int numEdges = matrixPrefix[aAdjacencyMatrix.size()];
 
@@ -433,13 +431,11 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 	if (intervals.size() < 2u)
 		return; //emtpy graph
 
-	cudastd::timer timer;
-
 	oStride = intervals.size() - 1u;
-	const unsigned int numEdges = adjacencyVals.size();
+	const unsigned int numEdges = (unsigned int)adjacencyVals.size();
 	thrust::device_vector<unsigned int> edgeFlags(numEdges, 0u);
-	thrust::device_vector<unsigned int> superNodeIds(oStride + 1); //last element is a termination flag
-	thrust::sequence(superNodeIds.begin(), superNodeIds.end());
+	thrust::device_vector<unsigned int> superNodeIds(oStride + 1u); //last element is a termination flag
+	thrust::sequence(superNodeIds.begin(), superNodeIds.end(), (unsigned int)0u);
 
 	thrust::device_vector<unsigned int> adjMatrix(oStride * oStride, numEdges);
 
@@ -452,31 +448,31 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 
 	for (size_t numIterations = 0; numIterations < (oStride + 1) / 2; ++numIterations)
 	{
-		thrust::counting_iterator<unsigned int> firstNode(0u);
-		thrust::counting_iterator<unsigned int> lastNode(oStride);
+		thrust::counting_iterator<size_t> firstNode(0u);
+		thrust::counting_iterator<size_t> lastNode(oStride);
 
 		thrust::for_each(firstNode, lastNode, edgeVote);
 
-#ifdef _DEBUG
-		outputDeviceVector("adj matrix: ", adjMatrix);	
-#endif
+//#ifdef _DEBUG
+//		outputDeviceVector("adj matrix: ", adjMatrix);	
+//#endif
 		superNodeIds[oStride] = 0;
 
-		thrust::counting_iterator<unsigned int> firstNodePair(0u);
-		thrust::counting_iterator<unsigned int> lastNodePair(oStride * oStride);
+		thrust::counting_iterator<size_t> firstNodePair(0u);
+		thrust::counting_iterator<size_t> lastNodePair((unsigned int)(oStride * oStride));
 
 		thrust::for_each(firstNodePair,	lastNodePair, setFlag);
 
-#ifdef _DEBUG
-		outputDeviceVector("edge flags: ", edgeFlags);
-#endif
+//#ifdef _DEBUG
+//		outputDeviceVector("edge flags: ", edgeFlags);
+//#endif
 
 		if (superNodeIds[oStride] != 0)
 		{
 			thrust::for_each(firstNode, lastNode, updateSuperNodeId);
-#ifdef _DEBUG
-			outputDeviceVector("supernode ids: ", superNodeIds);
-#endif
+//#ifdef _DEBUG
+//			outputDeviceVector("supernode ids: ", superNodeIds);
+//#endif
 		}
 		else
 			break;
@@ -501,10 +497,6 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.begin(), adjacencyVals.begin(), edgeFlags.begin())),
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end(), adjacencyVals.end(), edgeFlags.end())),
 		writeEdgeTypes);
-
-	float totalTime = timer.get();
-	timer.cleanup();
-	std::cerr << "Spanning tree computed in " << totalTime << "ms\n";
 }
 
 __host__ void Graph::fromAdjacencyList(size_t aNumNodes)
@@ -530,6 +522,49 @@ __host__ void Graph::fromAdjacencyList(size_t aNumNodes)
 
 	outputDeviceVector("Extracted intervals: ", intervals);
 #endif
+}
+
+// A recursive function that uses visited[] and parent to detect
+// cycle in subgraph reachable from vertex v.
+__host__ bool isCyclicUtil(
+	unsigned int v,
+	thrust::host_vector<unsigned int>& visited,
+	unsigned int parent,
+	thrust::host_vector<unsigned int>& intervalsHost,
+	thrust::host_vector<unsigned int>& adjacencyValsHost,
+
+	thrust::host_vector<Graph::EdgeType>& adjacencyMatrixType
+	)
+{
+	// Mark the current node as visited
+	visited[v] = 1u;
+
+	unsigned int numNodes = (unsigned int)intervalsHost.size() - 1;
+	// Recur for all the vertices adjacent to this vertex
+	for (unsigned int nbrId = intervalsHost[v]; nbrId < intervalsHost[v + 1]; ++nbrId)
+	{
+		unsigned int nbrNodeId = adjacencyValsHost[nbrId];
+		if (adjacencyMatrixType[nbrNodeId + numNodes * v] != Graph::EdgeType::SPANNING_TREE)
+			continue;
+		// If an adjacent is not visited, then recur for that adjacent
+		if (visited[nbrNodeId] == 0)
+		{
+			if (isCyclicUtil(
+				nbrNodeId, 
+				visited,
+				v,
+				intervalsHost,
+				adjacencyValsHost,
+				adjacencyMatrixType
+				))
+				return true;
+		}
+		// If an adjacent is visited and not parent of current vertex,
+		// then there is a cycle.
+		else if (nbrNodeId != parent)
+			return true;
+	}
+	return false;
 }
 
 __host__ int Graph::testGraphConstruction(int aGraphSize)
@@ -561,11 +596,11 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 	toAdjacencyMatrix(adjacencyMatrixDevice, newGrapSize);
 	
 	float totalTime = timer.get();
-	timer.cleanup();
 	
+	thrust::host_vector<unsigned int> adjacencyMatrixHostCpy(adjacencyMatrixDevice.begin(), adjacencyMatrixDevice.end());
 	for (size_t i = 0; i < aGraphSize * aGraphSize; ++i)
 	{
-		if (adjacencyMatrixDevice[i] != adjacencyMatrixHost[i])
+		if (adjacencyMatrixHostCpy[i] != adjacencyMatrixHost[i])
 		{
 			std::cerr << "Wrong adjacency matrix value at position " << i;
 			std::cerr << " device " << adjacencyMatrixDevice[i] << " ";
@@ -577,5 +612,72 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 
 	std::cerr << "Converted graph to and from adjacency matrix in "<< totalTime << "ms\n";
 
+	size_t graphSize;
+	thrust::device_vector<Graph::EdgeType> adjacencyMatrixType;
+
+	timer.start();
+
+	toSpanningTree(adjacencyMatrixType, graphSize);
+
+	float totalTreeTime = timer.get();
+	timer.cleanup();
+
+	if (graphSize != aGraphSize)
+	{
+		std::cerr << "Wrong graph size after spanning tree conversion\n";
+		return 2;
+	}
+
+	thrust::host_vector<Graph::EdgeType> adjacencyMatrixTypeHost(adjacencyMatrixType.begin(), adjacencyMatrixType.end());
+
+	//test for cycles
+
+	// Mark all the vertices as not visited and not part of recursion
+	// stack
+	thrust::host_vector<unsigned int> visited(graphSize, 0);
+	thrust::host_vector<unsigned int> intervalsHost(intervals.begin(), intervals.end());
+	thrust::host_vector<unsigned int> adjacencyValsHost(adjacencyVals.begin(), adjacencyVals.end());
+
+	// Call the recursive helper function to detect cycle in different
+	// DFS trees
+	for (int u = 0; u < graphSize; u++)
+	{
+		if (!visited[u]) // Don't recur for u if it is already visited
+			if (isCyclicUtil(u, visited, (unsigned int)-1, intervalsHost, adjacencyValsHost, adjacencyMatrixTypeHost))
+			{
+				std::cerr << "Wrong spanning tree - has cycle containing node " << u << "\n";
+				return 3;
+			}
+	}
+
+	for (size_t nodeId = 0; nodeId < graphSize; ++nodeId)
+	{
+		std::vector<size_t> DFSFrontierD1;
+		for (size_t neighborId = 0; neighborId < graphSize; ++neighborId)
+		{
+			if (neighborId == nodeId)
+				continue;
+			if (adjacencyMatrixTypeHost[neighborId + graphSize * nodeId] == Graph::EdgeType::SPANNING_TREE)
+				DFSFrontierD1.push_back(neighborId);
+		}
+
+		if (DFSFrontierD1.empty())
+		{
+			for (size_t neighborId = 0; neighborId < graphSize; ++neighborId)
+			{
+				if (neighborId == nodeId)
+					continue;
+				if (adjacencyMatrixTypeHost[neighborId + graphSize * nodeId] == Graph::EdgeType::CYCLE)
+				{
+					std::cerr << "Wrong spanning tree - contains isolated node " << nodeId << "\n";
+					return 4;
+				}
+			}
+		}
+	}
+
+	std::cerr << "Computed graph spanning tree in " << totalTreeTime << "ms\n";
 	return 0;
 }
+
+

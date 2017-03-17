@@ -37,7 +37,7 @@ int main()
 	}
 	
 	GraphTest graphTest;
-	int graph_test_result = graphTest.testAll(100);
+	int graph_test_result = graphTest.testAll(1000);
 	//graphTest.testAll(1000);
 	
 	if (graph_test_result != 0)

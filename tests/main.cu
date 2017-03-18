@@ -3,6 +3,7 @@
 
 #include <iostream>
 
+#include "WFObjectToString.h"
 #include "UniformGridSortBuilderTest.h"
 #include "GraphTest.h"
 #include "CollisionTest.h"
@@ -54,6 +55,12 @@ int main()
 	collTest.testAll("../scenes/castle/castle.obj");
 
 	std::cerr << "Collision detection test passed. \n";
+
+	std::cerr << "---------------------------------------------------------------------\n";
+	const char* obj2strTestFile = "../scenes/church/church.obj";
+	std::cerr << obj2strTestFile << " converted to \n"
+		<< WFObjectToString(obj2strTestFile) << "\n";
+
 
 #if 0// THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
      //cudaDeviceReset must be called before exiting in order for profiling and

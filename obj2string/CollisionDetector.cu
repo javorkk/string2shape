@@ -20,6 +20,9 @@
 #include "Timer.h"
 #include <thrust/functional.h>
 
+
+UniformGridSortBuilder builder;
+
 class nonEmptyCell
 {
 public:
@@ -276,7 +279,6 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	float boundsDiagonal = len(maxBound - minBound);
 	float3 res = (maxBound - minBound) / (boundsDiagonal * 0.577350269f * aRelativeThreshold); //0.577350269 ~ sqrtf(3.f)
 
-	UniformGridSortBuilder builder;
 	UniformGrid grid = builder.build(aObj, (int)res.x, (int)res.y, (int)res.z);
 	
 //#ifdef _DEBUG
@@ -446,7 +448,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	totalTime = timer.get();
 	timer.cleanup();
 
-	builder.stats();
+	
 
 	return result;
 }
@@ -454,7 +456,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 __host__ void CollisionDetector::stats()
 {
 	std::cerr << "Collision detection in " <<  totalTime << "ms\n";
-	std::cerr << "Initialization in      " <<   initTime << "ms\n";
+	std::cerr << "Initialization in      " <<   initTime << "ms ";
+	builder.stats();
+	
 	std::cerr << "Empty cells removal in " <<  trimmTime << "ms\n";
 #ifdef SINGLE_KERNEL_COLLISION
 	std::cerr << "Adjacency matrix in    " << adjMatTime << "ms\n";

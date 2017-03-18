@@ -6,6 +6,7 @@
 #define UNIFORMGRIDSORTBUILDERTEST_H_BAD5BEF1_05ED_4984_9295_22ACBBB06FBA
 
 #include <cuda_runtime_api.h>
+#include <iostream>
 #include "WFObjectToString.h"
 
 class UniformGridSortBuildTest
@@ -20,6 +21,8 @@ public:
 		const int                       aResZ
 	)
 	{
+		std::cerr << "---------------------------------------------------------------------\n";
+		std::cerr << "Grid construction test for " << aFileName << "\n";
 		return buildGrid(aFileName, aResX, aResY, aResZ);
 	}
 };

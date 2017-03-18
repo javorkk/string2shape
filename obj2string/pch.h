@@ -50,3 +50,12 @@ typedef unsigned long   ulong;
 
 //#include <cuda_runtime_api.h>
 //#include <vector_types.h>
+
+//////////////////////////////////////////////////////////////////////////
+//String utilities
+//////////////////////////////////////////////////////////////////////////
+std::string itoa(const int a);
+
+std::string ftoa(const float a);
+
+std::string cutComments(const std::string& aLine, const char* aToken);

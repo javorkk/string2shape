@@ -6,6 +6,7 @@
 #define COLLISIONTEST_H_77A0B860_C545_45D8_921A_0D2F0C9EE60A
 
 #include <cuda_runtime_api.h>
+#include <iostream>
 #include "WFObjectToString.h"
 
 class CollisionTest
@@ -15,6 +16,8 @@ public:
 
 	__host__ void testAll(const char * aFilename)
 	{
+		std::cerr << "---------------------------------------------------------------------\n";
+		std::cerr << "Collision detection test for " << aFilename << "\n";
 		testCollisionGraphConstruction(aFilename);
 	}
 };

@@ -17,11 +17,14 @@ class GraphToStringConverter
 	std::vector<std::string> mAlphabet;
 	std::string mBranchStart;
 	std::string mBranchEnd;
+	std::string mNumberSeparator;
 public:
 	GraphToStringConverter()
 	{
 		mBranchStart = std::string("(");
 		mBranchEnd = std::string(")");
+		mNumberSeparator = std::string("%");
+		mAlphabet.push_back("|zero|");
 		mAlphabet.push_back("A");
 		mAlphabet.push_back("B");
 		mAlphabet.push_back("C");
@@ -77,6 +80,15 @@ public:
 
 	}
 	
+	__host__ std::string depthFirstTraverse(
+		unsigned int v,
+		thrust::host_vector<unsigned int>& visited,
+		unsigned int parent,
+		thrust::host_vector<unsigned int>& intervalsHost,
+		thrust::host_vector<unsigned int>& adjacencyValsHost,
+		thrust::host_vector<Graph::EdgeType>& adjacencyMatrixType,
+		thrust::host_vector<unsigned int>& cycleIds,
+		thrust::host_vector<unsigned int>& nodeTypeIds);
 	__host__ std::string operator()(WFObject& aObj, Graph& aGraph);
 };
 

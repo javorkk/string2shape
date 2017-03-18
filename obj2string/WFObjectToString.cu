@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-	const char * WFObjectToString(char * aFilename)
+	char * WFObjectToString(const char * aFilename)
 	{
 		WFObject obj;
 		obj.read(aFilename);
@@ -24,7 +24,12 @@ extern "C" {
 		Graph graph = detector.computeCollisionGraph(obj, 0.01f);
 
 		GraphToStringConverter converter;
-		return converter(obj, graph).c_str();
+		std::string result = converter(obj, graph).c_str();
+
+		char *cstr = new char[result.length() + 1];
+		strcpy(cstr, result.c_str());
+
+		return cstr;
 	}
 
 	int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ)

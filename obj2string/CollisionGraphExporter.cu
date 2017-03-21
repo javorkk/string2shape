@@ -59,6 +59,8 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 	ObjWriter output;
 	output.init(graphFilePath.c_str());
 
+	std::cerr << "Exporting collision graph to " << graphFilePath << ".obj ...\n";
+
 	std::vector<float3> objCenters(aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
 	std::vector<float> objSizes(aObj.objects.size(), 1.f);
 

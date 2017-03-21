@@ -16,7 +16,7 @@ const char * obj2string(const char * aFilename)
 
 static PyObject * obj2string_wrapper(PyObject * self, PyObject * args)
 {
-	const char* result;
+	const char * result;
 	const char * input;
 	PyObject * ret;
 

@@ -14,6 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+	char * outputString = NULL;
 
 	char * WFObjectToString(const char * aFilename)
 	{
@@ -26,10 +27,13 @@ extern "C" {
 		GraphToStringConverter converter;
 		std::string result = converter(obj, graph).c_str();
 
-		char *cstr = new char[result.length() + 1];
-		strcpy(cstr, result.c_str());
+		if (outputString != NULL)
+			free(outputString);
 
-		return cstr;
+		outputString = new char[result.length() + 1];
+		strcpy(outputString, result.c_str());
+
+		return outputString;
 	}
 
 	int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ)

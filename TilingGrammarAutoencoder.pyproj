@@ -5,7 +5,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ec291c1b-22f6-480f-bd4c-4220175c567f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>TilingGrammarAutoencoder.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>$(SolutionDir)\bin\Releasex64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -26,10 +27,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="create_obj_dataset.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="obj2string\setup.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TilingGrammarAutoencoder.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="obj2string\" />

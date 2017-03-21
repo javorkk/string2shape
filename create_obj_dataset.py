@@ -3,11 +3,13 @@ import os
 import pandas
 import obj_tools
 
+SMILES_COL_NAME = 'structure'
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Wavefront .obj to SMILES string conversion')
     parser.add_argument('in_folder', type=str, help='The folder containing the input .obj files.')
     parser.add_argument('out_filepath', type=str, help='The output file path in HDF5 format.')
+    parser.add_argument('--smiles_column', type=str, default = SMILES_COL_NAME, help="Name of the column that contains the SMILES strings. Default: %s" % SMILES_COL_NAME)
     return parser.parse_args()
 
 def main():
@@ -23,7 +25,7 @@ def main():
             continue
         else:
             continue
-    df = pandas.DataFrame({'structure' : smiles_strings})
+    df = pandas.DataFrame({args.smiles_column : smiles_strings})
     df.to_hdf(args.out_filepath, 'df')
 
 if __name__ == '__main__':

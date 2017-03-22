@@ -1,5 +1,4 @@
 ﻿#include "pch.h"
-//#define OBJ2STRING_MODULE
 #include "WFObjectToString.h"
 
 #ifdef __cplusplus
@@ -41,23 +40,24 @@ static PyMethodDef OBJ2StringMethods[] = {
 	{ NULL, NULL, 0, NULL }
 };
 
+#if PY_MAJOR_VERSION >= 3
 /////////////////////////////////////////////////////////
 //Python 3.5
 /////////////////////////////////////////////////////////
-//static struct PyModuleDef obj2string_module = {
-//	PyModuleDef_HEAD_INIT,
-//	"obj_tools",   /* name of module */
-//	NULL, /* module documentation, may be NULL */
-//	-1,       /* size of per-interpreter state of the module,
-//			  or -1 if the module keeps state in global variables. */
-//	OBJ2StringMethods
-//};
-//
-//PyMODINIT_FUNC PyInit_obj_tools(void)
-//{
-//	return PyModule_Create(&obj2string_module);
-//}
+static struct PyModuleDef obj2string_module = {
+	PyModuleDef_HEAD_INIT,
+	"obj_tools",   /* name of module */
+	NULL, /* module documentation, may be NULL */
+	-1,       /* size of per-interpreter state of the module,
+			  or -1 if the module keeps state in global variables. */
+	OBJ2StringMethods
+};
 
+PyMODINIT_FUNC PyInit_obj_tools(void)
+{
+	return PyModule_Create(&obj2string_module);
+}
+#else
 /////////////////////////////////////////////////////////
 //Python 2.7
 /////////////////////////////////////////////////////////
@@ -65,6 +65,7 @@ PyMODINIT_FUNC initobj_tools(void)
 {
 	(void)Py_InitModule("obj_tools", OBJ2StringMethods);
 }
+#endif
 
 #ifdef __cplusplus
 }

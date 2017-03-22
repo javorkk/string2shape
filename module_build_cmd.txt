@@ -1,3 +1,6 @@
+echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
+copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
+
 echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
 echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"

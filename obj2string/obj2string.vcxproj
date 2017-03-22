@@ -152,17 +152,17 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>tbb.lib;python35.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tbb.lib;python27.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python setup.py build_ext -l$(OutDir)obj2string
+echo python.exe setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
-echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
-copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
+echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
+copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
@@ -182,17 +182,17 @@ copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(So
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>tbb.lib;python35.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tbb.lib;python27.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python setup.py build_ext -l$(OutDir)obj2string
+echo python.exe setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
-echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
-copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
+echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
+copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -217,17 +217,17 @@ copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(So
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>tbb.lib;python35.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tbb.lib;python27.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python setup.py build_ext -l$(OutDir)obj2string
+echo python.exe setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
-echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
-copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
+echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
+copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
@@ -251,17 +251,17 @@ copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(So
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>tbb.lib;python35.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tbb.lib;python27.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python setup.py build_ext -l$(OutDir)obj2string
+echo python.exe setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
-echo copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"
-copy "$(SolutionDir)\build\lib.win-amd64-3.5\obj_tools.cp35-win_amd64.pyd" "$(SolutionDir)\obj_tools.cp35-win_amd64.pyd"</Command>
+echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
+copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>

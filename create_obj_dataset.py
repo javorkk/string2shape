@@ -21,12 +21,12 @@ def main():
         if not filename.endswith("_coll_graph.obj") and filename.endswith(".obj"): 
             current_str = obj_tools.obj2string(in_folder + '/' + filename)
             print("Converted " + os.path.join(in_folder, filename) + " to " + current_str)
-            smiles_strings.append(current_str)           
+            smiles_strings.append(str(current_str))           
             continue
         else:
             continue
     df = pandas.DataFrame({args.smiles_column : smiles_strings})
-    df.to_hdf(args.out_filepath, 'df')
+    df.to_hdf(args.out_filepath, 'table', format = 'table', data_columns = True)
 
 if __name__ == '__main__':
 

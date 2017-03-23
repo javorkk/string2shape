@@ -14,8 +14,8 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>{e0c79ca4-19a5-402b-9193-cfb08e70ce7d}</InterpreterId>
-    <InterpreterVersion>2.7</InterpreterVersion>
+    <InterpreterId>{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}</InterpreterId>
+    <InterpreterVersion>3.5</InterpreterVersion>
     <CommandLineArguments>scenes\church scenes\church\data.h5</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -39,7 +39,6 @@
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}\3.5" />
-    <InterpreterReference Include="{e0c79ca4-19a5-402b-9193-cfb08e70ce7d}\2.7" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

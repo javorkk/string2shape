@@ -29,7 +29,7 @@ public:
     struct Material
     {
         //The unique name of the material
-        const char* name;
+		std::string name;
         //diffuse reflectance
         float3 diffuseCoeff;
         //specular reflectance
@@ -52,15 +52,19 @@ public:
             specularExp(1.f),
             indexOfRefraction(1.f),
             isRefractive(false) //non-transparent
-        {}
-        Material(const char* _name) : name(_name),
+        {
+			name = "þ no name";
+		}
+        Material(const std::string& _name) :
             diffuseCoeff(C0),
             specularCoeff(C0),
             ambientCoeff(C0),
             specularExp(1.f),
             indexOfRefraction(1.f),
             isRefractive(false)
-        {}
+        {
+			name = _name;
+		}
 
         void setupPhongCoefficients();
 
@@ -276,6 +280,8 @@ public:
     void read(const char* aFileName);
     void loadWFObj(const char* aFileName);
     void loadInstances(const char* aFileName);
+	
+	void reorderMaterials();
 
 };
 #endif // FWOBJECT_HPP_INCLUDED_45834E1E_1D79_4F3E_ABD3_77E318EF9223

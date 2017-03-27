@@ -22,7 +22,11 @@ extern "C" {
 		obj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph graph = detector.computeCollisionGraph(obj, 0.01f);
+		Graph graph = detector.computeCollisionGraph(obj, 0.04f);
+
+		CollisionGraphExporter exporter;
+		exporter.exportCollisionGraph(aFilename, obj, graph);
+
 
 		GraphToStringConverter converter;
 		std::string result = converter(obj, graph).c_str();
@@ -60,7 +64,7 @@ extern "C" {
 		testObj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph testGraph = detector.computeCollisionGraph(testObj, 0.01f);
+		Graph testGraph = detector.computeCollisionGraph(testObj, 0.04f);
 		detector.stats();
 
 		CollisionGraphExporter exporter;

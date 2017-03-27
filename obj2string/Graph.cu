@@ -329,6 +329,13 @@ __host__ void Graph::fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aA
 		thrust::make_zip_iterator(thrust::make_tuple(aAdjacencyMatrix.begin(), matrixPrefix.begin(), first)),
 		thrust::make_zip_iterator(thrust::make_tuple(aAdjacencyMatrix.end(), matrixPrefix.end(), last)),
 		writeEdges);
+
+#ifdef _DEBUG
+	outputDeviceVector("Edge X: ", adjacencyKeys);
+	outputDeviceVector("Edge Y: ", adjacencyVals);
+
+	outputDeviceVector("Extracted intervals: ", intervals);
+#endif
 }
 
 __host__ void Graph::toAdjacencyMatrix(thrust::device_vector<unsigned int>& oAdjacencyMatrix, size_t & oStride)
@@ -356,7 +363,7 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 	const unsigned int numEdges = (unsigned int)adjacencyVals.size();
 	thrust::device_vector<unsigned int> edgeFlags(numEdges, 0u);
 	thrust::device_vector<unsigned int> superNodeIds(oStride + 1u); //last element is a termination flag
-	thrust::sequence(superNodeIds.begin(), superNodeIds.end(), (unsigned int)0u);
+	thrust::sequence(superNodeIds.begin(), superNodeIds.end(), (size_t)0u);
 
 	thrust::device_vector<unsigned int> adjMatrix(oStride * oStride, numEdges);
 

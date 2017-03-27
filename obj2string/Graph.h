@@ -19,25 +19,25 @@ public:
 	//edge types : 0 not connected, 1 spanning tree, 2 cycle
 	enum EdgeType {NOT_CONNECTED = 0, SPANNING_TREE = 1, CYCLE = 2};
 
-	__host__ __device__ FORCE_INLINE size_t numNodes() const { return intervals.size() > 1u ? intervals.size() - 1u : 0u; }
+	__host__ FORCE_INLINE size_t numNodes() const { return intervals.size() > 1u ? intervals.size() - 1u : 0u; }
 
-	__host__ __device__ FORCE_INLINE size_t numEdges() const { return adjacencyVals.size(); }
+	__host__ FORCE_INLINE size_t numEdges() const { return adjacencyVals.size(); }
 
-	__host__ __device__ FORCE_INLINE unsigned int neighborsBegin(const unsigned int aNodeId)
+	__host__ FORCE_INLINE unsigned int neighborsBegin(const unsigned int aNodeId)
 	{
 		if (aNodeId >= intervals.size() - 2)
 			return (unsigned int) -1;//invalid node id
 
 		return intervals[aNodeId];
 	}
-	__host__ __device__ FORCE_INLINE unsigned int neighborsEnd(const unsigned int aNodeId)
+	__host__ FORCE_INLINE unsigned int neighborsEnd(const unsigned int aNodeId)
 	{
 		if (aNodeId >= intervals.size() - 2)
 			return (unsigned int)-1;//invalid node id
 
 		return intervals[aNodeId + 1];
 	}
-	__host__ __device__ FORCE_INLINE unsigned int getNeighbor(const unsigned int aNeighborId)
+	__host__ FORCE_INLINE unsigned int getNeighbor(const unsigned int aNeighborId)
 	{
 		if (aNeighborId >= adjacencyVals.size() - 1)
 			return (unsigned int)-1;//invalid id

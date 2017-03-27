@@ -12,10 +12,10 @@
     <Name>TilingGrammarAutoencoder</Name>
     <RootNamespace>TilingGrammarAutoencoder</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}</InterpreterId>
-    <InterpreterVersion>3.5</InterpreterVersion>
+    <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
     <CommandLineArguments>scenes\church scenes\church\data.h5</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -38,6 +38,7 @@
     <Folder Include="obj2string\" />
   </ItemGroup>
   <ItemGroup>
+    <InterpreterReference Include="{0e816e7a-66b2-432d-8592-8f6768fa93be}\2.7" />
     <InterpreterReference Include="{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}\3.5" />
   </ItemGroup>
   <PropertyGroup>

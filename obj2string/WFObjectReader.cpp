@@ -520,8 +520,8 @@ void WFObject::loadWFObj(const char* aFileName)
 
                 if (materialMap.find(name) == materialMap.end())
                 {
-                    materials.push_back(Material(name.c_str()));
-                    materialMap[name] = materials.size() - 1;
+					materialMap[name] = materials.size();
+                    materials.push_back(Material(name));
                 }
 
                 curMat = materialMap[name];
@@ -546,7 +546,6 @@ void WFObject::loadWFObj(const char* aFileName)
     parse_err_found:
         std::cerr << "Error at line " << curLine << std::endl;
     }
-
 
     objects.push_back(make_int2(currentObjectBegin, (int)faces.size()));
 
@@ -597,6 +596,8 @@ void WFObject::loadWFObj(const char* aFileName)
             normals.push_back(n);
         }
     }
+
+	reorderMaterials();
 }
 
 uint WFObject::getVertexIndex(size_t aId) const
@@ -783,4 +784,47 @@ void WFObject::loadInstances(const char* aFileName)
     }
 
     input.close();
+}
+
+struct MaterialCompare
+{
+	bool operator()(const WFObject::Material& aM1, const WFObject::Material& aM2) const
+	{
+		return aM1.name < aM2.name;
+	}
+};
+
+void WFObject::reorderMaterials()
+{
+	WFObject::t_materialVector initial_materials(materials.begin(), materials.end());
+	std::sort(materials.begin() + 1, materials.end(), MaterialCompare());
+	std::vector<size_t> material_reindex(materials.size());
+	material_reindex[0] = 0u;
+
+	for (size_t i = 1u; i < initial_materials.size(); ++i)
+	{
+		WFObject::Material& aM1 = initial_materials[i];
+		for (size_t j = 1; j < materials.size(); ++j)
+		{
+			WFObject::Material& aM2 = materials[j];
+			if (aM1.name == aM2.name)
+			{
+				material_reindex[i] = j;
+				break;
+			}
+		}
+	}
+
+	for (auto faceIt = faces.begin(); faceIt != faces.end(); ++faceIt)
+	{
+		faceIt->material = material_reindex[faceIt->material];
+	}
+	for (auto lineIt = lines.begin(); lineIt != lines.end(); ++lineIt)
+	{
+		lineIt->material = material_reindex[lineIt->material];
+	}
+	for (auto pointIt = points.begin(); pointIt != points.end(); ++pointIt)
+	{
+		pointIt->material = material_reindex[pointIt->material];
+	}
 }

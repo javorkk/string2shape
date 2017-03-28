@@ -22,7 +22,7 @@ extern "C" {
 		obj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph graph = detector.computeCollisionGraph(obj, 0.04f);
+		Graph graph = detector.computeCollisionGraph(obj, 0.02f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, obj, graph);
@@ -64,14 +64,14 @@ extern "C" {
 		testObj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph testGraph = detector.computeCollisionGraph(testObj, 0.04f);
-		detector.stats();
+		Graph testGraph = detector.computeCollisionGraph(testObj, 0.02f);
+		detector.stats();		
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, testObj, testGraph);
 		exporter.stats();
 
-		return 0;
+		return testGraph.testSpanningTreeConstruction();
 	}
 
 

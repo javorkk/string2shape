@@ -152,10 +152,16 @@ public:
 	{
 		const unsigned int myNodeId0 = (unsigned int)aNodePairId % stride;
 		const unsigned int myNodeId1 = (unsigned int)aNodePairId / stride;
+		
+		if (myNodeId0 >= myNodeId1)
+			return;
 
 		const unsigned int mySuperNodeId0 = superNodeIds[myNodeId0];
 		const unsigned int mySuperNodeId1 = superNodeIds[myNodeId1];
 		
+		if (mySuperNodeId0 >= mySuperNodeId1)
+			return;
+
 		const unsigned int fistSuperNodeId   = min(mySuperNodeId0, mySuperNodeId1);
 		const unsigned int secondSuperNodeId = max(mySuperNodeId0, mySuperNodeId1);
 
@@ -403,7 +409,9 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 //#endif
 		}
 		else
+		{
 			break;
+		}
 	}
 
 	superNodeIds.clear();
@@ -538,6 +546,13 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 
 	std::cerr << "Converted graph to and from adjacency matrix in "<< totalTime << "ms\n";
 
+	return testSpanningTreeConstruction();
+}
+
+__host__ int Graph::testSpanningTreeConstruction()
+{
+	cudastd::timer timer;
+	
 	size_t graphSize;
 	thrust::device_vector<Graph::EdgeType> adjacencyMatrixType;
 
@@ -547,12 +562,6 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 
 	float totalTreeTime = timer.get();
 	timer.cleanup();
-
-	if (graphSize != aGraphSize)
-	{
-		std::cerr << "Wrong graph size after spanning tree conversion\n";
-		return 2;
-	}
 
 	thrust::host_vector<Graph::EdgeType> adjacencyMatrixTypeHost(adjacencyMatrixType.begin(), adjacencyMatrixType.end());
 
@@ -603,7 +612,8 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 	}
 
 	std::cerr << "Computed graph spanning tree in " << totalTreeTime << "ms\n";
-	return 0;
+
+	return 0;	
 }
 
 

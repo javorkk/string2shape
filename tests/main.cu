@@ -52,10 +52,17 @@ int main()
 	}
 	
 	CollisionTest collTest;
-	collTest.testAll("../scenes/castle/castle.obj");
-
-	std::cerr << "Collision detection test passed. \n";
-
+	int coll_test_result = collTest.testAll("../scenes/castle/castle.obj");
+	if (coll_test_result != 0)
+	{
+		std::cerr << "Collision detection test failed!\n";
+		return graph_test_result;
+	}
+	else
+	{
+		std::cerr << "Collision detection test passed. \n";
+	}
+	
 	std::cerr << "---------------------------------------------------------------------\n";
 	const char* obj2strTestFile = "../scenes/church/church.obj";
 	std::cerr << obj2strTestFile << " converted to \n"

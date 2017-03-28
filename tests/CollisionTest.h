@@ -14,11 +14,11 @@ class CollisionTest
 
 public:
 
-	__host__ void testAll(const char * aFilename)
+	__host__ int testAll(const char * aFilename)
 	{
 		std::cerr << "---------------------------------------------------------------------\n";
 		std::cerr << "Collision detection test for " << aFilename << "\n";
-		testCollisionGraphConstruction(aFilename);
+		return testCollisionGraphConstruction(aFilename);
 	}
 };
 

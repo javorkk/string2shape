@@ -147,21 +147,23 @@ public:
 
 	__host__ __device__	void operator()(const size_t& aNodeId)
 	{
-		unsigned int mySuperNodeId = superNodeIds[aNodeId];
-		const unsigned int myEdgeId = bestEdge[mySuperNodeId];
-		const unsigned int otherNodeId = myEdgeId >= numEdges ? (unsigned int)aNodeId : neighborIds[myEdgeId];
+		const unsigned int initialSuperNodeId = superNodeIds[aNodeId];
+		unsigned int mySuperNodeId = initialSuperNodeId;
+		const unsigned int initialEdgeId = bestEdge[mySuperNodeId];
+		const unsigned int otherNodeId = initialEdgeId >= numEdges ? (unsigned int)aNodeId : neighborIds[initialEdgeId];
 		unsigned int itsSuperNodeId = superNodeIds[otherNodeId];
 		while (mySuperNodeId != itsSuperNodeId)
 		{
 			mySuperNodeId = itsSuperNodeId;
 			const unsigned int nextEdgeId = bestEdge[itsSuperNodeId];
-			const unsigned int nextSuperNodeId = nextEdgeId >= numEdges ? itsSuperNodeId : neighborIds[myEdgeId];
-			itsSuperNodeId = superNodeIds[nextSuperNodeId];
+			const unsigned int nextNodeId = nextEdgeId >= numEdges ? itsSuperNodeId : neighborIds[nextEdgeId];
+			itsSuperNodeId = superNodeIds[nextNodeId];
 		}
-		superNodeIds[aNodeId] = itsSuperNodeId;
-		if (myEdgeId < numEdges)
+
+		if (initialEdgeId < numEdges && mySuperNodeId != initialSuperNodeId)
 		{
-			edgeFlags[myEdgeId] = 1u;
+			superNodeIds[aNodeId] = mySuperNodeId;
+			edgeFlags[initialEdgeId] = 1u;
 		}
 	}
 };
@@ -450,7 +452,7 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 	{
 		for (size_t j = 0; j < i; ++j)
 		{
-			bool makeEdge = rand() / RAND_MAX > 0.95f;
+			bool makeEdge = rand() / RAND_MAX > 0.25f;
 			if (makeEdge)
 			{
 				adjacencyMatrixHost[j * aGraphSize + i] = 1u;

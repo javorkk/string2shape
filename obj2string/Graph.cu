@@ -75,23 +75,22 @@ public:
 
 };
 
-class EdgeIdMatrixVoter
+class EdgeIdSelector
 {
 public:
 	unsigned int stride;
-	thrust::device_ptr<unsigned int> matrix;
+	thrust::device_ptr<unsigned int> bestEdge;
 	thrust::device_ptr<unsigned int> adjIntervals;
 	thrust::device_ptr<unsigned int> neighborIds;
 	thrust::device_ptr<unsigned int> superNodeIds;
 
-
-	EdgeIdMatrixVoter(
+	EdgeIdSelector(
 		size_t aStride,
-		thrust::device_ptr<unsigned int> aMatrix,
+		thrust::device_ptr<unsigned int> aBestEdge,
 		thrust::device_ptr<unsigned int> aIntervals,
 		thrust::device_ptr<unsigned int> aNeighbors,
 		thrust::device_ptr<unsigned int> aSuperNodeIds
-	) :stride((unsigned int)aStride), matrix(aMatrix),
+	) :stride((unsigned int)aStride), bestEdge(aBestEdge),
 		adjIntervals(aIntervals), neighborIds(aNeighbors),
 		superNodeIds(aSuperNodeIds)
 	{}
@@ -100,109 +99,70 @@ public:
 	{
 		const unsigned int myNodeId = (unsigned int)aNodeId;
 		const unsigned int mySuperNodeId = superNodeIds[myNodeId];
-
+		unsigned int nbrSuperNodeId = mySuperNodeId;
+		unsigned int bestEdgeId = (unsigned int)-1;
 		for (unsigned int edgeId = adjIntervals[myNodeId]; edgeId < adjIntervals[myNodeId + 1]; ++edgeId)
 		{
 			const unsigned int nbrNodeId = neighborIds[edgeId];
-			const unsigned int nbrSuperNodeId = superNodeIds[nbrNodeId];
-
-			if (mySuperNodeId == nbrSuperNodeId)
-				continue;
-
-			const unsigned int fistSuperNodeId = min(mySuperNodeId, nbrSuperNodeId);
-			const unsigned int secondSuperNodeId = max(mySuperNodeId, nbrSuperNodeId);
-			//will overwrite other edges connecting the same two super nodes
-			//matrix[fistSuperNodeId + stride * secondSuperNodeId] = edgeId;
-			matrix[secondSuperNodeId + stride * fistSuperNodeId] = edgeId;
-
-			break;
+			const unsigned int tmpSuperNodeId = superNodeIds[nbrNodeId];
+			if (tmpSuperNodeId < nbrSuperNodeId)
+			{
+				nbrSuperNodeId = tmpSuperNodeId;
+				bestEdgeId = edgeId;
+			}
 		}
+		if (mySuperNodeId <= nbrSuperNodeId)
+			return;
+		//will overwrite alternative edges
+		bestEdge[mySuperNodeId] = bestEdgeId;
+		superNodeIds[stride] = 1u;
+
 	}
 };
 
-class EdgeFlagSetter
+class SuperNodeIdSetter
 {
 public:
-	unsigned int stride;
 	unsigned int numEdges;
 
-	thrust::device_ptr<unsigned int> matrix;
-	//thrust::device_ptr<unsigned int> adjIntervals;
-	//thrust::device_ptr<unsigned int> neighborIds;
 	thrust::device_ptr<unsigned int> superNodeIds;
+	thrust::device_ptr<unsigned int> neighborIds;
+	thrust::device_ptr<unsigned int> bestEdge;
+	
 	thrust::device_ptr<unsigned int> edgeFlags;
 
-
-	EdgeFlagSetter(
-		size_t aStride,
-		thrust::device_ptr<unsigned int> aMatrix,
+	SuperNodeIdSetter(
 		size_t aNumEdges,
-		//thrust::device_ptr<unsigned int> aIntervals,
-		//thrust::device_ptr<unsigned int> aNeighbors,
 		thrust::device_ptr<unsigned int> aSuperNodeIds,
+		thrust::device_ptr<unsigned int> aNeighbors,
+		thrust::device_ptr<unsigned int> aBestEdge,
 		thrust::device_ptr<unsigned int> aEdgeFlags
-	) : stride((unsigned int)aStride), 
-		matrix(aMatrix),
+		) :
 		numEdges((unsigned int)aNumEdges),
 		superNodeIds(aSuperNodeIds),
+		neighborIds(aNeighbors),
+		bestEdge(aBestEdge),
 		edgeFlags(aEdgeFlags)
-	{}
-
-	__host__ __device__	void operator()(const size_t& aNodePairId)
-	{
-		const unsigned int myNodeId0 = (unsigned int)aNodePairId % stride;
-		const unsigned int myNodeId1 = (unsigned int)aNodePairId / stride;
-		
-		if (myNodeId0 >= myNodeId1)
-			return;
-
-		const unsigned int mySuperNodeId0 = superNodeIds[myNodeId0];
-		const unsigned int mySuperNodeId1 = superNodeIds[myNodeId1];
-		
-		if (mySuperNodeId0 >= mySuperNodeId1)
-			return;
-
-		const unsigned int fistSuperNodeId   = min(mySuperNodeId0, mySuperNodeId1);
-		const unsigned int secondSuperNodeId = max(mySuperNodeId0, mySuperNodeId1);
-
-		const unsigned int edgeId = matrix[secondSuperNodeId + stride * fistSuperNodeId];
-
-		if (edgeId >= numEdges) 
-			return; 
-		
-		const unsigned int edgeFlag = edgeFlags[edgeId];
-
-		if (edgeFlag != 0)
-			return;
-
-		//super nodes are connected via this edge
-		//add edge to spanning tree and merge the two supernodes
-		edgeFlags[edgeId] = 1u;
-		superNodeIds[secondSuperNodeId] = fistSuperNodeId;
-		//set a flag indicating that we merged at least one super-node-pair
-		superNodeIds[stride] = 1;
-	}
-};
-
-class SuperNodeIdUpdater
-{
-public:
-	thrust::device_ptr<unsigned int> superNodeIds;
-
-	SuperNodeIdUpdater(thrust::device_ptr<unsigned int> aSuperNodeIds) : 
-		superNodeIds(aSuperNodeIds)
 	{}
 
 	__host__ __device__	void operator()(const size_t& aNodeId)
 	{
 		unsigned int mySuperNodeId = superNodeIds[aNodeId];
-		unsigned int itsSuperNodeId = superNodeIds[mySuperNodeId];
+		const unsigned int myEdgeId = bestEdge[mySuperNodeId];
+		const unsigned int otherNodeId = myEdgeId >= numEdges ? (unsigned int)aNodeId : neighborIds[myEdgeId];
+		unsigned int itsSuperNodeId = superNodeIds[otherNodeId];
 		while (mySuperNodeId != itsSuperNodeId)
 		{
 			mySuperNodeId = itsSuperNodeId;
-			itsSuperNodeId = superNodeIds[mySuperNodeId];
+			const unsigned int nextEdgeId = bestEdge[itsSuperNodeId];
+			const unsigned int nextSuperNodeId = nextEdgeId >= numEdges ? itsSuperNodeId : neighborIds[myEdgeId];
+			itsSuperNodeId = superNodeIds[nextSuperNodeId];
 		}
 		superNodeIds[aNodeId] = itsSuperNodeId;
+		if (myEdgeId < numEdges)
+		{
+			edgeFlags[myEdgeId] = 1u;
+		}
 	}
 };
 
@@ -371,51 +331,33 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 	thrust::device_vector<unsigned int> superNodeIds(oStride + 1u); //last element is a termination flag
 	thrust::sequence(superNodeIds.begin(), superNodeIds.end(), (size_t)0u);
 
-	thrust::device_vector<unsigned int> adjMatrix(oStride * oStride, numEdges);
-
-	EdgeIdMatrixVoter edgeVote(oStride, adjMatrix.data(), intervals.data(), adjacencyVals.data(), superNodeIds.data());
-
-	EdgeFlagSetter setFlag(oStride, adjMatrix.data(), numEdges, superNodeIds.data(), edgeFlags.data());
-
-	SuperNodeIdUpdater updateSuperNodeId(superNodeIds.data());
-
+	thrust::device_vector<unsigned int> bestEdge(oStride, numEdges);
+	EdgeIdSelector edgeVote(oStride, bestEdge.data(), intervals.data(), adjacencyVals.data(), superNodeIds.data());
+	SuperNodeIdSetter updateSuperNodes(numEdges, superNodeIds.data(), adjacencyVals.data(), bestEdge.data(), edgeFlags.data());
 
 	for (size_t numIterations = 0; numIterations < (oStride + 1) / 2; ++numIterations)
 	{
-		thrust::counting_iterator<size_t> firstNode(0u);
-		thrust::counting_iterator<size_t> lastNode(oStride);
-
-		thrust::for_each(firstNode, lastNode, edgeVote);
-
-//#ifdef _DEBUG
-//		outputDeviceVector("adj matrix: ", adjMatrix);	
-//#endif
 		superNodeIds[oStride] = 0;
 
-		thrust::counting_iterator<size_t> firstNodePair(0u);
-		thrust::counting_iterator<size_t> lastNodePair((unsigned int)(oStride * oStride));
-
-		thrust::for_each(firstNodePair,	lastNodePair, setFlag);
-
-//#ifdef _DEBUG
-//		outputDeviceVector("edge flags: ", edgeFlags);
-//#endif
-
+		thrust::counting_iterator<size_t> firstNode(0u);
+		thrust::counting_iterator<size_t> lastNode(oStride);
+	
+		thrust::for_each(firstNode, lastNode, edgeVote);
+		
 		if (superNodeIds[oStride] != 0)
 		{
-			thrust::for_each(firstNode, lastNode, updateSuperNodeId);
-//#ifdef _DEBUG
-//			outputDeviceVector("supernode ids: ", superNodeIds);
-//#endif
+			thrust::for_each(firstNode, lastNode, updateSuperNodes);
+#ifdef _DEBUG
+			outputDeviceVector("supernode ids: ", superNodeIds);
+#endif
 		}
 		else
 		{
 			break;
 		}
 	}
-
+	
 	superNodeIds.clear();
-	adjMatrix.clear();
 
 	//write output
 	oAdjacencyMatrix = thrust::device_vector<EdgeType>(oStride * oStride, NOT_CONNECTED);
@@ -508,7 +450,7 @@ __host__ int Graph::testGraphConstruction(int aGraphSize)
 	{
 		for (size_t j = 0; j < i; ++j)
 		{
-			bool makeEdge = rand() / RAND_MAX > 0.5f;
+			bool makeEdge = rand() / RAND_MAX > 0.95f;
 			if (makeEdge)
 			{
 				adjacencyMatrixHost[j * aGraphSize + i] = 1u;
@@ -555,8 +497,6 @@ __host__ int Graph::testSpanningTreeConstruction()
 	
 	size_t graphSize;
 	thrust::device_vector<Graph::EdgeType> adjacencyMatrixType;
-
-	timer.start();
 
 	toSpanningTree(adjacencyMatrixType, graphSize);
 

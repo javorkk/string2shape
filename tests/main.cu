@@ -56,7 +56,7 @@ int main()
 	if (coll_test_result != 0)
 	{
 		std::cerr << "Collision detection test failed!\n";
-		return graph_test_result;
+		return coll_test_result;
 	}
 	else
 	{

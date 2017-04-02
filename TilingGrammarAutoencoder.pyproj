@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ec291c1b-22f6-480f-bd4c-4220175c567f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>create_artificial_dataset.py</StartupFile>
+    <StartupFile>create_obj_dataset.py</StartupFile>
     <SearchPath>$(SolutionDir)\bin\Releasex64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,9 +14,9 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
-    <InterpreterVersion>2.7</InterpreterVersion>
-    <CommandLineArguments>scenes\church scenes\church\data.h5</CommandLineArguments>
+    <InterpreterId>{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}</InterpreterId>
+    <InterpreterVersion>3.5</InterpreterVersion>
+    <CommandLineArguments>scenes\church scenes\church\data.h5 scenes\church\grammar.h5</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -33,6 +33,7 @@
     <Compile Include="create_obj_dataset.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="grammar.py" />
     <Compile Include="obj2string\setup.py">
       <SubType>Code</SubType>
     </Compile>

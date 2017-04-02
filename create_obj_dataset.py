@@ -2,6 +2,7 @@ import argparse
 import os
 import pandas
 import obj_tools
+import grammar
 
 SMILES_COL_NAME = 'structure'
 MAX_WORD_LENGTH = 120
@@ -10,6 +11,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(description='Wavefront .obj to SMILES string conversion')
     parser.add_argument('in_folder', type=str, help='The folder containing the input .obj files.')
     parser.add_argument('out_filepath', type=str, help='The output file path in HDF5 format.')
+    parser.add_argument('out_grammarpath', type=str, default = None, help='The tiling grammar export path in HDF5 format.')
     parser.add_argument('--smiles_column', type=str, default = SMILES_COL_NAME, help="Name of the column that contains the SMILES strings. Default: %s" % SMILES_COL_NAME)
     return parser.parse_args()
 
@@ -28,9 +30,13 @@ def main():
         else:
             continue
 
+    tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
+    if(args.out_grammarpath):
+        tile_grammar.store(args.out_grammarpath)
+
     print("# items: " + str(len(initial_smiles_strings)))
     df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})
-    df.to_hdf(args.out_filepath, 'table', format = 'table', data_columns = True)
+    #df.to_hdf(args.out_filepath, 'table', format = 'table', data_columns = True)
 
 if __name__ == '__main__':
 

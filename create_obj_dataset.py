@@ -2,7 +2,7 @@ import argparse
 import os
 import pandas
 import obj_tools
-import grammar
+import neuralnets.grammar as grammar
 
 SMILES_COL_NAME = "structure"
 MAX_WORD_LENGTH = 120
@@ -30,7 +30,7 @@ def main():
         else:
             continue
 
-    tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
+    tile_grammar = neuralnets.grammar.TilingGrammar(initial_smiles_strings)
     tile_grammar.store(args.out_grammarpath)
     loaded_grammar = grammar.TilingGrammar([])
     loaded_grammar.load(args.out_grammarpath)

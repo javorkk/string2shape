@@ -2,7 +2,7 @@ import argparse
 import os
 import pandas
 import obj_tools
-import grammar
+import neuralnets.grammar as grammar
 import numpy
 
 SMILES_COL_NAME = "structure"

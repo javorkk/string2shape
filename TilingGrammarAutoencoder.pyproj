@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ec291c1b-22f6-480f-bd4c-4220175c567f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>create_obj_dataset.py</StartupFile>
+    <StartupFile>sample.py</StartupFile>
     <SearchPath>$(SolutionDir)\bin\Releasex64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,9 +14,9 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}</InterpreterId>
-    <InterpreterVersion>3.5</InterpreterVersion>
-    <CommandLineArguments>scenes\church scenes\church\data.h5 scenes\church\grammar.h5</CommandLineArguments>
+    <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
+    <CommandLineArguments>data\church_trees\encoded_200k.h5 data\church_trees\model_200k.h5  data\church_trees\grammar.h5 --target decoder --sample 10</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -33,12 +33,31 @@
     <Compile Include="create_obj_dataset.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="grammar.py" />
+    <Compile Include="neuralnets\grammar.py" />
+    <Compile Include="neuralnets\autoencoder.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="neuralnets\utils.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="neuralnets\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="obj2string\setup.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="preprocess.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="sample.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="train.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="neuralnets\" />
     <Folder Include="obj2string\" />
   </ItemGroup>
   <ItemGroup>

@@ -23,6 +23,12 @@ def str_len_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, c
         word_list.append(word)
         return
 
+    #check for cycles
+    if(word.find("0") != -1):
+        variant = word.replace("A", "AA")
+        str_len_variation_generator(word_list, variant, max_length, char_pos + 2, depth + 1)
+        return
+        
     if(word[char_pos] == "A"):
         str_len_variation_generator(word_list, word, max_length, char_pos + 1, depth)
         variant = word[0:char_pos] + "A" + word[char_pos:]
@@ -32,7 +38,11 @@ def str_len_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, c
     return
 
 def str_char_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, char_pos = 0, depth = 0):
-    if(len(word) <= char_pos or depth >= 3):
+    if(len(word) <= char_pos):
+        word_list.append(word)
+        return
+
+    if(word.find("0") == -1 and depth >= 3 and numpy.random.random(1) < 0.5):
         word_list.append(word)
         return
 

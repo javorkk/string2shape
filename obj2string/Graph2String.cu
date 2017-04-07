@@ -118,7 +118,7 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 		}
 	}
 
-	thrust::host_vector<unsigned int> visited(numNodes, 0);
+	thrust::host_vector<unsigned int> visited(numNodes, 0u);
 	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph.adjacencyVals);
 
@@ -132,5 +132,19 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 		cycleIds,
 		nodeTypes);
 
+	for (unsigned int startId = 1; startId < numNodes; ++startId)
+	{
+		visited = std::vector<unsigned int>(numNodes, 0u);
+		result.append("\n");
+		result.append(depthFirstTraverse(
+			startId,
+			visited,
+			(unsigned int)-1,
+			intervalsHost,
+			adjacencyValsHost,
+			adjMatrixHost,
+			cycleIds,
+			nodeTypes));
+	}
 	return result;
 }

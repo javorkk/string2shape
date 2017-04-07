@@ -19,16 +19,20 @@ def get_arguments():
 def str_len_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, char_pos = 0, depth = 0):
     if(len(word) > max_length):
         return
-    if(len(word) <= char_pos or depth >= 2 and numpy.random.random(1) < 0.5):
+
+    #check for cycles
+    if(word.find("0") != -1 and word.find("A") != -1):
+        word_list.append(word)
+        if(numpy.random.random(1) < 0.5):
+            variant = word.replace("A", "AA")
+            str_len_variation_generator(word_list, variant, max_length, char_pos, depth + 1)
+        return
+
+    if(len(word) <= char_pos or depth >= 1 and numpy.random.random(1) < 0.5):
         word_list.append(word)
         return
 
-    #check for cycles
-    if(word.find("0") != -1):
-        variant = word.replace("A", "AA")
-        str_len_variation_generator(word_list, variant, max_length, char_pos + 2, depth + 1)
-        return
-        
+       
     if(word[char_pos] == "A"):
         str_len_variation_generator(word_list, word, max_length, char_pos + 1, depth)
         variant = word[0:char_pos] + "A" + word[char_pos:]
@@ -42,7 +46,11 @@ def str_char_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, 
         word_list.append(word)
         return
 
-    if(word.find("0") == -1 and depth >= 3 and numpy.random.random(1) < 0.5):
+    if(depth >= word.count("C") + word.count("D")):
+        word_list.append(word)
+        return
+
+    if(depth >= 2 and numpy.random.random(1) < 0.5):
         word_list.append(word)
         return
 
@@ -58,28 +66,24 @@ def str_char_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, 
         str_char_variation_generator(word_list, word, max_length, char_pos + 1, depth)
     return
 
+def process_folder(folder_name, word_list = []):
+    for item_name in os.listdir(folder_name):
+        subfolfer_name = os.path.join(folder_name, item_name)
+        if os.path.isdir(subfolfer_name):
+            process_folder(subfolfer_name, word_list)
+        if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"): 
+            current_str = obj_tools.obj2strings(folder_name + "/" + item_name)
+            current_words = current_str.split("\n")
+            print("Converted " + os.path.join(folder_name, item_name) + " to " + current_words[0])
+            for w in current_words:
+                if(len(str(w)) <= MAX_WORD_LENGTH):
+                    word_list.append(str(w)) 
 def main():
     args = get_arguments()
-    in_folder = args.in_folder
-
-    #test_strings = []
-    #str_len_variation_generator(test_strings, "A(AAAAB(AD)D)B(AB(AB(C)AB(AAAAB(AD)AC)AAAAAB(AD)AC)C)AAAAAB(D)AD")
-    #final_string = []
-    #for word in test_strings:
-    #    str_char_variation_generator(final_string, word)    
-    #for word in final_string:
-    #    print(word)
 
     initial_smiles_strings = []
-    for filename in os.listdir(in_folder):
-        if not filename.endswith("_coll_graph.obj") and filename.endswith(".obj"): 
-            current_str = obj_tools.obj2string(in_folder + "/" + filename)
-            print("Converted " + os.path.join(in_folder, filename) + " to " + current_str)
-            if(len(str(current_str)) <= MAX_WORD_LENGTH):
-                initial_smiles_strings.append(str(current_str))           
-            continue
-        else:
-            continue
+    process_folder(args.in_folder, initial_smiles_strings)
+    initial_smiles_strings = list(set(initial_smiles_strings))
     print("# initial strings: " + str(len(initial_smiles_strings)))
     
     lengh_variations = []
@@ -100,6 +104,7 @@ def main():
         if(tile_grammar.check_word(word) == True):
             output_strings.append(word)
     
+    tile_grammar.store(args.out_grammarpath)
     print("# all valid variations: " + str(len(char_variations)))
 
     df = pandas.DataFrame({args.smiles_column : output_strings})

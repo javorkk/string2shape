@@ -30,6 +30,32 @@ extern "C" {
 
 		GraphToStringConverter converter;
 		std::string result = converter(obj, graph).c_str();
+		
+		result = result.substr(0u, result.find_first_of("\n"));
+
+		if (outputString != NULL)
+			free(outputString);
+
+		outputString = new char[result.length() + 1];
+		strcpy(outputString, result.c_str());
+
+		return outputString;
+	}
+
+	char * WFObjectToStrings(const char * aFilename)
+	{
+		WFObject obj;
+		obj.read(aFilename);
+
+		CollisionDetector detector;
+		Graph graph = detector.computeCollisionGraph(obj, 0.02f);
+
+		CollisionGraphExporter exporter;
+		exporter.exportCollisionGraph(aFilename, obj, graph);
+
+
+		GraphToStringConverter converter;
+		std::string result = converter(obj, graph).c_str();
 
 		if (outputString != NULL)
 			free(outputString);

@@ -11,6 +11,8 @@ extern "C" {
 
 __declspec(dllexport) extern char * WFObjectToString(const char * aFilename);
 
+__declspec(dllexport) extern char * WFObjectToStrings(const char * aFilename);
+
 __declspec(dllexport) extern int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ);
 
 __declspec(dllexport) extern int testGraphConstruction(int aGraphSize);

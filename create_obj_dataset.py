@@ -15,22 +15,28 @@ def get_arguments():
     parser.add_argument("--smiles_column", type=str, default = SMILES_COL_NAME, help="Name of the column that contains the SMILES strings. Default: %s" % SMILES_COL_NAME)
     return parser.parse_args()
 
+def process_folder(folder_name, word_list = []):
+    for item_name in os.listdir(folder_name):
+        subfolfer_name = os.path.join(folder_name, item_name)
+        if os.path.isdir(subfolfer_name):
+            process_folder(subfolfer_name, word_list)
+        if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"): 
+            current_str = obj_tools.obj2strings(folder_name + "/" + item_name)
+            current_words = current_str.split("\n")
+            print("Converted " + os.path.join(folder_name, item_name) + " to " + current_words[0])
+            for w in current_words:
+                if(len(str(w)) <= MAX_WORD_LENGTH):
+                    word_list.append(str(w))           
+
 def main():
     args = get_arguments()
-    in_folder = args.in_folder
 
     initial_smiles_strings = []
-    for filename in os.listdir(in_folder):
-        if not filename.endswith("_coll_graph.obj") and filename.endswith(".obj"): 
-            current_str = obj_tools.obj2string(in_folder + "/" + filename)
-            print("Converted " + os.path.join(in_folder, filename) + " to " + current_str)
-            if(len(str(current_str)) <= MAX_WORD_LENGTH):
-                initial_smiles_strings.append(str(current_str))           
-            continue
-        else:
-            continue
+    process_folder(args.in_folder, initial_smiles_strings)
+    initial_smiles_strings = list(set(initial_smiles_strings))
+    print("# initial strings: " + str(len(initial_smiles_strings)))
 
-    tile_grammar = neuralnets.grammar.TilingGrammar(initial_smiles_strings)
+    tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
     tile_grammar.store(args.out_grammarpath)
     loaded_grammar = grammar.TilingGrammar([])
     loaded_grammar.load(args.out_grammarpath)
@@ -40,7 +46,7 @@ def main():
 
     print("# items: " + str(len(initial_smiles_strings)))
     df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})
-    #df.to_hdf(args.out_filepath, "table", format = "table", data_columns = True)
+    df.to_hdf(args.out_filepath, "table", format = "table", data_columns = True)
 
 if __name__ == "__main__":
 

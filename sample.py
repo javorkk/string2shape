@@ -152,9 +152,7 @@ def decoder_rnd(args, model):
         raise ValueError("Grammar file %s doesn't exist" % args.grammar)
     
     for i in range(args.sample):
-        z_sample = np.ones([latent_dim])
-        for j in range(latent_dim):
-            z_sample[j] = np.random.normal()
+        z_sample = np.random.normal(size=latent_dim)
         decoded_rnd_sample = model.decoder.predict(z_sample.reshape(1, latent_dim)).argmax(axis=2)[0]
         char_rnd_sample = decode_smiles_from_indexes(decoded_rnd_sample, charset)
         if tiling_grammar.check_word(char_rnd_sample):

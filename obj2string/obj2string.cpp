@@ -11,6 +11,11 @@ const char * obj2string(const char * aFilename)
 	return retval;
 }
 
+const char * obj2strings(const char * aFilename)
+{
+	const char * retval = WFObjectToStrings(aFilename);
+	return retval;
+}
 
 
 static PyObject * obj2string_wrapper(PyObject * self, PyObject * args)
@@ -34,9 +39,31 @@ static PyObject * obj2string_wrapper(PyObject * self, PyObject * args)
 	return ret;
 }
 
+static PyObject * obj2strings_wrapper(PyObject * self, PyObject * args)
+{
+	const char * result;
+	const char * input;
+	PyObject * ret;
+
+	// parse arguments
+	if (!PyArg_ParseTuple(args, "s", &input)) {
+		return NULL;
+	}
+
+	// run the actual function
+	result = obj2strings(input);
+
+	// build the resulting string into a Python object.
+	ret = PyUnicode_FromString(result);
+	//free(result);
+
+	return ret;
+}
+
 
 static PyMethodDef OBJ2StringMethods[] = {
-	{ "obj2string", obj2string_wrapper, METH_VARARGS, "Say hello" },
+	{ "obj2string", obj2string_wrapper, METH_VARARGS, "Converts a .obj file into a SMILES-type string." },
+	{ "obj2strings", obj2strings_wrapper, METH_VARARGS, "Converts a .obj file into multiple SMILES-type strings separated with new lines." },
 	{ NULL, NULL, 0, NULL }
 };
 

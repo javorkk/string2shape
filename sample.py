@@ -84,7 +84,8 @@ def decoder_nbr(args, model):
         sample_id = np.random.randint(0, len(data))
         decoded_data = model.decoder.predict(data[sample_id].reshape(1, latent_dim)).argmax(axis=2)[0]
         char_data = decode_smiles_from_indexes(decoded_data, charset)
-
+        if not tiling_grammar.check_word(char_data):
+            continue
         for step_size in [0.0001, 0.001, 0.01, 0.02, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25]:
             z_sample = np.array([np.random.random(latent_dim)]) * step_size
             z_sample += data[i]
@@ -120,6 +121,8 @@ def decoder_lerp(args, model):
 
         decoded_data_1 = model.decoder.predict(data[sample_ids[1]].reshape(1, latent_dim)).argmax(axis=2)[0]
         char_data_1 = decode_smiles_from_indexes(decoded_data_1, charset)
+        if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
+            continue
 
         print("-----------------------------------------------------------------------")
         print("data point 0.0: " + char_data_0)

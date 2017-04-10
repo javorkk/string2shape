@@ -157,7 +157,7 @@
     <PostBuildEvent>
       <Command>echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python.exe setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
@@ -185,7 +185,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     <PostBuildEvent>
       <Command>echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python.exe setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
@@ -218,7 +218,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     <PostBuildEvent>
       <Command>echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python.exe setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
@@ -250,7 +250,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     <PostBuildEvent>
       <Command>echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python.exe setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>

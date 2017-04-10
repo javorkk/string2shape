@@ -21,7 +21,7 @@ def get_arguments():
                         help="Name of the column that contains the property values to predict. Default: None")
     return parser.parse_args()
 
-def chunk_iterator(dataset, chunk_size=1000):
+def chunk_iterator(dataset, chunk_size=200):
     chunk_indices = np.array_split(np.arange(len(dataset)),
                                     len(dataset)/chunk_size)
     for chunk_ixs in chunk_indices:
@@ -50,6 +50,7 @@ def main():
                               train_test_split(structures.index, test_size = 0.20))
 
     charset = list(reduce(lambda x, y: set(y) | x, structures, set()))
+    charset.sort()
 
     one_hot_encoded_fn = lambda row: map(lambda x: one_hot_array(x, len(charset)),
                                                 one_hot_index(row, charset))
@@ -58,7 +59,7 @@ def main():
     h5f.create_dataset('charset', data = charset)
 
     def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
-                             chunk_size=1000, apply_fn=None):
+                             chunk_size=200, apply_fn=None):
         new_data = h5file.create_dataset(dataset_name, dataset_shape,
                                          chunks=tuple([chunk_size]+list(dataset_shape[1:])))
         for (chunk_ixs, chunk) in chunk_iterator(dataset):

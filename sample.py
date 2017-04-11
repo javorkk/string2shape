@@ -25,8 +25,10 @@ def get_arguments():
                         help='What model to sample from: autoencoder, encoder, decoder.')
     parser.add_argument('--latent_dim', type=int, metavar='N', default=LATENT_DIM,
                         help='Dimensionality of the latent representation.')
-    parser.add_argument('--sample', type=int, metavar='N', default=NUM_SAMPLES,
-                        help='Number of items to sample from data generator.')
+    parser.add_argument('--samples', type=int, metavar='N', default=NUM_SAMPLES,
+                        help='Number of items to sample from the data generator.')
+    parser.add_argument('--require_cycle', dest='require_cycle', action='store_true',
+                        help='Only return samples if they contain cycles.')
     return parser.parse_args()
 
 def read_latent_data(filename):
@@ -80,15 +82,18 @@ def decoder_nbr(args, model):
     else:
         raise ValueError("Grammar file %s doesn't exist" % args.grammar)
     
-    for i in range(args.sample):
+    for i in range(args.samples):
         sample_id = np.random.randint(0, len(data))
         decoded_data = model.decoder.predict(data[sample_id].reshape(1, latent_dim)).argmax(axis=2)[0]
         char_data = decode_smiles_from_indexes(decoded_data, charset)
         if not tiling_grammar.check_word(char_data):
             continue
+        if args.require_cycle and char_data.find("0") == -1:
+            continue
+
         for step_size in [0.0001, 0.001, 0.01, 0.02, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25]:
             z_sample = np.array([np.random.random(latent_dim)]) * step_size
-            z_sample += data[i]
+            z_sample += data[sample_id]
             decoded_sample = model.decoder.predict(z_sample.reshape(1, latent_dim)).argmax(axis=2)[0]
             char_sample = decode_smiles_from_indexes(decoded_sample, charset)
             if(char_sample != char_data and tiling_grammar.check_word(char_sample)):
@@ -113,7 +118,7 @@ def decoder_lerp(args, model):
     else:
         raise ValueError("Grammar file %s doesn't exist" % args.grammar)
 
-    for i in range(args.sample):
+    for i in range(args.samples):
         sample_ids = np.random.randint(0, len(data), 2)
         
         decoded_data_0 = model.decoder.predict(data[sample_ids[0]].reshape(1, latent_dim)).argmax(axis=2)[0]
@@ -122,6 +127,9 @@ def decoder_lerp(args, model):
         decoded_data_1 = model.decoder.predict(data[sample_ids[1]].reshape(1, latent_dim)).argmax(axis=2)[0]
         char_data_1 = decode_smiles_from_indexes(decoded_data_1, charset)
         if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
+            continue
+
+        if args.require_cycle and char_data_0.find("0") == -1 and char_data_1.find("0") == -1:
             continue
 
         print("-----------------------------------------------------------------------")
@@ -154,7 +162,7 @@ def decoder_rnd(args, model):
     else:
         raise ValueError("Grammar file %s doesn't exist" % args.grammar)
     
-    for i in range(args.sample):
+    for i in range(args.samples):
         z_sample = np.random.normal(size=latent_dim)
         decoded_rnd_sample = model.decoder.predict(z_sample.reshape(1, latent_dim)).argmax(axis=2)[0]
         char_rnd_sample = decode_smiles_from_indexes(decoded_rnd_sample, charset)

@@ -144,7 +144,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 
 	//spanning tree edges
 	output.writeObjectHeader((int)objCenters.size());
-	output.writeDiffuseMaterial((int)objCenters.size(), 0.8f, 0.8f, 0.8f);
+	output.writeDiffuseMaterial((int)objCenters.size(), 0.6f, 0.6f, 0.6f);
 
 	thrust::host_vector<int> edgesA(aGraph.adjacencyKeys);
 	thrust::host_vector<int> edgesB(aGraph.adjacencyVals);
@@ -161,7 +161,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 
 	//removed cycle edges
 	output.writeObjectHeader((int)objCenters.size() + 1);
-	output.writeDiffuseMaterial((int)objCenters.size() + 1, 0.8f, 0.8f, 0.0f);
+	output.writeDiffuseMaterial((int)objCenters.size() + 1, 0.6f, 0.7f, 0.0f);
 	for (int edgeId = 0; edgeId < edgesA.size(); ++edgeId)
 	{
 		if (edgesA[edgeId] > edgesB[edgeId])

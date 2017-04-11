@@ -86,14 +86,14 @@ def main():
     initial_smiles_strings = list(set(initial_smiles_strings))
     print("# initial strings: " + str(len(initial_smiles_strings)))
     
-    lengh_variations = []
+    length_variations = []
     for word in initial_smiles_strings:
-        str_len_variation_generator(lengh_variations, word)
+        str_len_variation_generator(length_variations, word)
 
-    print("# length variations: " + str(len(lengh_variations)))
+    print("# length variations: " + str(len(length_variations)))
 
     char_variations = []
-    for word in lengh_variations:
+    for word in length_variations:
         str_char_variation_generator(char_variations, word)
 
     print("# char variations: " + str(len(char_variations)))

@@ -147,6 +147,79 @@ def decoder_lerp(args, model):
         print("data point 1.0: " + char_data_1)
         print("-----------------------------------------------------------------------")
 
+def _gen_latent_path(data, end_pt_0, end_pt_1, waypoints = [], depth = 0):
+    if depth > 3:
+        return waypoints
+    
+    sample_ids = np.random.randint(0, len(data), 512)
+    sample_dist = [np.linalg.norm(data[end_pt_0] - data[x]) + np.linalg.norm(data[end_pt_1] - data[x]) for x in sample_ids]
+    val, idx = min((val, idx) for (idx, val) in enumerate(sample_dist))
+    _gen_latent_path(data, end_pt_0, sample_ids[idx], waypoints, depth + 1)
+    waypoints.append(sample_ids[idx])
+    _gen_latent_path(data, sample_ids[idx], end_pt_1, waypoints, depth + 1)
+
+    return waypoints
+    
+def decoder_path(args, model):
+    latent_dim = args.latent_dim
+    data, charset = read_latent_data(args.data)
+
+    if os.path.isfile(args.model):
+        model.load(charset, args.model, latent_rep_size = latent_dim)
+    else:
+        raise ValueError("Model file %s doesn't exist" % args.model)
+
+    tiling_grammar = grammar.TilingGrammar([])
+    if os.path.isfile(args.grammar):
+        tiling_grammar.load(args.grammar)
+    else:
+        raise ValueError("Grammar file %s doesn't exist" % args.grammar)
+
+    for i in range(args.samples):
+        sample_ids = np.random.randint(0, len(data), 2)
+        
+        decoded_data_0 = model.decoder.predict(data[sample_ids[0]].reshape(1, latent_dim)).argmax(axis=2)[0]
+        char_data_0 = decode_smiles_from_indexes(decoded_data_0, charset)
+
+        decoded_data_1 = model.decoder.predict(data[sample_ids[1]].reshape(1, latent_dim)).argmax(axis=2)[0]
+        char_data_1 = decode_smiles_from_indexes(decoded_data_1, charset)
+        if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
+            continue
+
+        if args.require_cycle and char_data_0.find("0") == -1 and char_data_1.find("0") == -1:
+            continue
+
+        print("---------------------sample " + str(i) + "------------------------------------------")
+        print("data point  0.0: " + char_data_0)
+        
+        path_ids = []
+        path_ids.append(sample_ids[0])
+        path_ids = _gen_latent_path(data, sample_ids[0], sample_ids[1], waypoints = path_ids)
+        path_ids.append(sample_ids[1])
+        
+        for p in range(len(path_ids) - 1):                   
+            decoded_data_p = model.decoder.predict(data[path_ids[p + 1]].reshape(1, latent_dim)).argmax(axis=2)[0]
+            char_data_p = decode_smiles_from_indexes(decoded_data_p, charset)
+            if not tiling_grammar.check_word(char_data_p) :
+                continue
+
+            for k in [0.2, 0.4, 0.6, 0.8]:
+                current_distance = np.linalg.norm(data[path_ids[p]] - data[path_ids[p + 1]])
+                rnd_offset = np.array([np.random.random(latent_dim)]) * 0.1 * current_distance
+                z_sample = (1.0 - k) * data[path_ids[p]] + k * data[path_ids[p + 1]] + rnd_offset
+                decoded_sample_k = model.decoder.predict(z_sample.reshape(1, latent_dim)).argmax(axis=2)[0]
+                char_sample_k = decode_smiles_from_indexes(decoded_sample_k, charset)
+                if(char_sample_k != char_data_0 and char_sample_k != char_data_1 and char_sample_k != char_data_p and tiling_grammar.check_word(char_sample_k)):
+                    print("sample point " + str(k) + ": "  + char_sample_k + " (rnd offset = " + str(0.1 * current_distance) + ")")
+                    break
+
+            if p < len(path_ids) - 2 :
+                print("path waypoint " + str(p + 1) + ": "  + char_data_p)
+
+        print("data point   1.0: " + char_data_1)
+        print("-----------------------------------------------------------------------")
+
+
 def decoder_rnd(args, model):
     latent_dim = args.latent_dim
     data, charset = read_latent_data(args.data)
@@ -205,6 +278,9 @@ def main():
         decoder_nbr(args, model)
     elif args.target == 'decoder_lerp':
         decoder_lerp(args, model)
+    elif args.target == 'decoder_path':
+        decoder_path(args, model)
+
 
 if __name__ == '__main__':
     main()

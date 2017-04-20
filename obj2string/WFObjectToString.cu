@@ -22,7 +22,7 @@ extern "C" {
 		obj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph graph = detector.computeCollisionGraph(obj, 0.005f);
+		Graph graph = detector.computeCollisionGraph(obj, 0.02f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, obj, graph);
@@ -48,7 +48,7 @@ extern "C" {
 		obj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph graph = detector.computeCollisionGraph(obj, 0.005f);
+		Graph graph = detector.computeCollisionGraph(obj, 0.02f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, obj, graph);

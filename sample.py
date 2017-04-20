@@ -47,11 +47,15 @@ def autoencoder(args, model):
     else:
         raise ValueError("Model file %s doesn't exist" % args.model)
 
-    sampled = model.autoencoder.predict(data[0].reshape(1, 120, len(charset))).argmax(axis=2)[0]
-    mol = decode_smiles_from_indexes(map(from_one_hot_array, data[0]), charset)
-    sampled = decode_smiles_from_indexes(sampled, charset)
-    print(mol)
-    print(sampled)
+    for i in range(args.samples):
+        sample_id = np.random.randint(0, len(data))
+        sampled = model.autoencoder.predict(data[sample_id].reshape(1, 120, len(charset))).argmax(axis=2)[0]
+        mol = decode_smiles_from_indexes(map(from_one_hot_array, data[sample_id]), charset)
+        if args.require_cycle and mol.find("0") == -1:
+            continue
+        sampled = decode_smiles_from_indexes(sampled, charset)
+        print("input word  : " + mol)
+        print("decoded word: " + sampled)
 
 def decoder(args, model):
     latent_dim = args.latent_dim
@@ -148,15 +152,17 @@ def decoder_lerp(args, model):
         print("-----------------------------------------------------------------------")
 
 def _gen_latent_path(data, end_pt_0, end_pt_1, waypoints = [], depth = 0):
-    if depth > 3:
+    if depth > 4:
         return waypoints
     
-    sample_ids = np.random.randint(0, len(data), 512)
-    sample_dist = [np.linalg.norm(data[end_pt_0] - data[x]) + np.linalg.norm(data[end_pt_1] - data[x]) for x in sample_ids]
+    #sample_ids = np.random.randint(0, len(data), 512)
+    #sample_dist = [np.linalg.norm(data[end_pt_0] - data[x]) + np.linalg.norm(data[end_pt_1] - data[x]) for x in sample_ids]
+    sample_dist = [np.linalg.norm(data[end_pt_0] - data[x]) + np.linalg.norm(data[end_pt_1] - data[x]) for x in range(len(data)) if x != end_pt_1 and x != end_pt_0]
+
     val, idx = min((val, idx) for (idx, val) in enumerate(sample_dist))
-    _gen_latent_path(data, end_pt_0, sample_ids[idx], waypoints, depth + 1)
-    waypoints.append(sample_ids[idx])
-    _gen_latent_path(data, sample_ids[idx], end_pt_1, waypoints, depth + 1)
+    _gen_latent_path(data, end_pt_0, idx, waypoints, depth + 1)
+    waypoints.append(idx)
+    _gen_latent_path(data, idx, end_pt_1, waypoints, depth + 1)
 
     return waypoints
     

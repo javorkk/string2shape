@@ -37,12 +37,14 @@ def main():
     print("# initial strings: " + str(len(initial_smiles_strings)))
 
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
+    print("max # neighbors: " + str(tile_grammar.max_degree()))
     tile_grammar.store(args.out_grammarpath)
     loaded_grammar = grammar.TilingGrammar([])
     loaded_grammar.load(args.out_grammarpath)
     for w in initial_smiles_strings:
         if(loaded_grammar.check_word(w) == False):
             print("Wrongly detected as invalid " + w)
+        #loaded_grammar.encode_to_one_hot(w)
 
     print("# items: " + str(len(initial_smiles_strings)))
     df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})

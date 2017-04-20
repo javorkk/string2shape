@@ -11,7 +11,7 @@ class TilingGrammar():
     BRANCH_END = ")"
 
     def __init__(self, word_set):
-        self.charset = []
+        self.charset = [" "]
         self.neighbor_counts = []
         self.neighbor_types = []
         
@@ -20,15 +20,20 @@ class TilingGrammar():
 
         for w in word_set:
             self.parse_valid_word(w, 0)
+
+        self.charset.sort()
+        self.neighbor_types.sort()
+        self.neighbor_counts.sort()
+
         print("node types: ")
-        for c in self.charset:
-            print(c)
+        print(self.charset)
         print("neighbor types: ")
-        for pair in self.neighbor_types:
-            print("(" + pair[0] + ", " + pair[1] + ") ")
+        for c in self.charset:
+            print([pair for pair in self.neighbor_types if pair[0] == c])
         print("neighbor counts: ")
-        for pair in self.neighbor_counts:
-            print("(" + self.charset[pair[0]] + ", " + str(pair[1]) + ") ")
+        for c in self.charset:
+            print([pair for pair in self.neighbor_counts if pair[0] == c])
+
 
     def _parse_number(self, word, last_non_number, start_char_id = 0, cycle_ids = [], cycle_vals = []):
         next_char_id = start_char_id 
@@ -40,12 +45,21 @@ class TilingGrammar():
             neighbor = cycle_vals[cycle_ids.index(cycle_edge_id)]
             if([last_non_number, neighbor] not in self.neighbor_types ):
                 self.neighbor_types.append([last_non_number, neighbor])
+                if neighbor != last_non_number:
+                    self.neighbor_types.append([neighbor, last_non_number])
         else:
             cycle_ids.append(cycle_edge_id)
             cycle_vals.append(last_non_number)
         return next_char_id
 
     def parse_valid_word(self, word, char_id = 0, cycle_ids = [], cycle_vals = []):
+        #TODO: this should not be necessary!
+        if char_id == 0 and len(cycle_ids) + len(cycle_vals) > 0:
+            while len(cycle_ids) > 0:
+                cycle_ids.pop()
+            while len(cycle_vals) > 0:
+                cycle_vals.pop()
+
         if char_id >= len(word):
             return char_id
         char = word[char_id]
@@ -82,6 +96,8 @@ class TilingGrammar():
           
             if([word[char_id], word[next_char_id]] not in self.neighbor_types ):
                 self.neighbor_types.append([word[char_id], word[next_char_id]])
+                if word[char_id] != word[next_char_id]:
+                    self.neighbor_types.append([word[next_char_id], word[char_id]])
 
             while(next_char_id < len(word) and word[next_char_id] != self.BRANCH_END):
                 next_char_id = self.parse_valid_word(word, next_char_id, cycle_ids, cycle_vals)
@@ -94,38 +110,52 @@ class TilingGrammar():
             num_neighbors += 1
             if([word[char_id], word[next_char_id]] not in self.neighbor_types ):
                 self.neighbor_types.append([word[char_id], word[next_char_id]])
+                if word[char_id] != word[next_char_id]:
+                    self.neighbor_types.append([word[next_char_id], word[char_id]])
             next_char_id = self.parse_valid_word(word, next_char_id, cycle_ids, cycle_vals)
 
-        if([charset_id, num_neighbors] not in self.neighbor_counts ):               
-            self.neighbor_counts.append([charset_id, num_neighbors])
+        if([char, num_neighbors] not in self.neighbor_counts ):               
+            self.neighbor_counts.append([char, num_neighbors])
         
         return next_char_id
 
-    def _check_number(self, word, last_non_number, start_char_id = 0, cycle_ids = [], cycle_vals = []):
+    def _check_number(self, word, last_non_number_id, start_char_id = 0, cycle_ids = [], cycle_vals = [], edges = []):
             next_char_id = start_char_id 
             #skip until end of number
             while(next_char_id < len(word) and self.DIGITS.find(word[next_char_id]) != -1):
                 next_char_id += 1
             cycle_edge_id = int(word[start_char_id: next_char_id])
             if(cycle_edge_id in cycle_ids):
-                neighbor = cycle_vals[cycle_ids.index(cycle_edge_id)]
-                if([last_non_number, neighbor] not in self.neighbor_types ):
-                    return False, next_char_id
+                neighbor_id = cycle_vals[cycle_ids.index(cycle_edge_id)]
+                if neighbor_id == last_non_number_id:
+                    return True, next_char_id, edges #second sighting of the same character
+                if([word[last_non_number_id], word[neighbor_id]] not in self.neighbor_types ):
+                    return False, next_char_id, []
+                else:
+                    edges.append([last_non_number_id, neighbor_id])
+                    edges.append([neighbor_id, last_non_number_id])
             else:
                 cycle_ids.append(cycle_edge_id)
-                cycle_vals.append(last_non_number)
-            return True, next_char_id
+                cycle_vals.append(last_non_number_id)
+            return True, next_char_id, edges
     
-    def _check_word(self, word, char_id = 0, branch_start_count = 0, cycle_ids = [], cycle_vals = []):
+    def _check_word(self, word, char_id = 0, branch_start_count = 0, cycle_ids = [], cycle_vals = [], edges = []):
+        #TODO: this should not be necessary!
+        if char_id == 0 and len(cycle_ids) + len(cycle_vals) > 0:
+            while len(cycle_ids) > 0:
+                cycle_ids.pop()
+            while len(cycle_vals) > 0:
+                cycle_vals.pop()
+
         if char_id >= len(word):
-            return True, char_id
+            return True, char_id, edges
         char = word[char_id]
 
         charset_id = len(self.charset)
         if(char in self.charset ):
             charset_id = self.charset.index(char)
         else:
-            return False, char_id
+            return False, char_id, []
             
 
         num_neighbors = 0
@@ -135,9 +165,9 @@ class TilingGrammar():
 
         while(next_char_id < len(word) and self.DIGITS.find(word[next_char_id]) != -1):
             num_neighbors += 1
-            valid, next_char_id = self._check_number(word, word[char_id], next_char_id, cycle_ids, cycle_vals)
+            valid, next_char_id, edges = self._check_number(word, char_id, next_char_id, cycle_ids, cycle_vals, edges)
             if(valid == False):
-                return False, next_char_id           
+                return False, next_char_id, []           
             if(next_char_id < len(word) and word[next_char_id] == self.NUM_DELIMITER):
                 next_char_id += 1
 
@@ -154,32 +184,39 @@ class TilingGrammar():
                 return False, next_char_id 
           
             if([word[char_id], word[next_char_id]] not in self.neighbor_types ):
-                return False, next_char_id
+                return False, next_char_id, []
+            if next_char_id < len(word):
+                edges.append([char_id, next_char_id])
+                edges.append([next_char_id, char_id])
 
             while(next_char_id < len(word) and word[next_char_id] != self.BRANCH_END):
-                valid, next_char_id = self._check_word(word, next_char_id, branch_start_count + 1, cycle_ids, cycle_vals)
+                valid, next_char_id, edges = self._check_word(word, next_char_id, branch_start_count + 1, cycle_ids, cycle_vals, edges)
                 if(valid == False):
-                    return False, next_char_id
+                    return False, next_char_id, []
             if(next_char_id >= len(word)):
-                return False, next_char_id
+                return False, next_char_id, []
             else:
                 next_char_id += 1
         
         if(next_char_id < len(word) and word[next_char_id] != self.BRANCH_END):
             num_neighbors += 1
             if([word[char_id], word[next_char_id]] not in self.neighbor_types ):
-                return False, next_char_id
-            valid, next_char_id = self._check_word(word, next_char_id, branch_start_count, cycle_ids, cycle_vals)
+                return False, next_char_id, []
+            if next_char_id < len(word):
+                edges.append([char_id, next_char_id])
+                edges.append([next_char_id, char_id])
+            valid, next_char_id, edges = self._check_word(word, next_char_id, branch_start_count, cycle_ids, cycle_vals, edges)
             if(valid == False):
-                return False, next_char_id
+                return False, next_char_id, []
+            
 
         if(next_char_id < len(word) and branch_start_count == 0 and word[next_char_id] == self.BRANCH_END):
-            return False, next_char_id
+            return False, next_char_id, []
 
-        if([charset_id, num_neighbors] not in self.neighbor_counts ):               
-            return False, next_char_id
+        if([char, num_neighbors] not in self.neighbor_counts ):
+            return False, next_char_id, []
         
-        return True, next_char_id
+        return True, next_char_id, edges
 
     def check_word(self, word):
         if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
@@ -187,15 +224,74 @@ class TilingGrammar():
         for i in range(len(self.DIGITS)):
             if(word.count(self.DIGITS[i]) % 2 != 0):
                 return False
-        result, dymmy = self._check_word(word)
+        result, dummy_id, dummy_edge_list = self._check_word(word)
+        while len(dummy_edge_list) > 0:
+            dummy_edge_list.pop()
+        if result == False:
+            print("Error at char id: " + str(dummy_id))
         return result
+
+    def max_degree(self):
+        #return max([pair[1] for pair in self.neighbor_counts])
+        return reduce(lambda x, y: max(x, y[1]), self.neighbor_counts, 0)
+
+    #def encode_to_one_hot(self, word, max_length):
+        #result = np.zeros((max_length, len(self.charset) + self.max_degree()))
+    def encode_to_one_hot(self, word):
+        result = np.zeros((len(word), len(self.charset) + self.max_degree()))
+        if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
+            return result;
+        for i in range(len(self.DIGITS)):
+            if(word.count(self.DIGITS[i]) % 2 != 0):
+                return result
+        valid, dymmy_id, edge_list = self._check_word(word)
+        if not valid:
+            while len(edge_list) > 0:
+                edge_list.pop()
+            return result
+        edge_list.sort()
+        edge_set = [edge_list[0]] + [edge_list[pair_id] for pair_id in range(1, len(edge_list)) \
+                                              if edge_list[pair_id][0] != edge_list[pair_id - 1][0] or \
+                                                 edge_list[pair_id][1] != edge_list[pair_id - 1][1] ]
+        while len(edge_list) > 0:
+            edge_list.pop()
+        
+        #print("word: " + word)
+        #print("edge set: ")
+        #print(edge_set)
+        
+        #node types
+        node_ids = np.zeros(len(word), dtype=np.int)
+        last_node_id = 0
+        for char_id in range(len(word)):
+            if word[char_id] in self.charset:
+                node_ids[char_id] = last_node_id
+                result[last_node_id][self.charset.index(word[char_id])] = 1
+                last_node_id += 1
+            else:
+                node_ids[char_id] = -1
+        
+        #connectivity
+        for node_id in range(last_node_id):
+            my_edges = [[node_ids[pair[0]], node_ids[pair[1]]] for pair in edge_set if node_ids[pair[0]] == node_id and node_ids[pair[1]] != -1]
+            for edge_id in range(len(my_edges)):
+                #difference + direction between the node index and its neigbor's
+                result[my_edges[edge_id][0]][len(self.charset) + edge_id] = my_edges[edge_id][1] - my_edges[edge_id][0]
+
+        #print("one_hot_encoding :")    
+        #print(result)
+
+        while len(edge_set) > 0:
+            edge_set.pop()
+
+        return result                
 
     def load(self, filename):
         h5f = h5py.File(filename, "r")
         charset_array = h5f["charset"][:]
         self.charset = charset_array.tolist()
         nbr_counts_array = h5f["neighbor_counts"][:]
-        self.neighbor_counts = nbr_counts_array.tolist()
+        self.neighbor_counts = [[pair[0], int(pair[1])] for pair in nbr_counts_array]
         nbr_type_array = h5f["neighbor_types"][:]
         self.neighbor_types = nbr_type_array.tolist()
         h5f.close()

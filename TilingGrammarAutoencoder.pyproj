@@ -17,6 +17,9 @@
     <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
     <InterpreterVersion>2.7</InterpreterVersion>
     <CommandLineArguments>data\church_cycles\encoded_cycles.h5 data\church_cycles\model_400k.h5  data\church_cycles\grammar.h5 --target decoder_lerp --sample 10</CommandLineArguments>
+    <InterpreterId>{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}</InterpreterId>
+    <InterpreterVersion>3.5</InterpreterVersion>
+    <CommandLineArguments>data\church_cycles\encoded_400k.h5 data\church_cycles\model_400k.h5  data\church_cycles\grammar.h5 --target decoder_nbr --sample 10</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

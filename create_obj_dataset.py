@@ -44,7 +44,11 @@ def main():
     for w in initial_smiles_strings:
         if(loaded_grammar.check_word(w) == False):
             print("Wrongly detected as invalid " + w)
-        #loaded_grammar.encode_to_one_hot(w)
+        one_hot_vec = loaded_grammar.encode_to_one_hot(w)
+        valid_vec = loaded_grammar.check_one_hot(one_hot_vec)
+        if not valid_vec:
+            print("Wrongly detected as invalid ")
+            print(one_hot_vec)
 
     print("# items: " + str(len(initial_smiles_strings)))
     df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})

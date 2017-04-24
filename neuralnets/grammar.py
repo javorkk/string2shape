@@ -238,7 +238,8 @@ class TilingGrammar():
     #def encode_to_one_hot(self, word, max_length):
         #result = np.zeros((max_length, len(self.charset) + self.max_degree()))
     def encode_to_one_hot(self, word):
-        result = np.zeros((len(word), len(self.charset) + self.max_degree()))
+        node_count = len([char for char in word if char in self.charset])
+        result = np.zeros((node_count, len(self.charset) + self.max_degree()))
         if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
             return result;
         for i in range(len(self.DIGITS)):
@@ -281,10 +282,55 @@ class TilingGrammar():
         #print("one_hot_encoding :")    
         #print(result)
 
-        while len(edge_set) > 0:
-            edge_set.pop()
+        return result       
 
-        return result                
+    def check_one_hot(self, vec):
+        num_dims = len(self.charset) + self.max_degree()
+        num_vecs = vec.shape[0]
+        if vec.shape[1] != num_dims:
+            return False
+        
+        #node types
+        node_types = []
+        for node_id in range(vec.shape[0]):
+            node_type_id = len(self.charset);
+            for dim_id in range(len(self.charset)):
+                if vec[node_id][dim_id] != 0:
+                    node_type_id = dim_id
+                    break;
+            if node_type_id >= len(self.charset):
+                return False
+            else:
+                node_types.append(self.charset[node_type_id])
+
+        #connectivity
+        for node_id in range(vec.shape[0]):
+            num_neighbors = 0
+            for neighbor_id_d in vec[node_id][len(self.charset): num_dims]:
+                if abs(neighbor_id_d) < 0.5:
+                    continue
+                num_neighbors += 1
+                neighbor_id = int ((node_id + neighbor_id_d) % num_vecs)
+                valid_neighbor = False
+                for nbr_nbr_d in vec[neighbor_id][len(self.charset): num_dims]:
+                    if abs(nbr_nbr_d) < 0.5:
+                        continue
+                    nbr_nbr = int((neighbor_id + nbr_nbr_d) % num_vecs)
+                    if nbr_nbr == node_id:
+                        for allowed_type in [pair[1] for pair in self.neighbor_types if pair[0] == node_types[node_id] ]:
+                            if node_types[neighbor_id] == allowed_type:
+                                valid_neighbor = True
+                                break
+                        if valid_neighbor:
+                            break
+
+                if not  valid_neighbor:
+                    return False
+
+            if num_neighbors not in [pair[1] for pair in self.neighbor_counts if pair[0] == node_types[node_id] ]:
+                return False
+
+        return True
 
     def load(self, filename):
         h5f = h5py.File(filename, "r")

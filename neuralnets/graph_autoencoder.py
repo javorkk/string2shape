@@ -2,24 +2,28 @@ import copy
 from keras import backend as K
 from keras import objectives
 from keras.models import Model
-from keras.layers import Input, Dense, Lambda
+from keras.layers import Input, Dense, Lambda, merge
 from keras.layers.core import Dense, Activation, Flatten, RepeatVector
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.recurrent import GRU
 from keras.layers.convolutional import Convolution1D
 
-class TilingVAE():
+import theano.tensor as T
+
+class GraphVAE():
 
     autoencoder = None
     
     def create(self,
                charset,
+               connectivity_dims = 0,
                max_length = 120,
                latent_rep_size = 292,
                weights_file = None):
-        charset_length = len(charset)
+        #charset_length = len(charset)
+        intput_width = len(charset) + connectivity_dims
         
-        x = Input(shape=(max_length, charset_length))
+        x = Input(shape=(max_length, intput_width))
         _, z = self._buildEncoder(x, latent_rep_size, max_length)
         self.encoder = Model(x, z)
 
@@ -30,11 +34,12 @@ class TilingVAE():
                 encoded_input,
                 latent_rep_size,
                 max_length,
-                charset_length
+                connectivity_dims,
+                intput_width
             )
         )
 
-        x1 = Input(shape=(max_length, charset_length))
+        x1 = Input(shape=(max_length, intput_width))
         vae_loss, z1 = self._buildEncoder(x1, latent_rep_size, max_length)
         self.autoencoder = Model(
             x1,
@@ -42,7 +47,8 @@ class TilingVAE():
                 z1,
                 latent_rep_size,
                 max_length,
-                charset_length
+                connectivity_dims,
+                intput_width
             )
         )
 
@@ -80,16 +86,28 @@ class TilingVAE():
 
         return (vae_loss, Lambda(sampling, output_shape=(latent_rep_size,), name='lambda')([z_mean, z_log_var]))
 
-    def _buildDecoder(self, z, latent_rep_size, max_length, charset_length):
+    def _buildDecoder(self, z, latent_rep_size, max_length, connectivity_dims, intput_width):
         h = Dense(latent_rep_size, name='latent_input', activation = 'relu')(z)
         h = RepeatVector(max_length, name='repeat_vector')(h)
         h = GRU(501, return_sequences = True, name='gru_1')(h)
         h = GRU(501, return_sequences = True, name='gru_2')(h)
         h = GRU(501, return_sequences = True, name='gru_3')(h)
-        return TimeDistributed(Dense(charset_length, activation='softmax'), name='decoded_mean')(h)
+
+        #return TimeDistributed(Dense(intput_width, activation='softmax'), name='decoded_mean')(h)
+
+        d_type = Dense(intput_width - connectivity_dims, name='dense_type')(h)
+        d_type = TimeDistributed(Dense(intput_width - connectivity_dims, activation='softmax'), name='decoded_type')(d_type)
+
+        d_conn = Dense(connectivity_dims, name='dense_conn')(h)
+        d_conn = TimeDistributed(Dense(connectivity_dims), name='decoded_conn')(d_conn)
+        #d_conn = Lambda(lambda x: T.round(x * max_length) / (1.0 * max_length), name='rounded_conn', output_shape = (max_length, connectivity_dims))(d_conn)
+
+
+        h = merge([d_type, d_conn], mode = 'concat')     
+        return h         
 
     def save(self, filename):
         self.autoencoder.save_weights(filename)
     
-    def load(self, charset, weights_file, latent_rep_size = 292):
-        self.create(charset, weights_file = weights_file, latent_rep_size = latent_rep_size)
+    def load(self, charset, weights_file, connectivity_dims = 0, latent_rep_size = 292):
+        self.create(charset, connectivity_dims = connectivity_dims, weights_file = weights_file, latent_rep_size = latent_rep_size)

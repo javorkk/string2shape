@@ -40,10 +40,16 @@
     <Compile Include="neuralnets\autoencoder.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="neuralnets\graph_autoencoder.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="neuralnets\utils.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="neuralnets\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="preprocess_graph.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="obj2string\setup.py">
@@ -55,7 +61,11 @@
     <Compile Include="sample.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="sample_graph.py" />
     <Compile Include="train.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="train_graph.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

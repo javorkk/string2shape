@@ -31,3 +31,22 @@ def load_dataset(filename, split = True):
         return (data_train, data_test, charset)
     else:
         return (data_test, charset)
+
+def load_graph_dataset(filename, split = True):
+    h5f = h5py.File(filename, 'r')
+    if split:
+        data_train = h5f['data_train'][:]
+    else:
+        data_train = None
+    
+    connectivity_dims = 0
+    if 'connectivity_dims' in h5f:
+        connectivity_dims = h5f['connectivity_dims'][()]
+
+    data_test = h5f['data_test'][:]
+    charset =  h5f['charset'][:]
+    h5f.close()
+    if split:
+        return (data_train, data_test, charset, connectivity_dims)
+    else:
+        return (data_test, charset, connectivity_dims)

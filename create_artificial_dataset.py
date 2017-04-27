@@ -28,7 +28,7 @@ def str_len_variation_generator(word_list, word, max_length = MAX_WORD_LENGTH, c
             str_len_variation_generator(word_list, variant, max_length, char_pos, depth + 1)
         return
 
-    if(len(word) <= char_pos or depth >= 1 and numpy.random.random(1) < 0.5):
+    if(len(word) <= char_pos or depth >= 1 and numpy.random.random(1) < 0.75):
         word_list.append(word)
         return
 

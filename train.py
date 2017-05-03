@@ -10,6 +10,9 @@ from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
     decode_smiles_from_indexes, load_dataset
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 
+from keras.utils import visualize_util
+import matplotlib.pyplot as plt
+
 NUM_EPOCHS = 1
 BATCH_SIZE = 600
 LATENT_DIM = 292
@@ -30,6 +33,21 @@ def get_arguments():
 def main():
     args = get_arguments()
     data_train, data_test, charset = load_dataset(args.data)
+
+    #print ("Grammar characters: ") 
+    #print (charset)
+    #print("data dtype is " + str(data_train.dtype))
+    #print("vector dtype is " + str(data_train[0].dtype))
+    #print("vector shape is " + str(data_train[0].shape))
+
+    #for i in range(1):
+    #    sample_id = np.random.randint(0, len(data_train))
+    #    exaple = data_train[sample_id]
+    #    print("training vector " + str(sample_id) + ":")
+    #    print(exaple)
+
+    #return
+
     model = TilingVAE()
     if os.path.isfile(args.model):
         model.load(charset, args.model, latent_rep_size = args.latent_dim)
@@ -45,7 +63,10 @@ def main():
                                   patience = 3,
                                   min_lr = 0.0001)
 
-    model.autoencoder.fit(
+    filename, ext = os.path.splitext(args.model) 
+    visualize_util.plot(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)
+
+    history = model.autoencoder.fit(
         data_train,
         data_train,
         shuffle = True,
@@ -54,6 +75,16 @@ def main():
         callbacks = [checkpointer, reduce_lr],
         validation_data = (data_test, data_test)
     )
+
+    # summarize history for loss
+    plt.plot(history.history['val_t_loss'])
+    plt.plot(history.history['val_c_loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['type', 'connectivity', 'combined'], loc='upper left')
+    plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
 if __name__ == '__main__':
     main()

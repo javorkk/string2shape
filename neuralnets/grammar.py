@@ -238,7 +238,7 @@ class TilingGrammar():
         #result = np.zeros((max_length, len(self.charset) + self.max_degree()))
     def encode_to_one_hot(self, word, max_length = 0):
         node_count = len([char for char in word if char in self.charset])
-        result = np.zeros((node_count, len(self.charset) + self.max_degree()))
+        result = np.zeros((node_count, len(self.charset) + self.max_degree()), dtype=np.float)
         if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
             return result;
         for i in range(len(self.DIGITS)):
@@ -291,8 +291,10 @@ class TilingGrammar():
         #print("one_hot_encoding :")    
         #print(result)
         if max_length > node_count:
-            #return np.lib.pad(result, ((0,max_length - node_count), (0,0)), mode='constant', constant_values=0.5) #values in [0,1]
-            return np.lib.pad(result, ((0,max_length - node_count), (0,0)), mode='constant', constant_values=0.0) #values in [-1,1]
+            #result = np.lib.pad(result, ((0,max_length - node_count), (0,0)), mode='constant', constant_values=0.5) #values in [0,1]
+            result = np.lib.pad(result, ((0,max_length - node_count), (0,0)), mode='constant', constant_values=0.0) #values in [-1,1]
+        for node_id in range(node_count, max_length):
+            result[node_id][0] = 1.0
 
         while len(edge_set) > 0:
             edge_set.pop()
@@ -321,6 +323,9 @@ class TilingGrammar():
 
         #connectivity
         for node_id in non_epty_node_ids:
+            if node_types[node_id] == " ":
+                continue
+
             num_neighbors = 0
             for neighbor_id_d in vec[node_id][len(self.charset): num_dims]:
                 #if abs(neighbor_id_d - 0.5) < EPS: #values in [0,1]

@@ -59,5 +59,17 @@ def main():
         h5f.create_dataset("property_test", data = properties[test_idx])
     h5f.close()
 
+    #debug output some random vectors
+    #print("random samples from the training set: ")
+    #ids = np.random.random_integers(0, len(train_idx), 10)
+    #for i in ids:
+    #    print(structures_one_hot[train_idx[i]])
+    #    print(loaded_grammar.print_one_hot(structures_one_hot[train_idx[i]]))    
+    #print("random samples from the validation set: ")
+    #ids = np.random.random_integers(0, len(test_idx), 10)
+    #for i in ids:
+    #    print(structures_one_hot[test_idx[i]])
+    #    print(loaded_grammar.print_one_hot(structures_one_hot[test_idx[i]]))
+
 if __name__ == "__main__":
     main()

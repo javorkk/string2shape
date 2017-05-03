@@ -21,7 +21,7 @@ def process_folder(folder_name, word_list = []):
         if os.path.isdir(subfolfer_name):
             process_folder(subfolfer_name, word_list)
         if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"): 
-            current_str = obj_tools.obj2string(folder_name + "/" + item_name)
+            current_str = obj_tools.obj2strings(folder_name + "/" + item_name)
             current_words = current_str.split("\n")
             print("Converted " + os.path.join(folder_name, item_name) + " to " + current_words[0])
             for w in current_words:
@@ -48,9 +48,7 @@ def main():
         valid_vec = loaded_grammar.check_one_hot(one_hot_vec)
         if not valid_vec:
             print("Wrongly detected as invalid ")
-            print(loaded_grammar.print_one_hot(one_hot_vec))
-        else:
-            print(loaded_grammar.print_one_hot(one_hot_vec))
+            print(loaded_grammar.print_one_hot(one_hot_vec))        
 
     print("# items: " + str(len(initial_smiles_strings)))
     df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})

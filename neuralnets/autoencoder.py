@@ -55,7 +55,7 @@ class TilingVAE():
                                  loss = vae_loss,
                                  metrics = ['accuracy'])
 
-    def _buildEncoder(self, x, latent_rep_size, max_length, epsilon_std = 1.0):
+    def _buildEncoder(self, x, latent_rep_size, max_length, epsilon_std = 0.01):
         h = Convolution1D(9, 9, activation = 'relu', name='conv_1')(x)
         h = Convolution1D(9, 9, activation = 'relu', name='conv_2')(h)
         h = Convolution1D(10, 11, activation = 'relu', name='conv_3')(h)

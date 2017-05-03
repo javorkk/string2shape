@@ -6,14 +6,14 @@ import h5py
 import numpy as np
 import sys
 
-from neuralnets.autoencoder import TilingVAE
+from neuralnets.graph_autoencoder import GraphVAE
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
-    decode_smiles_from_indexes, load_dataset
+    decode_smiles_from_indexes, load_graph_dataset
 import neuralnets.grammar as grammar
 
 LATENT_DIM = 292
 TARGET = 'autoencoder'
-NUM_SAMPLES = 100
+NUM_SAMPLES = 10
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Molecular autoencoder network')
@@ -41,7 +41,7 @@ def read_latent_data(filename):
 
 def autoencoder(args, model):
     latent_dim = args.latent_dim
-    data, charset, connectivity_dims = load_dataset(args.data, split = False)
+    data, charset, connectivity_dims = load_graph_dataset(args.data, split = False)
 
     if os.path.isfile(args.model):
         model.load(charset, args.model, connectivity_dims, latent_rep_size = latent_dim)
@@ -55,6 +55,7 @@ def autoencoder(args, model):
         raise ValueError("Grammar file %s doesn't exist" % args.grammar)
 
     if connectivity_dims != tiling_grammar.max_degree():
+        print ("connectivity dims: " + str(connectivity_dims) + " max degree " + str(tiling_grammar.max_degree()))
         raise ValueError("Grammar does not match input data")
         
     for i in range(args.samples):
@@ -62,7 +63,9 @@ def autoencoder(args, model):
         sampled = model.autoencoder.predict(data[sample_id].reshape(1, 120, len(charset) + connectivity_dims))
         mol = data[sample_id]
         print("input word  : " + tiling_grammar.print_one_hot(mol))
-        print("decoded word: " + tiling_grammar.print_one_hot(sampled))
+        print("decoded vector: ")
+        print(sampled[:,:,:len(charset)])
+        print("decoded word: " + tiling_grammar.print_one_hot(sampled[0]))
 
 def decoder(args, model):
     latent_dim = args.latent_dim
@@ -82,9 +85,11 @@ def decoder(args, model):
     if connectivity_dims != tiling_grammar.max_degree():
         raise ValueError("Grammar does not match input data")
 
-    for latent_vec in data:
+    for i in range(args.samples):
+        sample_id = np.random.randint(0, len(data))
+        latent_vec = data[sample_id]
         sampled = model.decoder.predict(latent_vec.reshape(1, latent_dim))
-        print(tiling_grammar.print_one_hot(sampled))
+        print("decoded word: " + tiling_grammar.print_one_hot(sampled[0]))
 
 def decoder_nbr(args, model):
     latent_dim = args.latent_dim
@@ -272,7 +277,7 @@ def decoder_rnd(args, model):
 
 def encoder(args, model):
     latent_dim = args.latent_dim
-    data, charset, connectivity_dims = load_dataset(args.data, split = False)
+    data, charset, connectivity_dims = load_graph_dataset(args.data, split = False)
 
     if os.path.isfile(args.model):
         model.load(charset, args.model, latent_rep_size = latent_dim)

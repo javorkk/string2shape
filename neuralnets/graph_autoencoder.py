@@ -109,12 +109,12 @@ class GraphVAE():
             self.encoder.load_weights(weights_file, by_name = True)
             self.decoder.load_weights(weights_file, by_name = True)
 
-        opt = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-        self.autoencoder.compile(optimizer = opt,
+        #opt = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        self.autoencoder.compile(optimizer = 'adam',
                                  loss = vae_loss,
                                  metrics = [type_acc, type_loss, conn_loss])
 
-    def _buildEncoder(self, x, latent_rep_size, max_length, conn_dim_start, epsilon_std = 1.0):
+    def _buildEncoder(self, x, latent_rep_size, max_length, conn_dim_start, epsilon_std = 0.01):
         h = Convolution1D(9, 9, activation = 'relu', name='conv_1')(x)
         h = Convolution1D(9, 9, activation = 'relu', name='conv_2')(h)
         h = Convolution1D(10, 11, activation = 'relu', name='conv_3')(h)
@@ -139,21 +139,21 @@ class GraphVAE():
         #    y_pred = K.flatten(y_pred)            
         #    return max_length_f * objectives.binary_crossentropy(y_true, y_pred)
         
-        def t_loss(x_true, x_pred):
+        def t_loss(x_true_t, x_pred_t):
             max_length_f = 1.0 * max_length
 
-            x_true_type = x_true[:,:,:conn_dim_start]
-            x_pred_type = x_pred[:,:,:conn_dim_start]
+            x_true_type = x_true_t#[:,:,:conn_dim_start]
+            x_pred_type = x_pred_t#[:,:,:conn_dim_start]
 
             x_true_type = K.flatten(x_true_type)
             x_pred_type = K.flatten(x_pred_type)
 
             return max_length_f * objectives.binary_crossentropy(x_true_type, x_pred_type)
 
-        def c_loss(x_true, x_pred):
+        def c_loss(x_true_c, x_pred_c):
             max_length_f = 1.0 * max_length
-            x_true_conn = x_true[:,:,conn_dim_start:]
-            x_pred_conn = x_pred[:,:,conn_dim_start:]
+            x_true_conn = x_true_c[:,:,conn_dim_start:]
+            x_pred_conn = x_pred_c[:,:,conn_dim_start:]
 
             #x_true_conn = 0.5 * x_true_conn + 0.5
             #x_pred_conn = 0.5 * K.round(x_pred_conn * max_length_f) / max_length_f + 0.5
@@ -167,17 +167,17 @@ class GraphVAE():
 
             return max_length_f * objectives.mean_absolute_error(x_true_conn, x_pred_conn)
 
-        def KL_loss(x_true, x_pred):
+        def KL_loss(x_true_kl, x_pred_kl):
             kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis = -1)
             return kl_loss
 
-        def vae_loss(x_true, x_pred):    
-            #return  t_loss(x_true, x_pred) + KL_loss(x_true, x_pred)
-            return 0.5 * t_loss(x_true, x_pred) + 0.5 * c_loss(x_true, x_pred) + KL_loss(x_true, x_pred)
+        def vae_loss(x_true_vae, x_pred_vae):    
+            #return  t_loss(x_true_vae, x_pred_vae) + KL_loss(x_true_vae, x_pred_vae)
+            return 0.9 * t_loss(x_true_vae, x_pred_vae) + 0.1 * c_loss(x_true_vae, x_pred_vae) + KL_loss(x_true_vae, x_pred_vae)
         
-        def type_acc(x_true, x_pred):
-            y_true_t = x_true[:,:,:conn_dim_start]
-            y_pred_t = x_pred[:,:,:conn_dim_start]
+        def type_acc(x_true_acc, x_pred_acc):
+            y_true_t = x_true_acc[:,:,:conn_dim_start]
+            y_pred_t = x_pred_acc[:,:,:conn_dim_start]
             y_true_t = K.flatten(y_true_t)
             y_pred_t = K.flatten(y_pred_t)
             return   K.mean(K.cast(K.equal(y_true_t, K.round(y_pred_t)), K.floatx()), axis=-1)
@@ -201,13 +201,13 @@ class GraphVAE():
 
         #return TimeDistributed(Dense(intput_width, activation='softmax'), name='decoded_mean')(h)
 
-        d_type = MyCropping1D(cropping=(0, 250), name='crop_type')(h)
+        d_type = MyCropping1D(cropping=(0, 100), name='crop_type')(h)
         #d_type = Dense(intput_width - connectivity_dims, name='dense_type')(h)
         #d_type = Convolution1D(intput_width - connectivity_dims, 1, activation = 'softmax', name='conv_type')(h)
         #d_type = Dense(intput_width - connectivity_dims, name='dense_type_1', activation = 'relu')(d_type)
         d_type = TimeDistributed(Dense(intput_width - connectivity_dims, activation='softmax'), name='decoded_type')(d_type)
 
-        d_conn = MyCropping1D(cropping=(250, 0), name='crop_conn')(h)
+        d_conn = MyCropping1D(cropping=(400, 0), name='crop_conn')(h)
         #d_conn = Dense(connectivity_dims, name='dense_conn_1')(h)
         d_conn = TimeDistributed(Dense(connectivity_dims,  activation = 'relu'), name='dense_conn_2')(d_conn)
         d_conn = Flatten(name='flatten_conn')(d_conn)

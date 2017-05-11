@@ -3,7 +3,7 @@
 
 //#include "WFObject.h" //from CollisionDetector.h
 //#include "Graph.h" //from CollisionDetector.h
-
+#include "WFObjUtils.h"
 #include "UniformGrid.h"
 #include "UniformGridSortBuilder.h"
 #include <thrust/host_vector.h>
@@ -268,14 +268,8 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	cudastd::timer intermTimer;
 
 	//compute scene diagonal
-	float3 minBound = rep( FLT_MAX);
-	float3 maxBound = rep(-FLT_MAX);
-	for (auto it = aObj.vertices.begin(); it != aObj.vertices.end(); ++it)
-	{
-		minBound = min(*it, minBound);
-		maxBound = max(*it, maxBound);
-	}
-
+	float3 minBound, maxBound;
+	ObjectBoundsExporter()(aObj, minBound, maxBound);
 	float boundsDiagonal = len(maxBound - minBound);
 	float3 res = (maxBound - minBound) / (boundsDiagonal * 0.577350269f * aRelativeThreshold); //0.577350269 ~ sqrtf(3.f)
 

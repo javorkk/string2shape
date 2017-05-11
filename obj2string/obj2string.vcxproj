@@ -33,8 +33,10 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="UniformGrid.h" />
     <ClInclude Include="UniformGridSortBuilder.h" />
+    <ClInclude Include="VariationGenerator.h" />
     <ClInclude Include="WFObject.h" />
     <ClInclude Include="WFObjectToString.h" />
+    <ClInclude Include="WFObjUtils.h" />
     <ClInclude Include="WFObjWriter.h" />
   </ItemGroup>
   <ItemGroup>
@@ -51,6 +53,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="WFObjectReader.cpp" />
+    <ClCompile Include="WFObjUtils.cpp" />
     <ClCompile Include="WFObjWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -59,6 +62,7 @@
     <CudaCompile Include="Graph.cu" />
     <CudaCompile Include="Graph2String.cu" />
     <CudaCompile Include="UniformGridSortBuilder.cu" />
+    <CudaCompile Include="VariationGenrator.cu" />
     <CudaCompile Include="WFObjectToString.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

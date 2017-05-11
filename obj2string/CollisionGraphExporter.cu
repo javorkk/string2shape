@@ -2,34 +2,13 @@
 #include "CollisionGraphExporter.h"
 #include "CollisionDetector.h"
 #include "WFObjWriter.h"
+#include "WFObjUtils.h"
 
 #include "DebugUtils.h"
 #include "Timer.h"
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
-
-std::string getDirName(const std::string& _name)
-{
-	std::string objDir;
-#if _MSC_VER >= 1400
-	char fileDir[4096];
-	_splitpath_s(_name.c_str(), NULL, 0, fileDir, sizeof(fileDir), NULL, 0, NULL, 0);
-	objDir = fileDir;
-#endif
-
-#ifndef _WIN32
-	char *fnCopy = strdup(_name.c_str());
-	const char* dirName = dirname(fnCopy);
-	objDir = dirName;
-	objDir.append("/");
-	free(fnCopy);
-	//std::cerr << "Dirname: " << objDir << "\n";
-#endif // _WIN32
-
-	return objDir;
-}
-
 
 void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObject & aObj, Graph & aGraph)
 {
@@ -61,8 +40,10 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 
 	//std::cerr << "Exporting collision graph to " << graphFilePath << ".obj ...\n";
 
-	std::vector<float3> objCenters(aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
-	std::vector<float> objSizes(aObj.objects.size(), 1.f);
+	std::vector<float3> objCenters;// (aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
+	std::vector<float> objSizes;// (aObj.objects.size(), 1.f);
+
+	ObjectCenterExporter()(aObj, objCenters, objSizes, 0.3333f);
 
 	for (auto objIt = aObj.objects.begin(); objIt != aObj.objects.end(); ++objIt)
 	{

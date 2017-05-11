@@ -59,3 +59,5 @@ std::string itoa(const int a);
 std::string ftoa(const float a);
 
 std::string cutComments(const std::string& aLine, const char* aToken);
+
+std::string getDirName(const std::string& _name);

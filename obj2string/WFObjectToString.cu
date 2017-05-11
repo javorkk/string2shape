@@ -9,6 +9,7 @@
 #include "CollisionDetector.h"
 #include "CollisionGraphExporter.h"
 #include "Graph2String.h"
+#include "VariationGenerator.h"
 
 
 #ifdef __cplusplus
@@ -100,7 +101,32 @@ extern "C" {
 		return testGraph.testSpanningTreeConstruction();
 	}
 
+	int testRandomVariations(const char * aFileName1, const char* aFileName2)
+	{
+		WFObject obj1;
+		obj1.read(aFileName1);
 
+		WFObject obj2;
+		obj2.read(aFileName2);
+
+		CollisionDetector detector;
+		Graph graph1 = detector.computeCollisionGraph(obj1, 0.02f);
+		Graph graph2 = detector.computeCollisionGraph(obj2, 0.02f);
+
+		CollisionGraphExporter exporter;
+		exporter.exportCollisionGraph(aFileName1, obj1, graph1);
+		exporter.stats();
+
+		exporter.exportCollisionGraph(aFileName2, obj2, graph2);
+		exporter.stats();
+
+		VariationGenerator genRandVariation;
+		genRandVariation(aFileName1, obj1, obj2, graph1, graph2, 0.02f);
+		genRandVariation.stats();
+
+		return 0;
+
+	}
 #ifdef __cplusplus
 }
 #endif

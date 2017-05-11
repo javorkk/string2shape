@@ -7,6 +7,7 @@
 #include "UniformGridSortBuilderTest.h"
 #include "GraphTest.h"
 #include "CollisionTest.h"
+#include "ShapeVariationTest.h"
 
 #include <thrust/detail/config.h>
 
@@ -23,6 +24,20 @@ int main()
 	}
 #endif
 	
+	const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
+	const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
+	ShapeVariationTest variationTest;
+	int var_test_result = variationTest.testAll(variationFile1, variationFile2);
+	if (var_test_result != 0)
+	{
+		std::cerr << "Shape variation test failed!\n";
+		return var_test_result;
+	}
+	else
+	{
+		std::cerr << "Shape variation test passed. \n";
+	}
+
 	UniformGridSortBuildTest uniformGridTest;
 	int ugrid_test_result = uniformGridTest.testAll("../scenes/church/church.obj", 32, 16, 24);
 	
@@ -67,6 +82,9 @@ int main()
 	const char* obj2strTestFile = "../scenes/church/church.obj";
 	std::cerr << obj2strTestFile << " converted to \n"
 		<< WFObjectToString(obj2strTestFile) << "\n";
+	std::cerr << "---------------------------------------------------------------------\n";
+
+
 
 
 #if 0// THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA

@@ -359,10 +359,9 @@ class TilingGrammar():
         
         return True
     
-    def print_one_hot(self, vec):
-        num_dims = len(self.charset) + self.max_degree()
+    def one_hot_to_graph(self, vec):
         non_epty_node_ids = [node_id for node_id in range(vec.shape[0]) if np.amax(vec[node_id]) > EPS or np.amin(vec[node_id]) < -EPS ]
-        num_vecs = len(non_epty_node_ids)
+        num_dims = len(self.charset) + self.max_degree()
         if vec.shape[1] != num_dims:
             raise ValueError("Wrong one_hot vector shape! Got " + str(vec.shape) + " expected (, " + str(num_dims) +")")
 
@@ -378,11 +377,23 @@ class TilingGrammar():
             else:
                 node_types.append(self.charset[node_type_id])
         
+        #neighbors
+        neighbors = []
+        for node_id in non_epty_node_ids:
+            #neighbors.append([ int(round(x * 2 * vec.shape[0] - vec.shape[0])) for x in vec[node_id][len(self.charset): num_dims] ]) #values in [0,1]
+            neighbors.append([ int(round(x * vec.shape[0])) for x in vec[node_id][len(self.charset): num_dims] ]) #values in [-1,1]
+            #neighbors.append(vec[node_id][len(self.charset): num_dims])#values in [-word_len, word_len]
+        return node_types, neighbors
+
+    def print_one_hot(self, vec):
+        non_epty_node_ids = [node_id for node_id in range(vec.shape[0]) if np.amax(vec[node_id]) > EPS or np.amin(vec[node_id]) < -EPS ]
+        num_vecs = len(non_epty_node_ids)
+
+        node_types, neighbors = self.one_hot_to_graph(vec)
+
         result_str = ""
         for node_id in non_epty_node_ids:
-            #result_str += (str(node_id) + ": " + node_types[node_id] + "  " + str([ int(round(x * 2 * vec.shape[0] - vec.shape[0])) for x in vec[node_id][len(self.charset): num_dims] ]) + "\n") #values in [0,1]
-            result_str += (str(node_id) + ": " + node_types[node_id] + "  " + str([ int(round(x * vec.shape[0])) for x in vec[node_id][len(self.charset): num_dims] ]) + "\n") #values in [-1,1]
-            #print(str(node_id) + ": " + node_types[node_id] + "  " + str(vec[node_id][len(self.charset): num_dims]))
+            result_str += (str(node_id) + ": " + node_types[node_id] + "  " + str(neighbors[node_id]) + "\n")
         return result_str
 
     def load(self, filename):

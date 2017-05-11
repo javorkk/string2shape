@@ -62,10 +62,10 @@ def autoencoder(args, model):
         sample_id = np.random.randint(0, len(data))
         sampled = model.autoencoder.predict(data[sample_id].reshape(1, 120, len(charset) + connectivity_dims))
         mol = data[sample_id]
-        print("input word  : " + tiling_grammar.print_one_hot(mol))
-        print("decoded vector: ")
-        print(sampled[:,:,:len(charset)])
-        print("decoded word: " + tiling_grammar.print_one_hot(sampled[0]))
+        print("input word:\n" + tiling_grammar.print_one_hot(mol))
+        #print("decoded vector:\n")
+        #print(sampled[:,:,:len(charset)])
+        print("decoded word:\n" + tiling_grammar.print_one_hot(sampled[0]))
 
 def decoder(args, model):
     latent_dim = args.latent_dim

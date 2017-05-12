@@ -121,7 +121,7 @@ extern "C" {
 		exporter.stats();
 
 		VariationGenerator genRandVariation;
-		genRandVariation(aFileName1, obj1, obj2, graph1, graph2, 0.02f);
+		genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.02f);
 		genRandVariation.stats();
 
 		return 0;

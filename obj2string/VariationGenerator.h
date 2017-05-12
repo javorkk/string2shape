@@ -16,12 +16,20 @@ class VariationGenerator
 	float samplingTime;
 	float matchingTime;
 	float compactionTime;
+	float extractionTime;
 	size_t numVariations;
 
 public:
 	static const unsigned int MAX_ALLOWED_VARIATIONS = 1000u;
 
-	__host__ std::string operator()(const char * aFilePath, WFObject& aObj1, WFObject& aObj2, Graph& aGraph1, Graph& aGraph2, float aRelativeThreshold);
+	__host__ std::string operator()(
+		const char * aFilePath1,
+		const char * aFilePath2,
+		WFObject& aObj1,
+		WFObject& aObj2,
+		Graph& aGraph1,
+		Graph& aGraph2,
+		float aRelativeThreshold);
 	__host__ void stats();
 };
 

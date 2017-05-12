@@ -2,11 +2,15 @@
 #include "VariationGenerator.h"
 
 #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 #include <thrust/for_each.h>
 #include <thrust/scan.h>
 
 #include "Algebra.h"
 #include "WFObjUtils.h"
+#include "Graph2String.h"
+
+#include "CollisionGraphExporter.h"
 
 #include "DebugUtils.h"
 #include "Timer.h"
@@ -391,7 +395,7 @@ public:
 					return;
 				}
 
-				outNodeIds[subgraphStartLocation + localNodeId] += 1;
+				outNodeIds[subgraphStartLocation + localNodeId] = outNodeIds[subgraphStartLocation + localNodeId] + 1;
 				outBorderNodeFlags[subgraphStartLocation + localNodeId] = 0u;
 				--localNodeId;//cancel out post-increment from the loop
 			}
@@ -438,65 +442,6 @@ public:
 		}
 		outValidSubgraphFlags[aId] = 1u;
 
-	}
-
-};
-
-class ValidSubgraphMarker
-{
-public:
-	unsigned int graphSize1;
-	unsigned int graphSize2;
-	unsigned int subgraphSize;
-	unsigned int numSubgraphs;
-	unsigned int subgraphsPerSeedNode;
-
-	thrust::device_ptr<unsigned int> nodeIds1;
-	thrust::device_ptr<unsigned int> nodeFlags1;
-	thrust::device_ptr<unsigned int> nodeIds2;
-	thrust::device_ptr<unsigned int> nodeFlags2;
-
-	thrust::device_ptr<unsigned int> outValidSubgraphFlags;
-
-	ValidSubgraphMarker(
-		unsigned int aGraphSize1,
-		unsigned int aGraphSize2,
-		unsigned int aSampleSize,
-		unsigned int aNumSamples,
-		thrust::device_ptr<unsigned int> aNodeIds1,
-		thrust::device_ptr<unsigned int> aNodeFlags1,
-		thrust::device_ptr<unsigned int> aNodeIds2,
-		thrust::device_ptr<unsigned int> aNodeFlags2,
-		thrust::device_ptr<unsigned int> outValidFlags
-	) : graphSize1(aGraphSize1),
-		graphSize2(aGraphSize2),
-		subgraphSize(aSampleSize),
-		numSubgraphs(aNumSamples),
-		subgraphsPerSeedNode(aNumSamples / aGraphSize1),
-		nodeIds1(aNodeIds1),
-		nodeFlags1(aNodeFlags1),
-		nodeIds2(aNodeIds2),
-		nodeFlags2(aNodeFlags2),
-		outValidSubgraphFlags(outValidFlags)
-	{}
-
-	__host__ __device__	void operator()(const size_t& aId_s)
-	{
-		unsigned int aId = (unsigned int)aId_s;
-
-		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
-		unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? aId : aId % subgraphsPerSeedNode;
-		unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
-
-		for (unsigned int localNodeId = 0u; localNodeId < subgraphSize; ++localNodeId)
-		{
-			if (nodeIds2[subgraphStartLocation + localNodeId] != graphSize2)
-			{
-				outValidSubgraphFlags[aId] = 1;
-				return;
-			}
-		}
-		outValidSubgraphFlags[aId] = 0;
 	}
 
 };
@@ -591,7 +536,8 @@ public:
 
 };
 
-__host__ std::string VariationGenerator::operator()(const char * aFilePath, WFObject & aObj1, WFObject & aObj2, Graph & aGraph1, Graph & aGraph2, float aRelativeThreshold)
+__host__ std::string VariationGenerator::operator()(const char * aFilePath1, const char * aFilePath2,
+	WFObject & aObj1, WFObject & aObj2, Graph & aGraph1, Graph & aGraph2, float aRelativeThreshold)
 {
 	cudastd::timer timer;
 	cudastd::timer intermTimer;
@@ -640,8 +586,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath, WFOb
 	initTime = intermTimer.get();
 	intermTimer.start();
 
-	const unsigned int numSubgraphSamples = 2;// (unsigned int)objCenters1.size();
-	const unsigned int subgraphSampleSize = 11;// (unsigned int)objCenters1.size() / 2u;
+	const unsigned int numSubgraphSamples = (unsigned int)objCenters1.size();
+	const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	if (subgraphSampleSize < 3)
 		return "";
@@ -707,6 +653,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath, WFOb
 	outputDeviceVector("Valid subgraph flags   : ", validSubgraphFlags);
 #endif
 
+	thrust::device_vector<unsigned int> subgraphComplementNodeIds(numSubgraphSamples * objCenters2.size());
+
 	thrust::exclusive_scan(validSubgraphFlags.begin(), validSubgraphFlags.end(), validSubgraphFlags.begin());
 	size_t numValidSubgraphs = validSubgraphFlags[validSubgraphFlags.size() - 1];
 
@@ -732,11 +680,113 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath, WFOb
 	);
 	thrust::for_each(first, lastSubgraph, compactValid);
 
+	subgraphNodeIds1.clear();
+	subgraphBorderFlags1.clear();
+	subgraphNodeIds2.clear();
+	subgraphBorderFlags2.clear();
+
+	subgraphNodeIds1.shrink_to_fit();
+	subgraphBorderFlags1.shrink_to_fit();
+	subgraphNodeIds2.shrink_to_fit();
+	subgraphBorderFlags2.shrink_to_fit();
+
 	compactionTime = intermTimer.get();
 	intermTimer.start();
 
+	thrust::host_vector<unsigned int> subgraphNodeIdsHost1(subgraphNodeIds3);
+	thrust::host_vector<unsigned int> subgraphBorderFlagsHost1(subgraphBorderFlags3);
 
-	numVariations = numValidSubgraphs;
+	thrust::host_vector<unsigned int> subgraphNodeIdsHost2(subgraphNodeIds4);
+	thrust::host_vector<unsigned int> subgraphBorderFlagsHost2(subgraphBorderFlags4);
+
+	thrust::host_vector<unsigned int> graph2Intervals(aGraph2.intervals);
+	thrust::host_vector<unsigned int> graph2NbrIds(aGraph2.adjacencyVals);
+
+	unsigned int graphSize1 = (unsigned int)objCenters1.size();
+	unsigned int graphSize2 = (unsigned int)objCenters2.size();
+
+	std::string result = "";
+	GraphToStringConverter convertToStr;
+	CollisionGraphExporter graphExporter;
+	numVariations = 0u;
+	std::vector<unsigned int> variationSizes;
+
+	for (unsigned int id = 0u; id <  numValidSubgraphs; ++id)
+	{
+		thrust::host_vector<unsigned int> completeSubgraphFlags2(graphSize2, 0u);
+		std::vector<unsigned int> nodeStack;
+		unsigned int subgraph2Size = 0u;
+		unsigned int complementSize = 0u;
+		//initialize flags at graph cut - 2 -> outside node, 1 -> border node
+		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
+		{
+			if (subgraphBorderFlagsHost2[i] != 0u)
+				completeSubgraphFlags2[subgraphNodeIdsHost2[i]] = subgraphBorderFlagsHost2[i];
+			if (subgraphBorderFlagsHost2[i] == 1u)
+			{
+				++subgraph2Size;
+				nodeStack.push_back(subgraphNodeIdsHost2[i]);
+			}
+			if (subgraphBorderFlagsHost2[i] == 2u)
+				++complementSize;
+		}
+		//region grow from each border node
+		while (!nodeStack.empty())
+		{
+			unsigned int nodeId = nodeStack.back();
+			nodeStack.pop_back();
+			for (unsigned int nbr = graph2Intervals[nodeId]; nbr < graph2Intervals[nodeId + 1]; ++nbr)
+			{
+				unsigned int nbrId = graph2NbrIds[nbr];
+				if (completeSubgraphFlags2[nbrId] == 2u || completeSubgraphFlags2[nbrId] == 1u)
+					continue;
+				completeSubgraphFlags2[nbrId] = 1u;
+				nodeStack.push_back(nbrId);
+				++subgraph2Size;
+			}
+		}
+		//check validity
+		if (subgraph2Size + complementSize >= graphSize2)
+			continue; //should not happen
+		unsigned int subgraph1Size = 0u;
+		thrust::host_vector<unsigned int> completeSubgraphFlags1(graphSize1, 0u);
+		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
+		{
+			if (subgraphBorderFlagsHost1[i] == 0u || subgraphBorderFlagsHost1[i] == 2u)
+			{
+				completeSubgraphFlags1[subgraphNodeIdsHost1[i]] = 1u;
+				++subgraph1Size;
+			}
+		}
+
+		if (subgraph2Size + subgraph1Size == graphSize2 || subgraph2Size + subgraph1Size == graphSize1)
+			continue;//TODO: accept variations with the same size but different node types
+		bool repeatedSize = false;
+		for (auto it = variationSizes.begin(); it != variationSizes.end() && !repeatedSize; ++it)
+		{
+			if (*it == subgraph2Size + subgraph1Size)
+				repeatedSize = true;
+		}
+		if (repeatedSize)
+			continue;
+
+		variationSizes.push_back(subgraph2Size + subgraph1Size);
+
+		for (unsigned int i = 0u; i < graphSize2; ++i)
+		{
+			if (completeSubgraphFlags2[i] == 2u)
+				completeSubgraphFlags2[i] = 0u;
+		}
+		graphExporter.exportSubGraph(aFilePath1, aObj1, aGraph1, numVariations, completeSubgraphFlags1);
+		graphExporter.exportSubGraph(aFilePath2, aObj2, aGraph2, numVariations, completeSubgraphFlags2);
+
+		++numVariations;
+
+		//TODO
+		//result += convertToStr.toString(aObj1, ...
+	}
+	extractionTime = intermTimer.get();
+
 	totalTime = timer.get();
 
 	intermTimer.cleanup();
@@ -753,4 +803,5 @@ __host__ void VariationGenerator::stats()
 	std::cerr << "Subgraph sampling in   " << samplingTime << "ms\n";
 	std::cerr << "Graph cut matching in  " << matchingTime << "ms\n";
 	std::cerr << "Compaction in          " << compactionTime << "ms\n";
+	std::cerr << "Extraction in          " << extractionTime << "ms\n";
 }

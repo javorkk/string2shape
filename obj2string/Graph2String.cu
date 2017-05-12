@@ -72,32 +72,8 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	return result;
 }
 
-__host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
+__host__ std::string GraphToStringConverter::toString(WFObject & aObj, Graph & aGraph, thrust::host_vector<unsigned int>& aNodeTypes)
 {
-	if (aObj.objects.size() != aGraph.numNodes())
-	{
-		std::cerr
-			<< "Number of objects " << aObj.objects.size()
-			<< " and graph nodes " << aGraph.numNodes()
-			<< " do not match\n";
-		return std::string("");
-	}
-
-	if (aObj.materials.size() > mAlphabet.size())
-	{
-		std::cerr << "Too many object types " << aObj.materials.size() << "\n";
-		std::cerr << "Current maximum number is " << mAlphabet.size() << "\n";
-		return std::string("");
-	}
-
-	thrust::host_vector<unsigned int> nodeTypes(aGraph.numNodes(), (unsigned int)aObj.materials.size());
-	for (size_t nodeId = 0; nodeId < aObj.objects.size(); ++nodeId)
-	{
-		size_t faceId = aObj.objects[nodeId].x;
-		size_t materialId = aObj.faces[faceId].material;
-		nodeTypes[nodeId] = (unsigned int)materialId;
-	}
-
 	size_t numNodes;
 	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
 	aGraph.toSpanningTree(adjMatrixDevice, numNodes);
@@ -130,7 +106,7 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 		adjacencyValsHost,
 		adjMatrixHost,
 		cycleIds,
-		nodeTypes);
+		aNodeTypes);
 
 	for (unsigned int startId = 1; startId < numNodes; ++startId)
 	{
@@ -144,7 +120,36 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 			adjacencyValsHost,
 			adjMatrixHost,
 			cycleIds,
-			nodeTypes));
+			aNodeTypes));
 	}
 	return result;
+}
+
+__host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
+{
+	if (aObj.objects.size() != aGraph.numNodes())
+	{
+		std::cerr
+			<< "Number of objects " << aObj.objects.size()
+			<< " and graph nodes " << aGraph.numNodes()
+			<< " do not match\n";
+		return std::string("");
+	}
+
+	if (aObj.materials.size() > mAlphabet.size())
+	{
+		std::cerr << "Too many object types " << aObj.materials.size() << "\n";
+		std::cerr << "Current maximum number is " << mAlphabet.size() << "\n";
+		return std::string("");
+	}
+
+	thrust::host_vector<unsigned int> nodeTypes(aGraph.numNodes(), (unsigned int)aObj.materials.size());
+	for (size_t nodeId = 0; nodeId < aObj.objects.size(); ++nodeId)
+	{
+		size_t faceId = aObj.objects[nodeId].x;
+		size_t materialId = aObj.faces[faceId].material;
+		nodeTypes[nodeId] = (unsigned int)materialId;
+	}
+
+	return toString(aObj, aGraph, nodeTypes);
 }

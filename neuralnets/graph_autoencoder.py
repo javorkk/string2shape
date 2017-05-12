@@ -155,9 +155,15 @@ class GraphVAE():
             x_true_conn = x_true_c[:,:,conn_dim_start:]
             x_pred_conn = x_pred_c[:,:,conn_dim_start:]
 
-            x_true_conn = 0.5 * x_true_conn + 0.5
-            x_pred_conn = 0.5 * K.round(x_pred_conn * max_length_f) / max_length_f + 0.5
+            #variant 1
+            #x_true_conn = 0.5 * x_true_conn + 0.5
+            #x_pred_conn = 0.5 * K.round(x_pred_conn * max_length_f) / max_length_f + 0.5
+            #variant 2
             #x_pred_conn = 0.5 * x_pred_conn + 0.5
+            #variant 3
+            x_true_conn = K.round(x_true_conn * max_length_f)
+            x_pred_conn = K.round(x_pred_conn * max_length_f)
+
             #x_pred_conn.sort(axis=2)
             #x_true_conn.sort(axis=2)
 
@@ -165,7 +171,7 @@ class GraphVAE():
             x_true_conn = K.flatten(x_true_conn)
             x_pred_conn = K.flatten(x_pred_conn)
 
-            return max_length_f * objectives.mean_squared_error(x_true_conn, x_pred_conn)
+            return objectives.mean_squared_error(x_true_conn, x_pred_conn) / max_length_f
 
         def KL_loss(x_true_kl, x_pred_kl):
             kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis = -1)
@@ -183,9 +189,14 @@ class GraphVAE():
             x_true_conn = x_true[:,:,conn_dim_start:]
             x_pred_conn = x_pred[:,:,conn_dim_start:]
 
+            #variant 1
             #x_true_conn = 0.5 * x_true_conn + 0.5
             #x_pred_conn = 0.5 * K.round(x_pred_conn * max_length_f) / max_length_f + 0.5
-            x_pred_conn = K.round(x_pred_conn * max_length_f) / max_length_f 
+            #variant 2
+            #x_pred_conn = K.round(x_pred_conn * max_length_f) / max_length_f 
+            #variant 3
+            x_true_conn = K.round(x_true_conn * max_length_f)
+            x_pred_conn = K.round(x_pred_conn * max_length_f)
 
             y_true = K.concatenate((x_true_type, x_true_conn), axis = 2)
             y_pred = K.concatenate((x_pred_type, x_pred_conn), axis = 2)

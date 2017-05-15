@@ -7,9 +7,10 @@
 #include <thrust/scan.h>
 
 #include "Algebra.h"
+#include "SVD.h"
 #include "WFObjUtils.h"
 #include "Graph2String.h"
-
+#include "CollisionDetector.h"
 #include "CollisionGraphExporter.h"
 
 #include "DebugUtils.h"
@@ -536,19 +537,192 @@ public:
 
 };
 
+__host__ Graph VariationGenerator::mergeGraphs(
+	const Graph & aGraph1,
+	const Graph & aGraph2,
+	const thrust::host_vector<unsigned int>& aSubgraphFlags1,
+	const thrust::host_vector<unsigned int>& aSubgraphFlags2,
+	const thrust::host_vector<unsigned int>::iterator aSubgraphSeam1Begin,
+	const thrust::host_vector<unsigned int>::iterator aSubgraphSeam2Begin,
+	const thrust::host_vector<unsigned int>::iterator aSubgraphSeamFlags12Begin,
+	const size_t aSeamSize)
+{
+	unsigned int nodeCount1 = thrust::reduce(aSubgraphFlags1.begin(), aSubgraphFlags1.end(), 0u, thrust::plus<unsigned int>());
+	unsigned int nodeCount2 = thrust::reduce(aSubgraphFlags2.begin(), aSubgraphFlags2.end(), 0u, thrust::plus<unsigned int>());
+
+	thrust::host_vector<unsigned int> intervals1Host(aGraph1.intervals);
+	thrust::host_vector<unsigned int> intervals2Host(aGraph2.intervals);
+	thrust::host_vector<unsigned int> intervalsHost(nodeCount1 + nodeCount2 + 1);
+	intervalsHost[0] = 0u;
+
+	thrust::host_vector<unsigned int> nodeIdMap1(aGraph1.numNodes(), nodeCount1 + nodeCount2);
+	unsigned int currentId = 0u;
+	for (size_t nodeId = 0; nodeId < aGraph1.numNodes(); ++nodeId)
+	{
+		if (aSubgraphFlags1[nodeId] == 1u)
+		{
+			nodeIdMap1[nodeId] = currentId++;
+			unsigned int numEdges = intervals1Host[nodeId + 1] - intervals1Host[nodeId];
+			intervalsHost[currentId] = intervalsHost[currentId - 1] + numEdges;
+		}
+		else
+		{
+			nodeIdMap1[nodeId] = nodeCount1 + nodeCount2;
+		}
+	}
+	thrust::host_vector<unsigned int> nodeIdMap2(aGraph2.numNodes(), nodeCount1 + nodeCount2);
+	for (size_t nodeId = 0; nodeId < aGraph2.numNodes(); ++nodeId)
+	{
+		if (aSubgraphFlags2[nodeId] == 1u)
+		{
+			nodeIdMap2[nodeId] = currentId++;
+			unsigned int numEdges = intervals2Host[nodeId + 1] - intervals2Host[nodeId];
+			intervalsHost[currentId] = intervalsHost[currentId - 1] + numEdges;
+		}
+		else
+		{
+			nodeIdMap2[nodeId] = nodeCount1 + nodeCount2;
+		}
+	}
+
+	for (size_t subnodeId = 0; subnodeId < aSeamSize; ++subnodeId)
+	{
+		if (*(aSubgraphSeamFlags12Begin + subnodeId) == 1u)
+		{
+			nodeIdMap1[*(aSubgraphSeam1Begin + subnodeId)] = nodeIdMap2[*(aSubgraphSeam2Begin + subnodeId)];
+		}
+	}
+	for (size_t subnodeId = 0; subnodeId < aSeamSize; ++subnodeId)
+	{
+		if (*(aSubgraphSeamFlags12Begin + subnodeId) == 2u)
+			nodeIdMap2[*(aSubgraphSeam2Begin + subnodeId)] = nodeIdMap1[*(aSubgraphSeam1Begin + subnodeId)];		
+	}
+
+//#ifdef _DEBUG
+//	outputHostVector("Node id map 1: ", nodeIdMap1);
+//	outputHostVector("Node id map 2: ", nodeIdMap2);
+//	thrust::host_vector<unsigned int> aSubgraphSeamFlags12(aSubgraphSeamFlags12Begin, aSubgraphSeamFlags12Begin + aSeamSize);
+//	thrust::host_vector<unsigned int> aSubgraphSeamNodes1(aSubgraphSeam1Begin, aSubgraphSeam1Begin + aSeamSize);
+//	thrust::host_vector<unsigned int> aSubgraphSeamNodes2(aSubgraphSeam2Begin, aSubgraphSeam2Begin + aSeamSize);
+//	outputHostVector("Node seam ids 1: ", aSubgraphSeamNodes1);
+//	outputHostVector("Node seam flags: ", aSubgraphSeamFlags12);
+//	outputHostVector("Node seam ids 2: ", aSubgraphSeamNodes2);
+//#endif
+
+	thrust::host_vector<unsigned int> adjacencyVals1Host(aGraph1.adjacencyVals);
+	thrust::host_vector<unsigned int> adjacencyVals2Host(aGraph2.adjacencyVals);
+
+	thrust::host_vector<unsigned int> adjacencyKeysHost(intervalsHost[currentId]);
+	thrust::host_vector<unsigned int> adjacencyValsHost(intervalsHost[currentId]);
+
+	for (size_t nodeId = 0; nodeId < aGraph2.numNodes(); ++nodeId)
+	{
+		if (aSubgraphFlags2[nodeId] == 1u)
+		{
+			for (unsigned int edgeId = intervals2Host[nodeId]; edgeId < intervals2Host[nodeId + 1]; ++edgeId)
+			{
+				unsigned int outKey = nodeIdMap2[nodeId];
+				unsigned int outIntervalBegin = intervalsHost[outKey];
+
+				unsigned int localEdgeId = edgeId - intervals2Host[nodeId];
+				unsigned int outEdgeId = outIntervalBegin + localEdgeId;
+
+				adjacencyKeysHost[outEdgeId] = outKey;
+
+				unsigned int inVal = adjacencyVals2Host[edgeId];
+				unsigned int outVal = nodeIdMap2[inVal];
+
+				adjacencyValsHost[outEdgeId] = outVal;
+			}
+		}
+	}
+
+	for (size_t nodeId = 0; nodeId < aGraph1.numNodes(); ++nodeId)
+	{
+		if (aSubgraphFlags1[nodeId] == 1u)
+		{
+			for (unsigned int edgeId = intervals1Host[nodeId]; edgeId < intervals1Host[nodeId + 1]; ++edgeId)
+			{
+				unsigned int outKey = nodeIdMap1[nodeId];
+				unsigned int outIntervalBegin = intervalsHost[outKey];
+				
+				unsigned int localEdgeId = edgeId - intervals1Host[nodeId];
+				unsigned int outEdgeId = outIntervalBegin + localEdgeId;
+	
+				adjacencyKeysHost[outEdgeId] = outKey;
+				
+				unsigned int inVal = adjacencyVals1Host[edgeId];
+				unsigned int outVal = nodeIdMap1[inVal];
+
+				adjacencyValsHost[outEdgeId] = outVal;
+			}
+		}
+	}
+
+	//handle dangling edges in subgraph 1
+	for (size_t seamNodeId = 0; seamNodeId < aSeamSize; ++seamNodeId)
+	{
+		if (*(aSubgraphSeamFlags12Begin + seamNodeId) == 2u)
+		{
+			unsigned int nodeId1 = *(aSubgraphSeam1Begin + seamNodeId);
+			unsigned int nodeId2 = *(aSubgraphSeam2Begin + seamNodeId);
+			unsigned int outNodeId1 = nodeIdMap1[nodeId1];
+			//find all neigbors of the "outside" node (second graph)
+			for (unsigned int edgeId = intervalsHost[outNodeId1]; edgeId < intervalsHost[outNodeId1 + 1]; ++edgeId)
+			{
+				unsigned int outVal = adjacencyValsHost[edgeId];
+				if (outVal == nodeCount1 + nodeCount2)
+				{
+					for (unsigned int edgeId2 = intervals2Host[nodeId2]; edgeId2 < intervals2Host[nodeId2 + 1] && outVal == nodeCount1 + nodeCount2; ++edgeId2)
+					{
+						unsigned int inVal2 = adjacencyVals2Host[edgeId2];
+						unsigned int outVal2 = nodeIdMap2[inVal2];
+						//check if already connected
+						bool connected = false;
+						for (unsigned int edgeIdOut = intervalsHost[outNodeId1]; edgeIdOut < intervalsHost[outNodeId1 + 1] && !connected; ++edgeIdOut)
+						{
+							if (adjacencyValsHost[edgeIdOut] == outVal2)
+								connected = true;
+						}
+						if (!connected)
+						{
+							outVal = outVal2;
+							adjacencyValsHost[edgeId] = outVal2;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	Graph result;
+	result.intervals = thrust::device_vector<unsigned int>(intervalsHost);
+	result.adjacencyKeys = thrust::device_vector<unsigned int>(adjacencyKeysHost);
+	result.adjacencyVals = thrust::device_vector<unsigned int>(adjacencyValsHost);
+	
+//#ifdef _DEBUG
+//	outputDeviceVector("merged graph intervals: ", result.intervals);
+//	outputDeviceVector("merged edge keys: ", result.adjacencyKeys);
+//	outputDeviceVector("merged edge vals: ", result.adjacencyVals);
+//#endif
+
+	return result;
+}
+
 __host__ std::string VariationGenerator::operator()(const char * aFilePath1, const char * aFilePath2,
 	WFObject & aObj1, WFObject & aObj2, Graph & aGraph1, Graph & aGraph2, float aRelativeThreshold)
 {
 	cudastd::timer timer;
 	cudastd::timer intermTimer;
 
-	std::vector<float3> objCenters1;
-	std::vector<float> objSizes1;
+	thrust::host_vector<float3> objCenters1;
+	thrust::host_vector<float> objSizes1;
 
 	ObjectCenterExporter()(aObj1, objCenters1, objSizes1, 0.3333f);
 
-	std::vector<float3> objCenters2;
-	std::vector<float> objSizes2;
+	thrust::host_vector<float3> objCenters2;
+	thrust::host_vector<float> objSizes2;
 
 	ObjectCenterExporter()(aObj2, objCenters2, objSizes2, 0.3333f);
 
@@ -613,10 +787,10 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	samplingTime = intermTimer.get();
 	intermTimer.start();
 
-#ifdef _DEBUG
-	outputDeviceVector("Subgraph node ids     1: ", subgraphNodeIds1);
-	outputDeviceVector("Subgraph border flags 1: ", subgraphBorderFlags1);
-#endif
+//#ifdef _DEBUG
+//	outputDeviceVector("Subgraph node ids     1: ", subgraphNodeIds1);
+//	outputDeviceVector("Subgraph border flags 1: ", subgraphBorderFlags1);
+//#endif
 
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj1, minBound, maxBound);
@@ -647,11 +821,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	matchingTime = intermTimer.get();
 	intermTimer.start();
 
-#ifdef _DEBUG
-	outputDeviceVector("Subgraph node ids     2: ", subgraphNodeIds2);
-	outputDeviceVector("Subgraph border flags 2: ", subgraphBorderFlags2);
-	outputDeviceVector("Valid subgraph flags   : ", validSubgraphFlags);
-#endif
+//#ifdef _DEBUG
+//	outputDeviceVector("Subgraph node ids     2: ", subgraphNodeIds2);
+//	outputDeviceVector("Subgraph border flags 2: ", subgraphBorderFlags2);
+//	outputDeviceVector("Valid subgraph flags   : ", validSubgraphFlags);
+//#endif
 
 	thrust::device_vector<unsigned int> subgraphComplementNodeIds(numSubgraphSamples * objCenters2.size());
 
@@ -709,25 +883,32 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	GraphToStringConverter convertToStr;
 	CollisionGraphExporter graphExporter;
 	numVariations = 0u;
-	std::vector<unsigned int> variationSizes;
+	std::vector<NodeTypeHistogram> variatioHistograms;
+	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes1));
+	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes2));
 
-	for (unsigned int id = 0u; id <  numValidSubgraphs; ++id)
+	for (unsigned int id = 0u; id < numValidSubgraphs; ++id)
 	{
 		thrust::host_vector<unsigned int> completeSubgraphFlags2(graphSize2, 0u);
 		std::vector<unsigned int> nodeStack;
 		unsigned int subgraph2Size = 0u;
 		unsigned int complementSize = 0u;
+		thrust::host_vector<unsigned int>::iterator subgraphNodeIdsHost1Begin = subgraphNodeIdsHost1.begin() + id * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphNodeIdsHost2Begin = subgraphNodeIdsHost2.begin() + id * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphBorderFlagsHost1Begin = subgraphBorderFlagsHost1.begin() + id * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphBorderFlagsHost2Begin = subgraphBorderFlagsHost2.begin() + id * subgraphSampleSize;
+
 		//initialize flags at graph cut - 2 -> outside node, 1 -> border node
 		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
 		{
-			if (subgraphBorderFlagsHost2[i] != 0u)
-				completeSubgraphFlags2[subgraphNodeIdsHost2[i]] = subgraphBorderFlagsHost2[i];
-			if (subgraphBorderFlagsHost2[i] == 1u)
+			if (*(subgraphBorderFlagsHost2Begin + i) != 0u)
+				completeSubgraphFlags2[*(subgraphNodeIdsHost2Begin + i)] = *(subgraphBorderFlagsHost2Begin + i);
+			if (*(subgraphBorderFlagsHost2Begin + i) == 1u)
 			{
 				++subgraph2Size;
-				nodeStack.push_back(subgraphNodeIdsHost2[i]);
+				nodeStack.push_back(*(subgraphNodeIdsHost2Begin + i));
 			}
-			if (subgraphBorderFlagsHost2[i] == 2u)
+			if (*(subgraphBorderFlagsHost2Begin + i) == 2u)
 				++complementSize;
 		}
 		//region grow from each border node
@@ -752,38 +933,183 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		thrust::host_vector<unsigned int> completeSubgraphFlags1(graphSize1, 0u);
 		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
 		{
-			if (subgraphBorderFlagsHost1[i] == 0u || subgraphBorderFlagsHost1[i] == 2u)
+			if (*(subgraphBorderFlagsHost1Begin + i) == 0u || *(subgraphBorderFlagsHost1Begin + i) == 2u)
 			{
-				completeSubgraphFlags1[subgraphNodeIdsHost1[i]] = 1u;
+				completeSubgraphFlags1[*(subgraphNodeIdsHost1Begin + i)] = 1u;
 				++subgraph1Size;
 			}
 		}
 
-		if (subgraph2Size + subgraph1Size == graphSize2 || subgraph2Size + subgraph1Size == graphSize1)
-			continue;//TODO: accept variations with the same size but different node types
-		bool repeatedSize = false;
-		for (auto it = variationSizes.begin(); it != variationSizes.end() && !repeatedSize; ++it)
-		{
-			if (*it == subgraph2Size + subgraph1Size)
-				repeatedSize = true;
-		}
-		if (repeatedSize)
-			continue;
+		//if (subgraph2Size + subgraph1Size == graphSize2 || subgraph2Size + subgraph1Size == graphSize1)
+		//	continue;//TODO: accept variations with the same size but different node types
 
-		variationSizes.push_back(subgraph2Size + subgraph1Size);
+		///////////////////////////////////////////////////////////////////////////////////
+		//discard variation with repeating node type histograms
+		thrust::host_vector<unsigned int> nodeTypes(subgraph2Size + subgraph1Size);
+		auto outTypeIt = nodeTypes.begin();
+		for (auto inTypeIt1 = nodeTypes1.begin(); inTypeIt1 != nodeTypes1.end(); ++inTypeIt1)
+		{
+			if (completeSubgraphFlags1[inTypeIt1 - nodeTypes1.begin()] == 1u)
+			{
+				*outTypeIt = *inTypeIt1;
+				outTypeIt++;
+			}
+		}
+		for (auto inTypeIt2 = nodeTypes2.begin(); inTypeIt2 != nodeTypes2.end(); ++inTypeIt2)
+		{
+			if (completeSubgraphFlags2[inTypeIt2 - nodeTypes2.begin()] == 1u)
+			{
+				*outTypeIt = *inTypeIt2;
+				outTypeIt++;
+			}
+		}
+		NodeTypeHistogram typeHist(nodeTypes);
+		bool repeatedHistogram = false;
+		for (auto it = variatioHistograms.begin(); it != variatioHistograms.end() && !repeatedHistogram; ++it)
+		{
+			if (*it == typeHist)
+				repeatedHistogram = true;
+		}
+		if (repeatedHistogram)
+			continue;
+		variatioHistograms.push_back(typeHist);
+		////////////////////////////////////////////////////////////////////////////////////////
 
 		for (unsigned int i = 0u; i < graphSize2; ++i)
 		{
 			if (completeSubgraphFlags2[i] == 2u)
 				completeSubgraphFlags2[i] = 0u;
 		}
-		graphExporter.exportSubGraph(aFilePath1, aObj1, aGraph1, numVariations, completeSubgraphFlags1);
-		graphExporter.exportSubGraph(aFilePath2, aObj2, aGraph2, numVariations, completeSubgraphFlags2);
+
+		//graphExporter.exportSubGraph(aFilePath1, aObj1, aGraph1, numVariations, completeSubgraphFlags1);
+		//graphExporter.exportSubGraph(aFilePath2, aObj2, aGraph2, numVariations, completeSubgraphFlags2);
 
 		++numVariations;
 
-		//TODO
-		//result += convertToStr.toString(aObj1, ...
+		//Graph variationGraph = mergeGraphs(aGraph1, aGraph2,
+		//	completeSubgraphFlags1, completeSubgraphFlags2,
+		//	subgraphNodeIdsHost1Begin,
+		//	subgraphNodeIdsHost2Begin,
+		//	subgraphBorderFlagsHost1Begin,
+		//	subgraphSampleSize);
+		//
+		//std::string graphStrings = convertToStr.toString(variationGraph, nodeTypes);
+		//result.append(graphStrings);
+
+		///////////////////////////////////////////////////////////////////////////////////
+		//Find correspondence transformation between both sub-graphs
+
+		//Compute the means of the border node locations
+		float3 center1 = make_float3(0.f, 0.f, 0.f);
+		float3 center2 = make_float3(0.f, 0.f, 0.f);
+		float numPoints = 0.f;
+		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
+		{
+			if (*(subgraphBorderFlagsHost2Begin + i) != 0u)
+			{
+				center1   += objCenters1[*(subgraphNodeIdsHost1Begin + i)];
+				center2   += objCenters2[*(subgraphNodeIdsHost2Begin + i)];
+				numPoints += 1.f;
+			}
+		}
+		center1 /= numPoints;
+		center2 /= numPoints;
+
+		//Compute covariance matrix
+		float covMat[3][3];
+		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
+		{
+			if (*(subgraphBorderFlagsHost2Begin + i) != 0u)
+			{
+				float3 vec1 = objCenters1[*(subgraphNodeIdsHost1Begin + i)] - center1;
+				float3 vec2 = objCenters2[*(subgraphNodeIdsHost2Begin + i)] - center2;
+
+				covMat[0][0] += vec2.x * vec1.x;
+				covMat[1][0] += vec2.y * vec1.x;
+				covMat[2][0] += vec2.z * vec1.x;
+
+				covMat[0][1] += vec2.x * vec1.y;
+				covMat[1][1] += vec2.y * vec1.y;
+				covMat[2][1] += vec2.z * vec1.y;
+
+				covMat[0][2] += vec2.x * vec1.z;
+				covMat[1][2] += vec2.y * vec1.z;
+				covMat[2][2] += vec2.z * vec1.z;
+			}
+		}
+		//Singular Value Decomposition
+		float diag[3];
+		float vMat[3][3];
+
+		svdcmp(covMat, diag, vMat);
+
+		//Rotation is V * transpose(U)
+		float rotMat[3][3];
+		for (unsigned int row = 0; row < 3; ++row)
+		{
+			for (unsigned int col = 0; col < 3; ++col)
+			{
+				rotMat[row][col] = vMat[row][0] * covMat[col][0] + vMat[row][1] * covMat[col][1] + vMat[row][2] * covMat[col][2];
+			}
+		}
+
+		quaternion4f rotation(
+			rotMat[0][0], rotMat[1][0], rotMat[2][0],
+			rotMat[0][1], rotMat[1][1], rotMat[2][1],
+			rotMat[0][2], rotMat[1][2], rotMat[2][2]
+		);
+
+		float rotDet = determinant(
+			rotMat[0][0], rotMat[1][0], rotMat[2][0],
+			rotMat[0][1], rotMat[1][1], rotMat[2][1],
+			rotMat[0][2], rotMat[1][2], rotMat[2][2]
+		);
+
+		if (rotDet < 0.f || fabsf(rotDet - 1.f) > EPS)
+			continue;
+		///////////////////////////////////////////////////////////////////////////////////
+
+		///////////////////////////////////////////////////////////////////////////////////
+		//Create the variation by merging the subsets of aObj1 and aObj2
+		WFObject variation = WFObjectMerger()(aObj1, center1, aObj2, center2, rotation, completeSubgraphFlags1, completeSubgraphFlags2);
+		///////////////////////////////////////////////////////////////////////////////////
+
+		///////////////////////////////////////////////////////////////////////////////////
+		//Compute the collision graph for the variation
+		CollisionDetector detector;
+		Graph variationGraph = detector.computeCollisionGraph(variation, 0.02f);
+		///////////////////////////////////////////////////////////////////////////////////
+
+		///////////////////////////////////////////////////////////////////////////////////
+		//Check that the variation graph is valid
+
+		//TODO:Check that the variation graph is valid
+
+		///////////////////////////////////////////////////////////////////////////////////
+
+		std::string fileName1(aFilePath1);
+		if (fileName1.find_last_of("/\\") == std::string::npos)
+			fileName1 = fileName1.substr(0, fileName1.size() - 5);
+		else
+			fileName1 = fileName1.substr(fileName1.find_last_of("/\\") + 1, fileName1.size() - fileName1.find_last_of("/\\") - 5);
+
+		std::string fileName2(aFilePath1);
+		if (fileName2.find_last_of("/\\") == std::string::npos)
+			fileName2 = fileName2.substr(0, fileName2.size() - 5);
+		else
+			fileName2 = fileName2.substr(fileName2.find_last_of("/\\") + 1, fileName2.size() - fileName2.find_last_of("/\\") - 5);
+
+
+		std::string objDir = getDirName(aFilePath2);
+		std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_var_" + itoa((int)numVariations) + ".obj";
+
+		graphExporter.exportCollisionGraph(variationFilePath.c_str(), variation, variationGraph);
+
+		std::string variationStrings = convertToStr(variation, variationGraph);
+		result.append(variationStrings);
+		//std::string result = convertToStr(variation, variationGraph);
+
+	
 	}
 	extractionTime = intermTimer.get();
 
@@ -792,7 +1118,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	intermTimer.cleanup();
 	timer.cleanup();
 
-	return "";
+	return result;
 }
 
 

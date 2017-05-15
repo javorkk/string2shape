@@ -84,11 +84,11 @@ _DEF_SCALAR_OP3(*) //Vector * scalar -> Vector and Vector *= scalar
 _DEF_SCALAR_OP3_SYM(*) //scalar * Vector -> Vector
 _DEF_SCALAR_OP3(/ ) //Vector / scalar and Vector /= scalar
 
-					//An unary minus
-	_DEF_UNARY_MINUS3
+//An unary minus
+_DEF_UNARY_MINUS3
 
-	//Make a vector with equal components
-	__host__ __device__ FORCE_INLINE float3 rep(float aVal)
+//Make a vector with equal components
+__host__ __device__ FORCE_INLINE float3 rep(float aVal)
 {
 	float3 result;
 	result.x = result.y = result.z = aVal;
@@ -592,7 +592,7 @@ __host__ __device__ FORCE_INLINE bool isIdentity(const quaternion3f& aQ, float a
 
 __host__ __device__ FORCE_INLINE bool isZero(const quaternion3f& aQ, float aEPS)
 {
-	return fabsf(aQ.x) + fabsf(aQ.y) + fabsf(aQ.z)< aEPS;
+	return fabsf(aQ.x) + fabsf(aQ.y) + fabsf(aQ.z) < aEPS;
 }
 
 

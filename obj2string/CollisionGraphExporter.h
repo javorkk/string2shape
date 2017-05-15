@@ -13,7 +13,7 @@ class CollisionGraphExporter
 	float totalTime;
 public:
 	__host__ void exportCollisionGraph(const char* aFilePath, WFObject& aObj, Graph& aGraph);
-	__host__ void exportSubGraph(const char* aFilePath, WFObject& aObj, Graph& aGraph, size_t aId, thrust::host_vector<unsigned int> aNodeFlags);
+	__host__ void exportSubGraph(const char* aFilePath, WFObject& aObj, Graph& aGraph, size_t aId,const thrust::host_vector<unsigned int>& aNodeFlags);
 	__host__ void stats();
 
 };

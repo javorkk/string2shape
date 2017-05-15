@@ -298,12 +298,11 @@ __host__ void Graph::fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aA
 		thrust::make_zip_iterator(thrust::make_tuple(aAdjacencyMatrix.end(), matrixPrefix.end(), last)),
 		writeEdges);
 
-#ifdef _DEBUG
-	outputDeviceVector("Edge X: ", adjacencyKeys);
-	outputDeviceVector("Edge Y: ", adjacencyVals);
-
-	outputDeviceVector("Extracted intervals: ", intervals);
-#endif
+//#ifdef _DEBUG
+//	outputDeviceVector("Edge X: ", adjacencyKeys);
+//	outputDeviceVector("Edge Y: ", adjacencyVals);
+//	outputDeviceVector("Extracted intervals: ", intervals);
+//#endif
 }
 
 __host__ void Graph::toAdjacencyMatrix(thrust::device_vector<unsigned int>& oAdjacencyMatrix, size_t & oStride)
@@ -331,7 +330,7 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 	const unsigned int numEdges = (unsigned int)adjacencyVals.size();
 	thrust::device_vector<unsigned int> edgeFlags(numEdges, 0u);
 	thrust::device_vector<unsigned int> superNodeIds(oStride + 1u); //last element is a termination flag
-	thrust::sequence(superNodeIds.begin(), superNodeIds.end(), (size_t)0u);
+	thrust::sequence(superNodeIds.begin(), superNodeIds.end(), 0u);
 
 	thrust::device_vector<unsigned int> bestEdge(oStride, numEdges);
 	EdgeIdSelector edgeVote(oStride, bestEdge.data(), intervals.data(), adjacencyVals.data(), superNodeIds.data());
@@ -349,9 +348,9 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 		if (superNodeIds[oStride] != 0)
 		{
 			thrust::for_each(firstNode, lastNode, updateSuperNodes);
-#ifdef _DEBUG
-			outputDeviceVector("supernode ids: ", superNodeIds);
-#endif
+//#ifdef _DEBUG
+//			outputDeviceVector("supernode ids: ", superNodeIds);
+//#endif
 		}
 		else
 		{
@@ -396,12 +395,11 @@ __host__ void Graph::fromAdjacencyList(size_t aNumNodes)
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end() - 1, adjacencyKeys.end(), last)),
 		extractIntervals);
 
-#ifdef _DEBUG
-	outputDeviceVector("Edge X: ", adjacencyKeys);
-	outputDeviceVector("Edge Y: ", adjacencyVals);
-
-	outputDeviceVector("Extracted intervals: ", intervals);
-#endif
+//#ifdef _DEBUG
+//	outputDeviceVector("Edge X: ", adjacencyKeys);
+//	outputDeviceVector("Edge Y: ", adjacencyVals);
+//	outputDeviceVector("Extracted intervals: ", intervals);
+//#endif
 }
 
 // A recursive function that uses visited[] and parent to detect

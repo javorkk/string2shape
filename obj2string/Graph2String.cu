@@ -72,7 +72,7 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	return result;
 }
 
-__host__ std::string GraphToStringConverter::toString(WFObject & aObj, Graph & aGraph, thrust::host_vector<unsigned int>& aNodeTypes)
+__host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::host_vector<unsigned int>& aNodeTypes)
 {
 	size_t numNodes;
 	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
@@ -151,5 +151,5 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 		nodeTypes[nodeId] = (unsigned int)materialId;
 	}
 
-	return toString(aObj, aGraph, nodeTypes);
+	return toString(aGraph, nodeTypes);
 }

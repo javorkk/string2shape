@@ -40,8 +40,8 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 
 	//std::cerr << "Exporting collision graph to " << graphFilePath << ".obj ...\n";
 
-	std::vector<float3> objCenters;// (aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
-	std::vector<float> objSizes;// (aObj.objects.size(), 1.f);
+	thrust::host_vector<float3> objCenters;// (aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
+	thrust::host_vector<float> objSizes;// (aObj.objects.size(), 1.f);
 
 	ObjectCenterExporter()(aObj, objCenters, objSizes, 0.3333f);
 
@@ -74,25 +74,24 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 		*sizeIt = len(objSize) * 0.3333f * 0.1f; 
 	}
 
-	for (auto objIt = objCenters.begin(); objIt != objCenters.end(); ++objIt)
+	for (size_t objId = 0u; objId < objCenters.size(); ++objId)
 	{
-		output.writeVertex(objIt->x, objIt->y, objIt->z);
+		output.writeVertex(objCenters[objId].x, objCenters[objId].y, objCenters[objId].z);
 	}
 
 	//cubes (graph vertices)
 	auto sizeIt = objSizes.begin();
-	for (auto objIt = objCenters.begin(); objIt != objCenters.end(); ++objIt, ++sizeIt)
+	for (int objId = 0; objId < objCenters.size(); ++objId, ++sizeIt)
 	{
-		output.writeVertex(objIt->x - *sizeIt, objIt->y - *sizeIt, objIt->z - *sizeIt); //000
-		output.writeVertex(objIt->x + *sizeIt, objIt->y - *sizeIt, objIt->z - *sizeIt); //100
-		output.writeVertex(objIt->x - *sizeIt, objIt->y + *sizeIt, objIt->z - *sizeIt); //010
-		output.writeVertex(objIt->x + *sizeIt, objIt->y + *sizeIt, objIt->z - *sizeIt); //110
-		output.writeVertex(objIt->x - *sizeIt, objIt->y - *sizeIt, objIt->z + *sizeIt); //001
-		output.writeVertex(objIt->x + *sizeIt, objIt->y - *sizeIt, objIt->z + *sizeIt); //101
-		output.writeVertex(objIt->x - *sizeIt, objIt->y + *sizeIt, objIt->z + *sizeIt); //011
-		output.writeVertex(objIt->x + *sizeIt, objIt->y + *sizeIt, objIt->z + *sizeIt); //111
-
-		int objId = int(objIt - objCenters.begin());
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z - *sizeIt); //000
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z - *sizeIt); //100
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z - *sizeIt); //010
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z - *sizeIt); //110
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z + *sizeIt); //001
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z + *sizeIt); //101
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z + *sizeIt); //011
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z + *sizeIt); //111
+		
 		output.writeObjectHeader(objId);
 
 		int faceId = (aObj.objects.begin() + objId)->x;
@@ -159,7 +158,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 	timer.cleanup();
 }
 
-__host__ void CollisionGraphExporter::exportSubGraph(const char * aFilePath, WFObject & aObj, Graph & aGraph, size_t aId, thrust::host_vector<unsigned int> aNodeFlags)
+__host__ void CollisionGraphExporter::exportSubGraph(const char * aFilePath, WFObject & aObj, Graph & aGraph, size_t aId, const thrust::host_vector<unsigned int>& aNodeFlags)
 {
 	cudastd::timer timer;
 
@@ -192,8 +191,8 @@ __host__ void CollisionGraphExporter::exportSubGraph(const char * aFilePath, WFO
 
 	//std::cerr << "Exporting collision graph to " << graphFilePath << ".obj ...\n";
 
-	std::vector<float3> objCenters;// (aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
-	std::vector<float> objSizes;// (aObj.objects.size(), 1.f);
+	thrust::host_vector<float3> objCenters;// (aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
+	thrust::host_vector<float> objSizes;// (aObj.objects.size(), 1.f);
 
 	ObjectCenterExporter()(aObj, objCenters, objSizes, 0.3333f);
 
@@ -226,28 +225,27 @@ __host__ void CollisionGraphExporter::exportSubGraph(const char * aFilePath, WFO
 		*sizeIt = len(objSize) * 0.3333f * 0.1f;
 	}
 
-	for (auto objIt = objCenters.begin(); objIt != objCenters.end(); ++objIt)
+	for (size_t objId = 0u; objId < objCenters.size(); ++objId)
 	{
-		output.writeVertex(objIt->x, objIt->y, objIt->z);
+		output.writeVertex(objCenters[objId].x, objCenters[objId].y, objCenters[objId].z);
 	}
 
 	//cubes (graph vertices)
 	auto sizeIt = objSizes.begin();
-	for (auto objIt = objCenters.begin(); objIt != objCenters.end(); ++objIt, ++sizeIt)
+	for (int objId = 0; objId < objCenters.size(); ++objId, ++sizeIt)
 	{
-		output.writeVertex(objIt->x - *sizeIt, objIt->y - *sizeIt, objIt->z - *sizeIt); //000
-		output.writeVertex(objIt->x + *sizeIt, objIt->y - *sizeIt, objIt->z - *sizeIt); //100
-		output.writeVertex(objIt->x - *sizeIt, objIt->y + *sizeIt, objIt->z - *sizeIt); //010
-		output.writeVertex(objIt->x + *sizeIt, objIt->y + *sizeIt, objIt->z - *sizeIt); //110
-		output.writeVertex(objIt->x - *sizeIt, objIt->y - *sizeIt, objIt->z + *sizeIt); //001
-		output.writeVertex(objIt->x + *sizeIt, objIt->y - *sizeIt, objIt->z + *sizeIt); //101
-		output.writeVertex(objIt->x - *sizeIt, objIt->y + *sizeIt, objIt->z + *sizeIt); //011
-		output.writeVertex(objIt->x + *sizeIt, objIt->y + *sizeIt, objIt->z + *sizeIt); //111
-
-		if (aNodeFlags[objIt - objCenters.begin()] == 0u)
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z - *sizeIt); //000
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z - *sizeIt); //100
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z - *sizeIt); //010
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z - *sizeIt); //110
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z + *sizeIt); //001
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y - *sizeIt, objCenters[objId].z + *sizeIt); //101
+		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z + *sizeIt); //011
+		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z + *sizeIt); //111
+		
+		if (aNodeFlags[objId] == 0u)
 			continue;
 
-		int objId = int(objIt - objCenters.begin());
 		output.writeObjectHeader(objId);
 
 		int faceId = (aObj.objects.begin() + objId)->x;

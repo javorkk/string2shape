@@ -19,16 +19,26 @@ class VariationGenerator
 	float initTime;
 	float samplingTime;
 	float matchingTime;
-	float compactionTime;
-	float extractionTime;
+	float svdTime;
+	float cpyBackTime;
+	float histTime;
+	float transformTime;
+	float collisionTime;
+	float exportTime;
+	float conversionTime;
 	size_t numVariations;
 
 	struct NodeTypeHistogram
 	{
-		std::vector<unsigned int> typeCounts;
+		thrust::host_vector<unsigned int> typeCounts;
 
 		NodeTypeHistogram()
 		{}
+		
+		NodeTypeHistogram(size_t aNumTypes)
+		{
+			typeCounts = thrust::host_vector<unsigned int>(aNumTypes, 0u);
+		}
 
 		NodeTypeHistogram(const thrust::host_vector<unsigned int>& aTypeArray)
 		{
@@ -38,7 +48,7 @@ class VariationGenerator
 				typeCounts[typeId] = (unsigned int)thrust::count(aTypeArray.begin(), aTypeArray.end(), typeId);
 		}
 
-		bool operator ==(const NodeTypeHistogram& aHistogram)
+		bool operator == (const NodeTypeHistogram& aHistogram)
 		{
 			if (typeCounts.size() != aHistogram.typeCounts.size())
 				return false;
@@ -53,16 +63,6 @@ class VariationGenerator
 
 public:
 	static const unsigned int MAX_ALLOWED_VARIATIONS = 1000u;
-	__host__ Graph mergeGraphs(
-		const Graph& aGraph1,
-		const Graph& aGraph2,
-		const thrust::host_vector<unsigned int>& aSubgraphFlags1,
-		const thrust::host_vector<unsigned int>& aSubgraphFlags2,
-		const thrust::host_vector<unsigned int>::iterator aSubgraphSeam1Begin,
-		const thrust::host_vector<unsigned int>::iterator aSubgraphSeam2Begin,
-		const thrust::host_vector<unsigned int>::iterator aSubgraphSeamFlags12Begin,
-		const size_t aSeamSize
-		);
 
 	__host__ std::string operator()(
 		const char * aFilePath1,

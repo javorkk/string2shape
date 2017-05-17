@@ -284,21 +284,24 @@ public:
 		outValidSubgraphFlags(outSubgraphFlags)
 	{}
 	
-	__host__ __device__ FORCE_INLINE void invalidateSubgraph(unsigned int subgraphStartLocation)
-	{
-		for (unsigned int localNodeId = 0u; localNodeId < subgraphSize; ++localNodeId)
-		{
-			outNodeIds[subgraphStartLocation + localNodeId] = graphSize2;
-			outBorderNodeFlags[subgraphStartLocation + localNodeId] = 0u;
-		}
-	}
+	//__host__ __device__ FORCE_INLINE void invalidateSubgraph(unsigned int subgraphStartLocation)
+	//{
+	//	for (unsigned int localNodeId = 0u; localNodeId < subgraphSize; ++localNodeId)
+	//	{
+	//		outNodeIds[subgraphStartLocation + localNodeId] = graphSize2;
+	//		outBorderNodeFlags[subgraphStartLocation + localNodeId] = 0u;
+	//	}
+	//}
 
 	__host__ __device__	void operator()(const size_t& aId_s)
 	{
 		unsigned int aId = (unsigned int)aId_s;
-		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
-		unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? 0u : aId % subgraphsPerSeedNode;
-		unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
+		//unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
+		//unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? 0u : aId % subgraphsPerSeedNode;
+		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
+
+		unsigned int subgraphStartLocation = aId * subgraphSize;// (aId % 32) * subgraphSize;
+
 		unsigned int interiorNodesCount = 0;
 		for (unsigned int localNodeId = 0u; localNodeId < subgraphSize; ++localNodeId)
 		{
@@ -318,7 +321,7 @@ public:
 		if (interiorNodesCount == 0 || subgraphSize - interiorNodesCount < 3)
 		{
 			//invalid subgraph - too few nodes in the cut, or no interior nodes
-			invalidateSubgraph(subgraphStartLocation);
+			//invalidateSubgraph(subgraphStartLocation);
 			return;
 		}
 
@@ -392,7 +395,7 @@ public:
 				if (localNodeId <= 1)
 				{
 					//did not find a mathcing node in the second graph, invalidate the subgraph
-					invalidateSubgraph(subgraphStartLocation);
+					//invalidateSubgraph(subgraphStartLocation);
 					return;
 				}
 
@@ -437,11 +440,16 @@ public:
 			}//end for each other node in the cut
 		}//end for each node in the cut
 		
-		if (foundMismatch)
+		//if (foundMismatch)
+		//{
+		//	invalidateSubgraph(subgraphStartLocation);
+		//	return;
+		//}
+
+		if(!foundMismatch)
 		{
-			invalidateSubgraph(subgraphStartLocation);
+			outValidSubgraphFlags[aId] = 1u;
 		}
-		outValidSubgraphFlags[aId] = 1u;
 
 	}
 
@@ -507,7 +515,7 @@ public:
 		if (outValidSubgraphFlags[aId] == 0u)
 			return;
 
-		unsigned int subgraphStartLocation = aId * subgraphSize;
+		unsigned int subgraphStartLocation = aId * subgraphSize;// (aId % 32) * subgraphSize;
 
 		//Compute the means of the border node locations
 		float3 center1 = make_float3(0.f, 0.f, 0.f);
@@ -651,7 +659,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	initTime = intermTimer.get();
 	intermTimer.start();
 
-	const unsigned int numSubgraphSamples = 1000u * (unsigned int)objCenters1.size();
+	const unsigned int numSubgraphSamples = 100u * (unsigned int)objCenters1.size();
 	const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	if (subgraphSampleSize < 3)
@@ -691,7 +699,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	const float boundsDiagonal = len(maxBound - minBound);
 	const float spatialTolerance = boundsDiagonal * 0.577350269f * aRelativeThreshold;
 
-	thrust::device_vector<unsigned int> validSubgraphFlags(numSubgraphSamples + 1, 0u);
+	thrust::device_vector<unsigned int> validSubgraphFlags(numSubgraphSamples, 0u);
 
 	CutMatching matchCuts(
 		(unsigned int)objCenters1.size(),
@@ -710,6 +718,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		validSubgraphFlags.data()
 	);
 
+	//thrust::counting_iterator<size_t> lastSubgraphDbg(4);
 	thrust::for_each(first, lastSubgraph, matchCuts);
 
 	matchingTime = intermTimer.get();
@@ -753,6 +762,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	svdTime = intermTimer.get();
 	intermTimer.start();
+
 	///////////////////////////////////////////////////////////////////////////////////
 	//Copy back to host
 	thrust::host_vector<unsigned int> subgraphNodeIdsHost1(subgraphNodeIds1);
@@ -785,20 +795,21 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	intermTimer.start();
 
 	histTime = transformTime = collisionTime = exportTime = conversionTime = 0.f;
+	histoChecks = 0u;
 
-	for (unsigned int id = 0u; id < numSubgraphSamples; ++id)
+	for (unsigned int subgraphId = 0u; subgraphId < numSubgraphSamples; ++subgraphId)
 	{
-		if (validSubgraphFlagsHost[id] == 0u)
+		if (validSubgraphFlagsHost[subgraphId] != 1u)
 			continue;
 
 		thrust::host_vector<unsigned int> completeSubgraphFlags2(graphSize2, 0u);
 		std::vector<unsigned int> nodeStack;
 		unsigned int subgraph2Size = 0u;
 		unsigned int complementSize = 0u;
-		thrust::host_vector<unsigned int>::iterator subgraphNodeIdsHost1Begin = subgraphNodeIdsHost1.begin() + id * subgraphSampleSize;
-		thrust::host_vector<unsigned int>::iterator subgraphNodeIdsHost2Begin = subgraphNodeIdsHost2.begin() + id * subgraphSampleSize;
-		thrust::host_vector<unsigned int>::iterator subgraphBorderFlagsHost1Begin = subgraphBorderFlagsHost1.begin() + id * subgraphSampleSize;
-		thrust::host_vector<unsigned int>::iterator subgraphBorderFlagsHost2Begin = subgraphBorderFlagsHost2.begin() + id * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphNodeIdsHost1Begin = subgraphNodeIdsHost1.begin() + subgraphId * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphNodeIdsHost2Begin = subgraphNodeIdsHost2.begin() + subgraphId * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphBorderFlagsHost1Begin = subgraphBorderFlagsHost1.begin() + subgraphId * subgraphSampleSize;
+		thrust::host_vector<unsigned int>::iterator subgraphBorderFlagsHost2Begin = subgraphBorderFlagsHost2.begin() + subgraphId * subgraphSampleSize;
 
 		//initialize flags at graph cut - 2 -> outside node, 1 -> border node
 		for (unsigned int i = 0u; i < subgraphSampleSize; ++i)
@@ -844,29 +855,31 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		
 		intermTimer.start();
 		///////////////////////////////////////////////////////////////////////////////////
-		//discard variation with repeating node type histograms
+		//discard variations with repeating node type histograms
 		NodeTypeHistogram typeHist(aObj1.materials.size());
-		for (auto inTypeIt1 = nodeTypes1.begin(); inTypeIt1 != nodeTypes1.end(); ++inTypeIt1)
+		for (auto inTypeIt1 = nodeTypes1Host.begin(); inTypeIt1 != nodeTypes1Host.end(); ++inTypeIt1)
 		{
-			if (completeSubgraphFlags1[inTypeIt1 - nodeTypes1.begin()] == 1u)
+			if (completeSubgraphFlags1[inTypeIt1 - nodeTypes1Host.begin()] == 1u)
 			{
 				typeHist.typeCounts[*inTypeIt1]++;			
 			}
 		}
-		for (auto inTypeIt2 = nodeTypes2.begin(); inTypeIt2 != nodeTypes2.end(); ++inTypeIt2)
+		for (auto inTypeIt2 = nodeTypes2Host.begin(); inTypeIt2 != nodeTypes2Host.end(); ++inTypeIt2)
 		{
-			if (completeSubgraphFlags2[inTypeIt2 - nodeTypes2.begin()] == 1u)
+			if (completeSubgraphFlags2[inTypeIt2 - nodeTypes2Host.begin()] == 1u)
 			{
 				typeHist.typeCounts[*inTypeIt2]++;
 			}
 		}
 
 		bool repeatedHistogram = false;
-		for (auto it = variatioHistograms.begin(); it != variatioHistograms.end() && !repeatedHistogram; ++it)
+		for (size_t hid = 0u; hid < variatioHistograms.size() && !repeatedHistogram; ++hid)
 		{
-			if (*it == typeHist)
+			++histoChecks;
+			if (typeHist == variatioHistograms[hid])
 				repeatedHistogram = true;
 		}
+
 
 		histTime += intermTimer.get();
 		intermTimer.start();
@@ -889,9 +902,9 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 		///////////////////////////////////////////////////////////////////////////////////
 		//Create the variation by merging the subsets of aObj1 and aObj2
-		float3 translation1 = outTranslation1Host[id];
-		float3 translation2 = outTranslation2Host[id];
-		quaternion4f rotation2 = outRotation2Host[id];
+		float3 translation1 = outTranslation1Host[subgraphId];
+		float3 translation2 = outTranslation2Host[subgraphId];
+		quaternion4f rotation2 = outRotation2Host[subgraphId];
 		WFObject variation = WFObjectMerger()(aObj1, translation1, aObj2, translation2, rotation2, completeSubgraphFlags1, completeSubgraphFlags2);
 		///////////////////////////////////////////////////////////////////////////////////
 		transformTime  += intermTimer.get();
@@ -935,7 +948,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		result.append(variationStrings);
 
 		conversionTime += intermTimer.get();
-		intermTimer.start();
 	}
 
 	totalTime = timer.get();
@@ -954,8 +966,8 @@ __host__ void VariationGenerator::stats()
 	std::cerr << "Subgraph sampling in   " << samplingTime << "ms\n";
 	std::cerr << "Graph cut matching in  " << matchingTime << "ms\n";
 	std::cerr << "SVD in                 " << svdTime << "ms\n";
-	std::cerr << "Mem transfer in       " << cpyBackTime << "ms\n";
-	std::cerr << "Histogram check  in    " << histTime << "ms\n";
+	std::cerr << "Mem transfer in        " << cpyBackTime << "ms\n";
+	std::cerr << "Histogram check  in    " << histTime << "ms (checked   " << histoChecks << " candidates)\n";
 	std::cerr << "Obj transformation in  " << transformTime << "ms\n";
 	std::cerr << "Collision detection in " << collisionTime << "ms\n";
 	std::cerr << "File export in         " << exportTime << "ms\n";

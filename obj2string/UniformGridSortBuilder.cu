@@ -361,7 +361,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 
 
 	//count triangle-cell intersections
-	thrust::device_vector<unsigned int> fragment_counts(device_indices.size() + 1);
+	thrust::device_vector<unsigned int> fragment_counts(device_indices.size() + 1, 0u);
 	FragmentCounter frag_count(
 		oGrid.res[0], oGrid.res[1], oGrid.res[2],
 		oGrid.vtx[0],

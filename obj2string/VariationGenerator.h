@@ -27,6 +27,7 @@ class VariationGenerator
 	float exportTime;
 	float conversionTime;
 	size_t numVariations;
+	size_t histoChecks;
 
 	struct NodeTypeHistogram
 	{
@@ -48,14 +49,12 @@ class VariationGenerator
 				typeCounts[typeId] = (unsigned int)thrust::count(aTypeArray.begin(), aTypeArray.end(), typeId);
 		}
 
-		bool operator == (const NodeTypeHistogram& aHistogram)
+		bool operator == (const NodeTypeHistogram& aHistogram) const
 		{
 			if (typeCounts.size() != aHistogram.typeCounts.size())
 				return false;
-			auto myIt = typeCounts.begin();
-			auto aIt = aHistogram.typeCounts.begin();
-			for (; myIt != typeCounts.end(); ++myIt, ++aIt)
-				if (*myIt != *aIt)
+			for (size_t id = 0; id < typeCounts.size(); ++id)
+				if (typeCounts[id] != aHistogram.typeCounts[id])
 					return false;
 			return true;
 		}

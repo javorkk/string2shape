@@ -659,7 +659,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	initTime = intermTimer.get();
 	intermTimer.start();
 
-	const unsigned int numSubgraphSamples = 100u * (unsigned int)objCenters1.size();
+	const unsigned int numSubgraphSamples = 1000u * (unsigned int)objCenters1.size();
 	const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	if (subgraphSampleSize < 3)
@@ -788,8 +788,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	CollisionGraphExporter graphExporter;
 	numVariations = 0u;
 	std::vector<NodeTypeHistogram> variatioHistograms;
-	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes1));
-	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes2));
+	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes1Host));
+	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes2Host));
+
+	GrammarCheck grammarCheck;
+	grammarCheck.init(graph2Intervals, graph2NbrIds, nodeTypes2Host);
 	
 	cpyBackTime = intermTimer.get();
 	intermTimer.start();
@@ -898,8 +901,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		//graphExporter.exportSubGraph(aFilePath1, aObj1, aGraph1, numVariations, completeSubgraphFlags1);
 		//graphExporter.exportSubGraph(aFilePath2, aObj2, aGraph2, numVariations, completeSubgraphFlags2);
 
-		++numVariations;
-
 		///////////////////////////////////////////////////////////////////////////////////
 		//Create the variation by merging the subsets of aObj1 and aObj2
 		float3 translation1 = outTranslation1Host[subgraphId];
@@ -918,10 +919,21 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		intermTimer.start();
 		///////////////////////////////////////////////////////////////////////////////////
 		//Check that the variation graph is valid
-
+		thrust::host_vector<unsigned int> nodeTypesVariation(variationGraph.numNodes());
+		for (size_t nodeId = 0; nodeId < variationGraph.numNodes(); ++nodeId)
+		{
+			size_t faceId = variation.objects[nodeId].x;
+			size_t materialId = variation.faces[faceId].material;
+			nodeTypesVariation[nodeId] = (unsigned int)materialId;
+		}
+		thrust::host_vector<unsigned int> hostIntervals(variationGraph.intervals);
+		thrust::host_vector<unsigned int> hostNbrIds(variationGraph.adjacencyVals);
 		//TODO:Check that the variation graph is valid
-
+		if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
+			continue;
 		///////////////////////////////////////////////////////////////////////////////////
+
+		++numVariations;
 
 		std::string fileName1(aFilePath1);
 		if (fileName1.find_last_of("/\\") == std::string::npos)

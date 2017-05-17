@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Graph2String.h"
 
-#include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/reduce.h>
 
 __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	unsigned int nodeId,
@@ -152,4 +153,65 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 	}
 
 	return toString(aGraph, nodeTypes);
+}
+
+__host__ void GrammarCheck::init(
+	thrust::host_vector<unsigned int>& aIntervals,
+	thrust::host_vector<unsigned int>& aNbrIds,
+	thrust::host_vector<unsigned int>& aNodeTypes)
+{
+	mNumTypes = 1u + thrust::reduce(aNodeTypes.begin(), aNodeTypes.end(), 0u, thrust::maximum<unsigned int>());
+	mNeighborCounts.resize(mNumTypes);
+	
+	for (size_t i = 0; i < aIntervals.size() - 1; i++)
+	{
+		unsigned int typeId = aNodeTypes[i];
+		unsigned int nbrCount = aIntervals[i + 1] - aIntervals[i];
+		bool seenCount = false;
+		for (size_t cntId = 0; cntId < mNeighborCounts[typeId].size() && !seenCount; ++cntId)
+			if (nbrCount == mNeighborCounts[typeId][cntId])
+				seenCount = true;
+		if (!seenCount)
+			mNeighborCounts[typeId].push_back(nbrCount);
+		
+		for (size_t nbrId = aIntervals[i]; nbrId < aIntervals[i+1]; nbrId++)
+		{
+			unsigned int nbrTypeId = aNodeTypes[aNbrIds[nbrId]];
+			std::pair<unsigned int, unsigned int> nbrPair1 = std::make_pair(typeId, nbrTypeId);
+			std::pair<unsigned int, unsigned int> nbrPair2 = std::make_pair(nbrTypeId, typeId);
+			mNeighborTypes.insert(nbrPair1);
+			mNeighborTypes.insert(nbrPair2);
+		}
+	}
+}
+
+__host__ bool GrammarCheck::check(
+	thrust::host_vector<unsigned int>& aIntervals,
+	thrust::host_vector<unsigned int>& aNbrIds,
+	thrust::host_vector<unsigned int>& aNodeTypes)
+{
+	unsigned int numTypes = 1u + thrust::reduce(aNodeTypes.begin(), aNodeTypes.end(), 0u, thrust::maximum<unsigned int>());
+	if (numTypes != mNumTypes)
+		return false;
+
+	for (size_t i = 0; i < aIntervals.size() - 1; i++)
+	{
+		unsigned int typeId = aNodeTypes[i];
+		unsigned int nbrCount = aIntervals[i + 1] - aIntervals[i];
+		bool seenCount = false;
+		for (size_t cntId = 0; cntId < mNeighborCounts[typeId].size() && !seenCount; ++cntId)
+			if (nbrCount == mNeighborCounts[typeId][cntId])
+				seenCount = true;
+		if (!seenCount)
+			return false;
+
+		for (size_t nbrId = aIntervals[i]; nbrId < aIntervals[i + 1]; nbrId++)
+		{
+			unsigned int nbrTypeId = aNodeTypes[aNbrIds[nbrId]];
+			std::pair<unsigned int, unsigned int> nbrPair1 = std::make_pair(typeId, nbrTypeId);
+			if (mNeighborTypes.find(nbrPair1) == mNeighborTypes.end())
+				return false;
+		}
+	}
+	return true;
 }

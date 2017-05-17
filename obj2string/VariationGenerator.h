@@ -9,6 +9,7 @@
 
 #include <thrust/count.h>
 #include <thrust/host_vector.h>
+#include <thrust/reduce.h>
 
 #include "WFObject.h"
 #include "Graph.h"

@@ -7,6 +7,7 @@
 
 #include <cuda_runtime_api.h>
 #include <vector>
+#include <set>
 #include <string>
 
 #include "WFObject.h"
@@ -93,4 +94,20 @@ public:
 	__host__ std::string operator()(WFObject& aObj, Graph& aGraph);
 };
 
+class GrammarCheck
+{
+	unsigned int mNumTypes;
+	std::vector< std::vector<unsigned int> > mNeighborCounts;
+	std::set< std::pair<unsigned int, unsigned int> > mNeighborTypes;
+public:
+	__host__ void init(
+		thrust::host_vector<unsigned int>& aIntervals,
+		thrust::host_vector<unsigned int>& aNbrIds,
+	    thrust::host_vector<unsigned int>& aNodeTypes);
+	__host__ bool check(
+		thrust::host_vector<unsigned int>& aIntervals,
+		thrust::host_vector<unsigned int>& aNbrIds,
+		thrust::host_vector<unsigned int>& aNodeTypes);
+
+};
 #endif // GRAPH2STRING_H_18BBEE2E_4283_4957_8B2C_8AC609108C63

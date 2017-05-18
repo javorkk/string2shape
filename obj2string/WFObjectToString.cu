@@ -127,6 +127,40 @@ extern "C" {
 		return 0;
 
 	}
+
+	int testRandomNumberGenerator()
+	{
+		const unsigned int aConst1 = 101;
+		const unsigned int aConst2 = 22;
+		for (unsigned int tId = 0u; tId < 500u; ++tId)
+		{
+			KISSRandomNumberGenerator genRand(
+				3643u + tId * 4154207u * aConst1 + aConst2,
+				1761919u + tId * 2746753u * aConst1,
+				331801u + tId,
+				10499029u);
+
+			for (unsigned int testId = 0u; testId < 10000u; ++testId)
+			{
+				const float r = genRand();
+				if (r < -EPS)
+				{
+					std::cerr << "Random number " << r << " < 0\n";
+					return 1;
+				}
+
+				if (r > 1.f + EPS)
+				{
+					std::cerr << "Random number " << r << " > 1\n";
+					return 2;
+				}
+			}
+		}
+
+
+		return 0;
+
+	}
 #ifdef __cplusplus
 }
 #endif

@@ -55,7 +55,7 @@ namespace cudastd
 		{
 			if (error)
 			{
-				std::cerr << "Error while timing.\n";
+				std::cerr << "Error while timing: " << cudaGetErrorString(error) <<"\n";
 			}
 		}
 	};

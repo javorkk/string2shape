@@ -8,6 +8,7 @@
 #include "GraphTest.h"
 #include "CollisionTest.h"
 #include "ShapeVariationTest.h"
+#include "RNGTest.h"
 
 #include <thrust/detail/config.h>
 
@@ -24,8 +25,25 @@ int main()
 	}
 #endif
 	
+	RNGTest rngTest;
+	int rng_test_result = rngTest.testAll();
+	//graphTest.testAll(1000);
+
+	if (rng_test_result != 0)
+	{
+		std::cerr << "Random number generator test failed!\n";
+		return rng_test_result;
+	}
+	else
+	{
+		std::cerr << "Random number generator test passed.\n";
+	}
+
 	const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
 	const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
+	//const char* variationFile1 = "../scenes/skyscraper/test/variant_013.obj";
+	//const char* variationFile2 = "../scenes/skyscraper/test/variant_016.obj";
+
 	ShapeVariationTest variationTest;
 	int var_test_result = variationTest.testAll(variationFile1, variationFile2);
 	if (var_test_result != 0)

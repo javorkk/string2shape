@@ -160,8 +160,14 @@ __host__ void GrammarCheck::init(
 	thrust::host_vector<unsigned int>& aNbrIds,
 	thrust::host_vector<unsigned int>& aNodeTypes)
 {
-	mNumTypes = 1u + thrust::reduce(aNodeTypes.begin(), aNodeTypes.end(), 0u, thrust::maximum<unsigned int>());
-	mNeighborCounts.resize(mNumTypes);
+	unsigned int newTypes = 1u + thrust::reduce(aNodeTypes.begin(), aNodeTypes.end(), 0u, thrust::maximum<unsigned int>());
+
+	if (newTypes >= mNumTypes)
+	{
+		mNumTypes = newTypes;
+		mNeighborCounts.resize(mNumTypes);
+	}
+
 	
 	for (size_t i = 0; i < aIntervals.size() - 1; i++)
 	{

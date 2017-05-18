@@ -14,6 +14,34 @@
 #include "WFObject.h"
 #include "Graph.h"
 
+class KISSRandomNumberGenerator
+{
+public:
+	uint data[4];
+	//data[0],
+	//data[1],//must be zero
+	//data[2],
+	//data[3]; //doesn't need to be re-seeded but must be < 698769069
+
+	__host__ __device__ KISSRandomNumberGenerator(
+		const uint aX = 123456789u,
+		const uint aY = 362436069u,
+		const uint aZ = 521288629u,
+		const uint aW = 416191069u)
+	{
+		data[0] = (aX); data[1] = (aY); data[2] = (aZ); data[3] = (aW);
+	}
+
+	__host__ __device__ float operator()()
+	{
+		data[2] = (36969 * (data[2] & 65535) + (data[2] >> 16)) << 16;
+		data[3] = 18000 * (data[3] & 65535) + (data[3] >> 16) & 65535;
+		data[0] = 69069 * data[0] + 1234567;
+		data[1] = (data[1] = (data[1] = data[1] ^ (data[1] << 17)) ^ (data[1] >> 13)) ^ (data[1] << 5);
+		return ((data[2] + data[3]) ^ data[0] + data[1]) * 2.328306E-10f;
+	}
+};
+
 class VariationGenerator
 {
 	float totalTime;

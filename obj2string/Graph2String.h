@@ -100,6 +100,9 @@ class GrammarCheck
 	std::vector< std::vector<unsigned int> > mNeighborCounts;
 	std::set< std::pair<unsigned int, unsigned int> > mNeighborTypes;
 public:
+	GrammarCheck():mNumTypes(0u)
+	{}
+
 	__host__ void init(
 		thrust::host_vector<unsigned int>& aIntervals,
 		thrust::host_vector<unsigned int>& aNbrIds,

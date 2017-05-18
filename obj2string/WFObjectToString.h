@@ -23,6 +23,8 @@ __declspec(dllexport) extern int testCollisionGraphConstruction(const char * aFi
 
 __declspec(dllexport) extern int testRandomVariations(const char * aFilename1, const char* aFilename2);
 
+__declspec(dllexport) extern int testRandomNumberGenerator(void);
+
 
 #ifdef __cplusplus
 }

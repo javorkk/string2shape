@@ -11,13 +11,13 @@
 class ObjectCenterExporter
 {
 public:
-	__host__ void operator()(WFObject& aObj, thrust::host_vector<float3>& oObjCenters, thrust::host_vector<float>& oObjSizes, const float aSizeScaleFactor = 1.f);
+	__host__ void operator()(const WFObject& aObj, thrust::host_vector<float3>& oObjCenters, thrust::host_vector<float>& oObjSizes, const float aSizeScaleFactor = 1.f);
 };
 
 class ObjectBoundsExporter
 {
 public:
-	__host__ void operator()(WFObject& aObj, float3& oMinBound, float3& oMaxBound);
+	__host__ void operator()(const WFObject& aObj, float3& oMinBound, float3& oMaxBound);
 };
 
 class WFObjectMerger

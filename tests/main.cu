@@ -25,6 +25,25 @@ int main()
 	}
 #endif
 	
+	const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
+	const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
+	//const char* variationFile1 = "../scenes/skyscraper/test/variant_100.obj";
+	//const char* variationFile2 = "../scenes/skyscraper/test/variant_101.obj";
+	//const char* variationFile1 = "../scenes/playground/variant_000.obj";
+	//const char* variationFile2 = "../scenes/playground/variant_001.obj";
+
+	ShapeVariationTest variationTest;
+	int var_test_result = variationTest.testAll(variationFile1, variationFile2);
+	if (var_test_result != 0)
+	{
+		std::cerr << "Shape variation test failed!\n";
+		return var_test_result;
+	}
+	else
+	{
+		std::cerr << "Shape variation test passed. \n";
+	}
+
 	RNGTest rngTest;
 	int rng_test_result = rngTest.testAll();
 	//graphTest.testAll(1000);
@@ -37,23 +56,6 @@ int main()
 	else
 	{
 		std::cerr << "Random number generator test passed.\n";
-	}
-
-	const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
-	const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
-	//const char* variationFile1 = "../scenes/skyscraper/test/variant_013.obj";
-	//const char* variationFile2 = "../scenes/skyscraper/test/variant_016.obj";
-
-	ShapeVariationTest variationTest;
-	int var_test_result = variationTest.testAll(variationFile1, variationFile2);
-	if (var_test_result != 0)
-	{
-		std::cerr << "Shape variation test failed!\n";
-		return var_test_result;
-	}
-	else
-	{
-		std::cerr << "Shape variation test passed. \n";
 	}
 
 	UniformGridSortBuildTest uniformGridTest;
@@ -100,7 +102,8 @@ int main()
 	const char* obj2strTestFile = "../scenes/church/church.obj";
 	std::cerr << obj2strTestFile << " converted to \n"
 		<< WFObjectToString(obj2strTestFile) << "\n";
-	std::cerr << "---------------------------------------------------------------------\n";
+
+
 
 
 

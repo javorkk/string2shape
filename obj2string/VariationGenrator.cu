@@ -86,8 +86,8 @@ public:
 			10499029u);
 
 		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
-		unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? 0u : aId % subgraphsPerSeedNode;
-		unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
+		//unsigned int subgraphSeedNodeId = max(min((unsigned int)(genRand() * (float)graphSize), graphSize - 1u), 0u);
+		unsigned int subgraphStartLocation = aId * subgraphSize;
 
 		outNodeIds[subgraphStartLocation] = subgraphSeedNodeId;
 
@@ -202,14 +202,14 @@ public:
 	unsigned int subgraphsPerSeedNode;
 	float spatialTolerance;
 	//graph 1
-	//thrust::device_ptr<unsigned int> inIntervals;
-	//thrust::device_ptr<unsigned int> inNeighborIds;
 	thrust::device_ptr<unsigned int> inNodeTypes;
 	//subrgaphs 1
 	thrust::device_ptr<unsigned int> inNodeIds;
 	thrust::device_ptr<unsigned int> inBorderNodeFlags;
 	//node-node distances 1
 	thrust::device_ptr<float>        inDistMatrix;
+	//node sizes 1
+	thrust::device_ptr<float>        inNodeSizes;
 	//graph 2
 	thrust::device_ptr<unsigned int> outNodeTypes;
 	//subrgaphs 2
@@ -217,6 +217,8 @@ public:
 	thrust::device_ptr<unsigned int> outBorderNodeFlags;
 	//node-node distances 2
 	thrust::device_ptr<float>        outDistMatrix;
+	//node types 2
+	thrust::device_ptr<float>        outNodeSizes;
 
 	thrust::device_ptr<unsigned int> outValidSubgraphFlags;
 
@@ -226,16 +228,16 @@ public:
 		unsigned int aSampleSize,
 		unsigned int aNumSamples,
 		float aSpatialTolerance,
-		//thrust::device_ptr<unsigned int> aIntervals,
-		//thrust::device_ptr<unsigned int> aNeighborIds,
 		thrust::device_ptr<unsigned int> inTypes,
 		thrust::device_ptr<unsigned int> inIds,
 		thrust::device_ptr<unsigned int> inFlags,
 		thrust::device_ptr<float> inMatrix,
+		thrust::device_ptr<float> inSizes,
 		thrust::device_ptr<unsigned int> outTypes,
 		thrust::device_ptr<unsigned int> outIds,
 		thrust::device_ptr<unsigned int> outFlags,
 		thrust::device_ptr<float> outMatrix,
+		thrust::device_ptr<float> outSizes,
 		thrust::device_ptr<unsigned int> outSubgraphFlags
 	) : graphSize1(aGraphSize1),
 		graphSize2(aGraphSize2),
@@ -243,16 +245,16 @@ public:
 		numSubgraphs(aNumSamples),
 		subgraphsPerSeedNode(aNumSamples / aGraphSize1),
 		spatialTolerance(aSpatialTolerance),
-		//inIntervals(inIntervals),
-		//inNeighborIds(inNeighborIds),
 		inNodeTypes(inTypes),
 		inNodeIds(inIds),
 		inBorderNodeFlags(inFlags),
 		inDistMatrix(inMatrix),
+		inNodeSizes(inSizes),
 		outNodeTypes(outTypes),
 		outNodeIds(outIds),
 		outBorderNodeFlags(outFlags),
 		outDistMatrix(outMatrix),
+		outNodeSizes(outSizes),
 		outValidSubgraphFlags(outSubgraphFlags)
 	{}
 	
@@ -265,13 +267,8 @@ public:
 	//	}
 	//}
 
-	__host__ __device__	void operator()(const size_t& aId_s)
+	__host__ __device__	bool randomMatchingOperator(unsigned int aId, unsigned int aRandOffset)
 	{
-		unsigned int aId = (unsigned int)aId_s;
-		//unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
-		//unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? 0u : aId % subgraphsPerSeedNode;
-		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
-
 		unsigned int subgraphStartLocation = aId * subgraphSize;// (aId % 32) * subgraphSize;
 
 		unsigned int interiorNodesCount = 0;
@@ -285,17 +282,18 @@ public:
 			}
 			else
 			{
-				outNodeIds[subgraphStartLocation + localNodeId] = 0u;
+				outNodeIds[subgraphStartLocation + localNodeId] = aRandOffset;
 			}
 			outBorderNodeFlags[subgraphStartLocation + localNodeId] = 0u;
 		}
-		
+
 		if (interiorNodesCount == 0 || subgraphSize - interiorNodesCount < 3)
 		{
 			//invalid subgraph - too few nodes in the cut, or no interior nodes
 			//invalidateSubgraph(subgraphStartLocation);
-			return;
+			return false;
 		}
+
 
 		for (unsigned int localNodeId = 0u; localNodeId < subgraphSize; ++localNodeId)
 		{
@@ -307,6 +305,7 @@ public:
 			bool foundAMatch = false;
 			for (unsigned int nodeId2 = outNodeIds[subgraphStartLocation + localNodeId]; nodeId2 < graphSize2 && !foundAMatch; ++nodeId2)
 			{
+				//unsigned int nodeId2RND = (randNodeIdOffset + nodeId2) % graphSize2;
 				//unsigned int nodeId2 = (nodeId2_it + 16) % graphSize2;
 				bool matches = outNodeTypes[nodeId2] == inNodeType;
 				if (!matches)
@@ -345,7 +344,7 @@ public:
 						if (outNodeTypes[pairingNodeId2] != pairNodeType)
 							continue;
 						const float currentDist = outDistMatrix[nodeId2 + graphSize2 * pairingNodeId2];
-						if (fabsf(currentDist - targetDist) < spatialTolerance)
+						if (fabsf(currentDist - targetDist) < spatialTolerance * inNodeSizes[pairingNodeId2])
 							foundMatchingPair = true;
 					}//end for all other nodes in the second graph
 					if (!foundMatchingPair)
@@ -368,7 +367,7 @@ public:
 				{
 					//did not find a mathcing node in the second graph, invalidate the subgraph
 					//invalidateSubgraph(subgraphStartLocation);
-					return;
+					return false;
 				}
 
 				outNodeIds[subgraphStartLocation + localNodeId] = outNodeIds[subgraphStartLocation + localNodeId] + 1;
@@ -377,7 +376,7 @@ public:
 			}
 		}//end for all nodes in the cut
 
-		//double check selected matching nodes
+     	//double check selected matching nodes
 		bool foundMismatch = false;
 		for (unsigned int localNodeId = 0u; localNodeId < subgraphSize && !foundMismatch; ++localNodeId)
 		{
@@ -404,26 +403,45 @@ public:
 				unsigned int outPairNodeId = outNodeIds[subgraphStartLocation + pairingNodeId];
 				const float targetDist = inDistMatrix[inNodeId + graphSize1 * inPairNodeId];
 				const float currentDist = outDistMatrix[outNodeId + graphSize2 * outPairNodeId];
-				if (fabsf(currentDist - targetDist) > spatialTolerance)
+				if (fabsf(currentDist - targetDist) > spatialTolerance * outNodeSizes[outPairNodeId])
 				{
 					foundMismatch = true;
 					break;
 				}
 			}//end for each other node in the cut
 		}//end for each node in the cut
-		
-		//if (foundMismatch)
-		//{
-		//	invalidateSubgraph(subgraphStartLocation);
-		//	return;
-		//}
 
-		if(!foundMismatch)
+		if (!foundMismatch)
 		{
 			outValidSubgraphFlags[aId] = 1u;
+			return true;
 		}
 
+		return false;
 	}
+
+
+	__host__ __device__	void operator()(const size_t& aId_s)
+	{
+		unsigned int aId = (unsigned int)aId_s;
+		//unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
+		//unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? 0u : aId % subgraphsPerSeedNode;
+		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
+		
+		KISSRandomNumberGenerator genRand(
+			3643u + aId * 4154207u * graphSize2 + graphSize2,
+			1761919u + aId * 2746753u * graphSize1,
+			331801u + aId,
+			10499029u);
+
+		unsigned int offset = (unsigned int)(genRand() * (float)graphSize2);
+		bool success = randomMatchingOperator(aId, offset);
+		if(!success)
+			success = randomMatchingOperator(aId, offset / 2u);
+		if(!success)
+			randomMatchingOperator(aId, offset / 4u);
+	}
+
 
 };
 
@@ -587,6 +605,9 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	cudastd::timer timer;
 	cudastd::timer intermTimer;
 
+	if (aGraph1.numNodes() < 9u || aGraph2.numNodes() < 9u)
+		return "";
+
 	thrust::host_vector<float3> objCenters1;
 	thrust::host_vector<float> objSizes1;
 
@@ -646,17 +667,20 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	thrust::host_vector<unsigned int> graph1Intervals(aGraph1.intervals);
 	thrust::host_vector<unsigned int> graph1NbrIds(aGraph1.adjacencyVals);
 
+	thrust::device_vector<float> objSizes1Device(objSizes1);
+	thrust::device_vector<float> objSizes2Device(objSizes2);
+
 	GrammarCheck grammarCheck;
 	grammarCheck.init(graph2Intervals, graph2NbrIds, nodeTypes2Host);
 	grammarCheck.init(graph1Intervals, graph1NbrIds, nodeTypes1Host);
 
 	numVariations = 0u;
 
-	const unsigned int numSubgraphSamples = 10u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
+	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
-	for (unsigned int subgraphSampleSize = (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
-		subgraphSampleSize < (unsigned int) 3u * aGraph1.numNodes() / 4u;
+	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
+		subgraphSampleSize < (unsigned)aGraph1.numNodes();//(unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
 		if (subgraphSampleSize < 3)
@@ -691,10 +715,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		///////////////////////////////////////////////////////////////////////////////////
 		//Find matching cuts in both sub-graphs
 
-		float3 minBound, maxBound;
-		ObjectBoundsExporter()(aObj1, minBound, maxBound);
-		const float boundsDiagonal = len(maxBound - minBound);
-		const float spatialTolerance = boundsDiagonal * 0.577350269f * aRelativeThreshold;
+		//float3 minBound, maxBound;
+		//ObjectBoundsExporter()(aObj1, minBound, maxBound);
+		//const float boundsDiagonal = len(maxBound - minBound);
+		//const float spatialTolerance = boundsDiagonal * 0.577350269f * aRelativeThreshold;
+		const float spatialTolerance = 30.f * aRelativeThreshold;
 
 		thrust::device_vector<unsigned int> validSubgraphFlags(numSubgraphSamples, 0u);
 
@@ -708,10 +733,12 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			subgraphNodeIds1.data(),
 			subgraphBorderFlags1.data(),
 			pairwiseDistMatrix1.data(),
+			objSizes1Device.data(),
 			nodeTypes2.data(),
 			subgraphNodeIds2.data(),
 			subgraphBorderFlags2.data(),
 			pairwiseDistMatrix2.data(),
+			objSizes2Device.data(),
 			validSubgraphFlags.data()
 		);
 
@@ -911,7 +938,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			}
 			thrust::host_vector<unsigned int> hostIntervals(variationGraph.intervals);
 			thrust::host_vector<unsigned int> hostNbrIds(variationGraph.adjacencyVals);
-			//TODO:Check that the variation graph is valid
 			if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
 				continue;
 			///////////////////////////////////////////////////////////////////////////////////

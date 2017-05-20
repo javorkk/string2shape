@@ -342,7 +342,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 		(unsigned int)aObj.objects.size(),
 		adjMatrix.data());
 
-	thrust::for_each(trimmed_cells.begin(), trimmed_cells_end, collide);
+	thrust::for_each(grid.cells.begin(), grid.cells.end(), collide);
 
 	adjMatTime = intermTimer.get();
 	intermTimer.start();

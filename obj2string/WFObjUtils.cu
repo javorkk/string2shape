@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "WFObjUtils.h"
 
-__host__ void ObjectCenterExporter::operator()(WFObject & aObj, thrust::host_vector<float3>& oObjCenters, thrust::host_vector<float>& oObjSizes, const float aSizeScaleFactor)
+__host__ void ObjectCenterExporter::operator()(const WFObject & aObj, thrust::host_vector<float3>& oObjCenters, thrust::host_vector<float>& oObjSizes, const float aSizeScaleFactor)
 {
 	oObjCenters = thrust::host_vector<float3>(aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
 	oObjSizes = thrust::host_vector<float>(aObj.objects.size(), 1.f);
@@ -36,7 +36,7 @@ __host__ void ObjectCenterExporter::operator()(WFObject & aObj, thrust::host_vec
 	}
 }
 
-__host__ void ObjectBoundsExporter::operator()(WFObject & aObj, float3 & oMinBound, float3 & oMaxBound)
+__host__ void ObjectBoundsExporter::operator()(const WFObject & aObj, float3 & oMinBound, float3 & oMaxBound)
 {
 	oMinBound = rep(FLT_MAX);
 	oMaxBound = rep(-FLT_MAX);
@@ -49,6 +49,18 @@ __host__ void ObjectBoundsExporter::operator()(WFObject & aObj, float3 & oMinBou
 
 __host__ WFObject WFObjectMerger::operator()(const WFObject & aObj1, float3 aTranslation1, const WFObject & aObj2, float3 aTranslation2, quaternion4f aRotation2, thrust::host_vector<unsigned int>& aFlags1, thrust::host_vector<unsigned int>& aFlags2)
 {
+
+	thrust::host_vector<float3> objCenters1;
+	thrust::host_vector<float> objSizes1;
+
+	ObjectCenterExporter()(aObj1, objCenters1, objSizes1, 0.25f);
+
+	thrust::host_vector<float3> objCenters2;
+	thrust::host_vector<float> objSizes2;
+
+	ObjectCenterExporter()(aObj2, objCenters2, objSizes2, 0.25f);
+
+
 	WFObject obj;
 
 	obj.vertices.resize(aObj1.getNumVertices() + aObj2.getNumVertices());
@@ -111,6 +123,19 @@ __host__ WFObject WFObjectMerger::operator()(const WFObject & aObj1, float3 aTra
 	{
 		if (aFlags2[obj2Id] == 0u)
 			continue;
+		size_t matId2 = aObj2.faces[aObj2.objects[obj2Id].x].material;
+		bool overlaps = false;
+		for (size_t obj1Id = 0; obj1Id < aObj1.objects.size() && !overlaps; ++obj1Id)
+		{
+			if (aFlags1[obj1Id] == 0u)
+				continue;
+			size_t matId1 = aObj1.faces[aObj1.objects[obj1Id].x].material;
+			if (len((objCenters1[obj1Id] - aTranslation1 ) - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.3f * objSizes1[obj1Id] && matId1 == matId2)
+				overlaps = true;
+		}
+		if (overlaps)
+			continue;
+
 		for (int faceId = aObj2.objects[obj2Id].x; faceId < aObj2.objects[obj2Id].y; ++faceId)
 		{
 			WFObject::Face face(&obj);

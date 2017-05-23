@@ -14,6 +14,9 @@
 #include "WFObject.h"
 #include "Graph.h"
 
+
+
+
 class KISSRandomNumberGenerator
 {
 public:
@@ -41,6 +44,47 @@ public:
 		return ((data[2] + data[3]) ^ data[0] + data[1]) * 2.328306E-10f;
 	}
 };
+
+class HaltonNumberGenerator
+{
+
+public:
+	const float mPrimesRCP[11] = { 0.5f, 0.333333f, 0.2f, 0.142857f,
+		0.09090909f, 0.07692307f, 0.058823529f, 0.0526315789f, 0.04347826f,
+		0.034482758f, 0.032258064f };
+
+	__device__ __host__ float operator()(const int aSeed, const int aDimension) const
+	{
+		if (aDimension < 11)
+		{
+			float res = 0.f;
+			float basisRCP = mPrimesRCP[aDimension];
+			const float BASISRCP = mPrimesRCP[aDimension];
+			float seed = static_cast<float>(aSeed);
+
+			while (seed)
+			{
+				float tmp = seed * BASISRCP;
+#ifdef __CUDA_ARCH___
+				seed = truncf(tmp);
+#else
+				seed = static_cast<float>(static_cast<int>(tmp));
+#endif
+				res += basisRCP * (tmp - seed);
+				basisRCP *= mPrimesRCP[aDimension];
+
+			}
+
+			return res;
+		}
+		else
+		{
+			return 2.f;
+		}
+
+	}
+};
+
 
 class VariationGenerator
 {

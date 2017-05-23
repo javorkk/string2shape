@@ -110,8 +110,8 @@ extern "C" {
 		obj2.read(aFileName2);
 
 		CollisionDetector detector;
-		Graph graph1 = detector.computeCollisionGraph(obj1, 0.02f);
-		Graph graph2 = detector.computeCollisionGraph(obj2, 0.02f);
+		Graph graph1 = detector.computeCollisionGraph(obj1, 0.0f);
+		Graph graph2 = detector.computeCollisionGraph(obj2, 0.0f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFileName1, obj1, graph1);
@@ -121,7 +121,7 @@ extern "C" {
 		exporter.stats();
 
 		VariationGenerator genRandVariation;
-		genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.02f);
+		genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.0f);
 		genRandVariation.stats();
 
 		return 0;

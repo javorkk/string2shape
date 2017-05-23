@@ -85,6 +85,8 @@ public:
 			331801u + aId,
 			10499029u);
 
+		HaltonNumberGenerator genQuasiRand;
+
 		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
 		//unsigned int subgraphSeedNodeId = max(min((unsigned int)(genRand() * (float)graphSize), graphSize - 1u), 0u);
 		unsigned int subgraphStartLocation = aId * subgraphSize;
@@ -92,20 +94,22 @@ public:
 		outNodeIds[subgraphStartLocation] = subgraphSeedNodeId;
 
 		unsigned int currentSize = 1u;
-		unsigned int currentDepth = 0u;
-		unsigned int currentSubgraphNodeId = 0u;
+		
+		//unsigned int currentSubgraphNodeId = 0u;
 
 		//compute subgraph
-		while (currentSize < subgraphSize && currentSize < graphSize)
+		for(unsigned int currentDepth = 0u; currentDepth < subgraphSize && currentSize < subgraphSize && currentSize < graphSize; ++currentDepth)
 		{
 			unsigned int neighborCount = 0u;
-			for (unsigned int localNodeId = currentSubgraphNodeId; localNodeId < currentSize; ++localNodeId)
+			for (unsigned int localNodeId = 0u; localNodeId < currentSize; ++localNodeId)
 			{
 				unsigned int nodeId = outNodeIds[subgraphStartLocation + localNodeId];
+				//const float numNbrsRCP = 1.f / (float)(adjIntervals[nodeId + 1u] - adjIntervals[nodeId]);
 				for (unsigned int localNeighborId = adjIntervals[nodeId]; localNeighborId < adjIntervals[nodeId + 1u]; ++localNeighborId)
 				{
 					unsigned int neighborId = neighborIds[localNeighborId];
-					bool alreadyIncluded = false;
+					//const float nbrIdf = localNeighborId - adjIntervals[nodeId];
+					bool alreadyIncluded = genRand() < 0.5f;// numNbrsRCP;
 					for (unsigned int previousNodeId = 0u; previousNodeId < currentSize + neighborCount; ++previousNodeId)
 					{						
 						if (outNodeIds[subgraphStartLocation + previousNodeId] == neighborId)
@@ -120,19 +124,18 @@ public:
 						outNodeIds[subgraphStartLocation + neighborCount + currentSize] = neighborId;
 						neighborCount++;
 					}
-					else if (!alreadyIncluded && genRand() < 0.5)//replace a random node with the same depth
+					else if (!alreadyIncluded && neighborCount > 0u  && genRand() < 0.5)//replace a random node with the same depth
 					{
-						unsigned int randLocation = (int)(genRand() * (float)neighborCount);
+						unsigned int randLocation = (int)(genRand() * (float)(neighborCount));
 						outNodeIds[subgraphStartLocation + randLocation + currentSize] = neighborId;
 					}
 				}
 
 			}
 
-			currentSubgraphNodeId = currentSize;
-			currentDepth++;
 			currentSize += neighborCount;
 		}
+
 		//compute subgraph interior and border
 		for (unsigned int localNodeId = 0u; localNodeId < subgraphSize; ++localNodeId)
 		{
@@ -186,9 +189,9 @@ public:
 					}
 				}
 			}
+		}//end for each node in the subgraph
 
-		}
-	}
+	}//end operator()
 
 };
 
@@ -719,7 +722,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		//ObjectBoundsExporter()(aObj1, minBound, maxBound);
 		//const float boundsDiagonal = len(maxBound - minBound);
 		//const float spatialTolerance = boundsDiagonal * 0.577350269f * aRelativeThreshold;
-		const float spatialTolerance = 30.f * aRelativeThreshold;
+		const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 		thrust::device_vector<unsigned int> validSubgraphFlags(numSubgraphSamples, 0u);
 
@@ -870,27 +873,27 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 			///////////////////////////////////////////////////////////////////////////////////
 			//discard variations with repeating node type histograms
-			NodeTypeHistogram typeHist(aObj1.materials.size());
+			variatioHistograms.push_back(NodeTypeHistogram(aObj1.materials.size()));
 			for (auto inTypeIt1 = nodeTypes1Host.begin(); inTypeIt1 != nodeTypes1Host.end(); ++inTypeIt1)
 			{
 				if (completeSubgraphFlags1[inTypeIt1 - nodeTypes1Host.begin()] == 1u)
 				{
-					typeHist.typeCounts[*inTypeIt1]++;
+					variatioHistograms.back().typeCounts[*inTypeIt1]++;
 				}
 			}
 			for (auto inTypeIt2 = nodeTypes2Host.begin(); inTypeIt2 != nodeTypes2Host.end(); ++inTypeIt2)
 			{
 				if (completeSubgraphFlags2[inTypeIt2 - nodeTypes2Host.begin()] == 1u)
 				{
-					typeHist.typeCounts[*inTypeIt2]++;
+					variatioHistograms.back().typeCounts[*inTypeIt2]++;
 				}
 			}
 
 			bool repeatedHistogram = false;
-			for (size_t hid = 0u; hid < variatioHistograms.size() && !repeatedHistogram; ++hid)
+			for (size_t hid = 0u; hid < variatioHistograms.size() - 1 && !repeatedHistogram; ++hid)
 			{
 				++histoChecks;
-				if (typeHist == variatioHistograms[hid])
+				if (variatioHistograms.back() == variatioHistograms[hid])
 					repeatedHistogram = true;
 			}
 
@@ -899,7 +902,10 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			intermTimer.start();
 
 			if (repeatedHistogram)
+			{
+				variatioHistograms.pop_back();
 				continue;
+			}
 			////////////////////////////////////////////////////////////////////////////////////////
 
 			for (unsigned int i = 0u; i < graphSize2; ++i)
@@ -944,8 +950,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 			++numVariations;
 
-			variatioHistograms.push_back(typeHist);
-
 			std::string fileName1(aFilePath1);
 			if (fileName1.find_last_of("/\\") == std::string::npos)
 				fileName1 = fileName1.substr(0, fileName1.size() - 5);
@@ -960,7 +964,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 
 			std::string objDir = getDirName(aFilePath2);
-			std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_var_" + itoa((int)numVariations) + ".obj";
+			std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_" + itoa((int)numVariations) + ".obj";
 
 			graphExporter.exportCollisionGraph(variationFilePath.c_str(), variation, variationGraph);
 

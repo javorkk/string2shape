@@ -85,8 +85,6 @@ public:
 			331801u + aId,
 			10499029u);
 
-		HaltonNumberGenerator genQuasiRand;
-
 		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
 		//unsigned int subgraphSeedNodeId = max(min((unsigned int)(genRand() * (float)graphSize), graphSize - 1u), 0u);
 		unsigned int subgraphStartLocation = aId * subgraphSize;
@@ -94,8 +92,7 @@ public:
 		outNodeIds[subgraphStartLocation] = subgraphSeedNodeId;
 
 		unsigned int currentSize = 1u;
-		
-		//unsigned int currentSubgraphNodeId = 0u;
+		//unsigned int globalNbrCount = 0u;
 
 		//compute subgraph
 		for(unsigned int currentDepth = 0u; currentDepth < subgraphSize && currentSize < subgraphSize && currentSize < graphSize; ++currentDepth)
@@ -107,9 +104,8 @@ public:
 				//const float numNbrsRCP = 1.f / (float)(adjIntervals[nodeId + 1u] - adjIntervals[nodeId]);
 				for (unsigned int localNeighborId = adjIntervals[nodeId]; localNeighborId < adjIntervals[nodeId + 1u]; ++localNeighborId)
 				{
-					unsigned int neighborId = neighborIds[localNeighborId];
-					//const float nbrIdf = localNeighborId - adjIntervals[nodeId];
-					bool alreadyIncluded = genRand() < 0.5f;// numNbrsRCP;
+					unsigned int neighborId = neighborIds[localNeighborId];					
+					bool alreadyIncluded = false;
 					for (unsigned int previousNodeId = 0u; previousNodeId < currentSize + neighborCount; ++previousNodeId)
 					{						
 						if (outNodeIds[subgraphStartLocation + previousNodeId] == neighborId)
@@ -117,6 +113,24 @@ public:
 							alreadyIncluded = true;
 							break;
 						}
+					}
+
+					//if (!alreadyIncluded && subgraphsPerSeedNode > 0u)
+					//{
+					//	//deterministically discard the neighbor
+					//	unsigned int subgraphSampleId = aId % subgraphsPerSeedNode;
+					//	unsigned int includeFlag = (subgraphSampleId >> globalNbrCount) & 0x00000001;
+					//	if (includeFlag != 0u)
+					//	{							
+					//		alreadyIncluded = true; 
+					//	}
+					//	++globalNbrCount;
+					//}
+
+					if (!alreadyIncluded)
+					{
+						//randomly discard the neighbor node
+						alreadyIncluded = genRand() < 0.5f; // numNbrsRCP;
 					}
 
 					if (!alreadyIncluded && neighborCount + currentSize < subgraphSize) //add to subgraph
@@ -679,7 +693,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	numVariations = 0u;
 
-	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
+	const unsigned int numSubgraphSamples = 128u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;

@@ -86,12 +86,12 @@ int main()
 		<< WFObjectToString(obj2strTestFile) << "\n";
 
 
-	//const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
-	//const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
-	//const char* variationFile1 = "../scenes/skyscraper/test/variant_101.obj";
-	//const char* variationFile2 = "../scenes/skyscraper/test/variant_101.obj";
-	const char* variationFile1 = "../scenes/playground/variant_000.obj";
-	const char* variationFile2 = "../scenes/playground/variant_001.obj";
+	const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
+	const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
+	//const char* variationFile1 = "../scenes/skyscraper/test/variant_001.obj";
+	//const char* variationFile2 = "../scenes/skyscraper/test/variant_001.obj";
+	//const char* variationFile1 = "../scenes/playground/variant_001.obj";
+	//const char* variationFile2 = "../scenes/playground/variant_002.obj";
 
 	ShapeVariationTest variationTest;
 	int var_test_result = variationTest.testAll(variationFile1, variationFile2);

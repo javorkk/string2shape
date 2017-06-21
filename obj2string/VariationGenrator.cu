@@ -338,7 +338,7 @@ public:
 					const float targetDist = inDistMatrix[inNodeId + graphSize1 * pairNodeId];
 					unsigned int pairNodeId2 = outNodeIds[subgraphStartLocation + recordedNodeId];
 					const float currentDist = outDistMatrix[nodeId2 + graphSize2 * pairNodeId2];
-					if (fabsf(currentDist - targetDist) > spatialTolerance)
+					if (fabsf(currentDist - targetDist) > spatialTolerance /** outNodeSizes[pairNodeId2]*/)
 						skip = true;//incompatible with previous participants
 				}
 				if (skip)
@@ -361,7 +361,7 @@ public:
 						if (outNodeTypes[pairingNodeId2] != pairNodeType)
 							continue;
 						const float currentDist = outDistMatrix[nodeId2 + graphSize2 * pairingNodeId2];
-						if (fabsf(currentDist - targetDist) < spatialTolerance * inNodeSizes[pairingNodeId2])
+						if (fabsf(currentDist - targetDist) < spatialTolerance /** inNodeSizes[pairingNodeId2]*/)
 							foundMatchingPair = true;
 					}//end for all other nodes in the second graph
 					if (!foundMatchingPair)
@@ -457,6 +457,9 @@ public:
 			success = randomMatchingOperator(aId, offset / 2u);
 		if(!success)
 			randomMatchingOperator(aId, offset / 4u);
+		if(!success)
+			randomMatchingOperator(aId, 0u);
+
 	}
 
 
@@ -666,6 +669,13 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	}
 	thrust::device_vector<unsigned int> nodeTypes2(nodeTypes2Host);
 
+	float3 minBound, maxBound;
+	ObjectBoundsExporter()(aObj1, minBound, maxBound);
+	const float boundsDiagonal = len(maxBound - minBound);
+	const float spatialTolerance = boundsDiagonal * std::max(aRelativeThreshold, 0.02f);
+	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
+
+
 	std::string result = "";
 
 	initTime = intermTimer.get();
@@ -673,7 +683,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	samplingTime = matchingTime = svdTime = matchingTime = 0.f;
 	histTime = transformTime = collisionTime = exportTime = conversionTime = 0.f;
-	histoChecks = 0u;
+	histoChecks = matchingCuts = matchingCutsAndTs = histoChecksPassed = 0u;
 
 	std::vector<NodeTypeHistogram> variatioHistograms;
 	variatioHistograms.push_back(NodeTypeHistogram(nodeTypes1Host));
@@ -697,9 +707,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
-		subgraphSampleSize < (unsigned)aGraph1.numNodes();//(unsigned int) 3u * aGraph1.numNodes() / 4u;
+		subgraphSampleSize < (unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
+		std::cout << "Subgraph sample size: " << subgraphSampleSize << " / " << (unsigned int)3u * aGraph1.numNodes() / 4u <<"\r";
+
 		if (subgraphSampleSize < 3)
 			continue;
 
@@ -732,12 +744,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		///////////////////////////////////////////////////////////////////////////////////
 		//Find matching cuts in both sub-graphs
 
-		//float3 minBound, maxBound;
-		//ObjectBoundsExporter()(aObj1, minBound, maxBound);
-		//const float boundsDiagonal = len(maxBound - minBound);
-		//const float spatialTolerance = boundsDiagonal * 0.577350269f * aRelativeThreshold;
-		const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
-
 		thrust::device_vector<unsigned int> validSubgraphFlags(numSubgraphSamples, 0u);
 
 		CutMatching matchCuts(
@@ -761,6 +767,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 		//thrust::counting_iterator<size_t> lastSubgraphDbg(4);
 		thrust::for_each(first, lastSubgraph, matchCuts);
+
+		matchingCuts += thrust::count(validSubgraphFlags.begin(), validSubgraphFlags.end(), 1u);
 
 		matchingTime += intermTimer.get();
 		intermTimer.start();
@@ -800,6 +808,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		);
 
 		thrust::for_each(first, lastSubgraph, estimateT);
+
+		matchingCutsAndTs += thrust::count(validSubgraphFlags.begin(), validSubgraphFlags.end(), 1u);
 
 		svdTime += intermTimer.get();
 		intermTimer.start();
@@ -920,6 +930,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 				variatioHistograms.pop_back();
 				continue;
 			}
+
+			++histoChecksPassed;
 			////////////////////////////////////////////////////////////////////////////////////////
 
 			for (unsigned int i = 0u; i < graphSize2; ++i)
@@ -959,9 +971,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			thrust::host_vector<unsigned int> hostIntervals(variationGraph.intervals);
 			thrust::host_vector<unsigned int> hostNbrIds(variationGraph.adjacencyVals);
 			if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
+			{
+				variatioHistograms.pop_back();
 				continue;
+			}
 			///////////////////////////////////////////////////////////////////////////////////
-
 			++numVariations;
 
 			std::string fileName1(aFilePath1);
@@ -993,6 +1007,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	}//end for subgraph size
 
+	std::cout << "Total subgraph samples: " << numSubgraphSamples * (unsigned int)3u * aGraph1.numNodes() / 4 << "\n";
+
 	totalTime = timer.get();
 
 	intermTimer.cleanup();
@@ -1005,6 +1021,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 __host__ void VariationGenerator::stats()
 {
 	std::cerr << "Created "<< numVariations <<" variations in " << totalTime << "ms\n";
+	std::cerr << "Matching subgraph cuts   : " << matchingCuts << "\n";
+	std::cerr << "Matching transformations : " << matchingCutsAndTs << "\n";
+	std::cerr << "New histograms           : " << histoChecksPassed << "\n";
+	std::cerr << "Grammar checks passed    : " << numVariations << "\n";
+	std::cerr << "-------------------------------------\n";
 	std::cerr << "Initialization in      " << initTime << "ms\n";
 	std::cerr << "Subgraph sampling in   " << samplingTime << "ms\n";
 	std::cerr << "Graph cut matching in  " << matchingTime << "ms\n";

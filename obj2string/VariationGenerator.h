@@ -101,6 +101,9 @@ class VariationGenerator
 	float conversionTime;
 	size_t numVariations;
 	size_t histoChecks;
+	size_t matchingCuts;
+	size_t matchingCutsAndTs;
+	size_t histoChecksPassed;
 
 	struct NodeTypeHistogram
 	{

@@ -453,10 +453,10 @@ public:
 
 		unsigned int offset = (unsigned int)(genRand() * (float)graphSize2);
 		bool success = randomMatchingOperator(aId, offset);
-		if(!success)
-			success = randomMatchingOperator(aId, offset / 2u);
-		if(!success)
-			randomMatchingOperator(aId, offset / 4u);
+		//if(!success)
+		//	success = randomMatchingOperator(aId, offset / 2u);
+		//if(!success)
+		//	randomMatchingOperator(aId, offset / 4u);
 		if(!success)
 			randomMatchingOperator(aId, 0u);
 
@@ -703,14 +703,14 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	numVariations = 0u;
 
-	const unsigned int numSubgraphSamples = 128u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
+	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
 		subgraphSampleSize < (unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
-		std::cout << "Subgraph sample size: " << subgraphSampleSize << " / " << (unsigned int)3u * aGraph1.numNodes() / 4u <<"\r";
+		std::cout << "Subgraph sample size: " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
 
 		if (subgraphSampleSize < 3)
 			continue;
@@ -972,8 +972,15 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			thrust::host_vector<unsigned int> hostNbrIds(variationGraph.adjacencyVals);
 			if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
 			{
-				variatioHistograms.pop_back();
-				continue;
+				//variationGraph = detector.computeCollisionGraph(variation, std::max(aRelativeThreshold, 0.02f));
+				//hostIntervals = variationGraph.intervals;
+				//hostNbrIds = variationGraph.adjacencyVals;
+				//if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
+				//{
+					variatioHistograms.pop_back();
+					continue;
+				//}
+
 			}
 			///////////////////////////////////////////////////////////////////////////////////
 			++numVariations;
@@ -1020,7 +1027,12 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 __host__ void VariationGenerator::stats()
 {
-	std::cerr << "Created "<< numVariations <<" variations in " << totalTime << "ms\n";
+	size_t miliseconds = (size_t)totalTime % 1000u;
+	size_t minutes = (size_t)totalTime / 60000;
+	size_t seconds = ((size_t)totalTime % 60000) / 1000;
+
+	std::cerr << "Created "<< numVariations <<" variations in " << totalTime << "ms "
+		<< minutes << ":" << seconds << ":" << miliseconds << " (min:sec:ms)\n";
 	std::cerr << "Matching subgraph cuts   : " << matchingCuts << "\n";
 	std::cerr << "Matching transformations : " << matchingCutsAndTs << "\n";
 	std::cerr << "New histograms           : " << histoChecksPassed << "\n";
@@ -1031,7 +1043,7 @@ __host__ void VariationGenerator::stats()
 	std::cerr << "Graph cut matching in  " << matchingTime << "ms\n";
 	std::cerr << "SVD in                 " << svdTime << "ms\n";
 	std::cerr << "Mem transfer in        " << cpyBackTime << "ms\n";
-	std::cerr << "Histogram check  in    " << histTime << "ms (checked   " << histoChecks << " candidates)\n";
+	std::cerr << "Histogram check  in    " << histTime << "ms (performed   " << histoChecks << " checks)\n";
 	std::cerr << "Obj transformation in  " << transformTime << "ms\n";
 	std::cerr << "Collision detection in " << collisionTime << "ms\n";
 	std::cerr << "File export in         " << exportTime << "ms\n";

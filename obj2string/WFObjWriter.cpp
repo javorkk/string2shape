@@ -55,6 +55,11 @@ void ObjWriter::writeObjectHeader(int aObjId)
 	objFileStream << "usemtl id_" << aObjId << "\n";
 }
 
+void ObjWriter::writeObjectHeader(size_t aObjId, const char* aMaterialName)
+{
+	objFileStream << "o " << aObjId << "\n";
+	objFileStream << "usemtl " << aMaterialName << "\n";
+}
 
 void ObjWriter::writeTriangleIndices(int aA, int aB, int aC)
 {
@@ -64,7 +69,7 @@ void ObjWriter::writeTriangleIndices(int aA, int aB, int aC)
 	objFileStream << aC + 1 << "\n";
 }
 
-void ObjWriter::writeTriangleIndices(int aA, int aB, int aC, int aNormalA, int aNormalB, int aNormalC)
+void ObjWriter::writeTriangleIndices(size_t aA, size_t aB, size_t aC, size_t aNormalA, size_t aNormalB, size_t aNormalC)
 {
 	objFileStream << "f ";
 	objFileStream << aA + 1 << "//" << aNormalA + 1 << " ";
@@ -95,6 +100,19 @@ void ObjWriter::writeDiffuseMaterial(int aId, float aR, float aG, float aB)
 	materialFileStream << "Ks 0 0 0\n";
 	materialFileStream << "Ke 0 0 0\n";
 	materialFileStream << "Ni 1.0\n";
+	materialFileStream << "\n";
+}
+
+void ObjWriter::writeMaterial(const char* aMaterialName, float aR, float aG, float aB)
+{
+	materialFileStream << "\n";
+	materialFileStream << "newmtl " << aMaterialName << "\n";
+	materialFileStream << "illum 2\n";
+	materialFileStream << "Ka 0 0 0\n";//TODO
+	materialFileStream << "Kd " << aR << " " << aG << " " << aB << "\n";
+	materialFileStream << "Ks 0 0 0\n";//TODO
+	materialFileStream << "Ke 0 0 0\n";//TODO
+	materialFileStream << "Ni 1.0\n";//TODO
 	materialFileStream << "\n";
 }
 

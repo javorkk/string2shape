@@ -137,6 +137,15 @@ class VariationGenerator
 	};
 
 public:
+	bool writeVariations; //write out generated variations in .obj 
+	bool writeVariationGraphs; //write out the graphs of the generated variations
+	bool multiString;  //return single or multiple SMILES strings per variation
+	VariationGenerator() : 
+		writeVariations(false), 
+		writeVariationGraphs(true), 
+		multiString(true)
+	{}
+
 	static const unsigned int MAX_ALLOWED_VARIATIONS = 1000u;
 
 	__host__ std::string operator()(

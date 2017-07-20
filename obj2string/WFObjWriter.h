@@ -22,11 +22,13 @@ public:
 	void writeVertex(float aX, float aY, float aZ);
 	void writeVertexNormal(float aX, float aY, float aZ);
 	void writeObjectHeader(int aObjId);
+	void writeObjectHeader(size_t aObjId, const char* aMaterialName);
 	void writeTriangleIndices(int aA, int aB, int aC);
-	void writeTriangleIndices(int aA, int aB, int aC, int aNormalA, int aNormalB, int aNormalC);
+	void writeTriangleIndices(size_t aA, size_t aB, size_t aC, size_t aNormalA, size_t aNormalB, size_t aNormalC);
 	void writePointIndex(int aA);
 	void writeLineIndices(int aA, int aB);
 	void writeDiffuseMaterial(int aId, float aR, float aG, float aB);
+	void writeMaterial(const char* aMaterialName, float aR, float aG, float aB);
 	void writeInstance(
 		float aT00, float aT10, float aT20, float aT30, /*transformation matrix row 0 (rotation x 3, translation) */
 		float aT01, float aT11, float aT21, float aT31, /*transformation matrix row 1 (rotation x 3, translation */

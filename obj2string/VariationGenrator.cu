@@ -833,6 +833,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 		GraphToStringConverter convertToStr;
 		CollisionGraphExporter graphExporter;
+		WFObjectFileExporter   objExporter;
 
 		cpyBackTime += intermTimer.get();
 		intermTimer.start();
@@ -985,28 +986,35 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			///////////////////////////////////////////////////////////////////////////////////
 			++numVariations;
 
-			std::string fileName1(aFilePath1);
-			if (fileName1.find_last_of("/\\") == std::string::npos)
-				fileName1 = fileName1.substr(0, fileName1.size() - 5);
-			else
-				fileName1 = fileName1.substr(fileName1.find_last_of("/\\") + 1, fileName1.size() - fileName1.find_last_of("/\\") - 5);
+			if (writeVariationGraphs || writeVariations)
+			{
+				std::string fileName1(aFilePath1);
+				if (fileName1.find_last_of("/\\") == std::string::npos)
+					fileName1 = fileName1.substr(0, fileName1.size() - 5);
+				else
+					fileName1 = fileName1.substr(fileName1.find_last_of("/\\") + 1, fileName1.size() - fileName1.find_last_of("/\\") - 5);
 
-			std::string fileName2(aFilePath2);
-			if (fileName2.find_last_of("/\\") == std::string::npos)
-				fileName2 = fileName2.substr(0, fileName2.size() - 5);
-			else
-				fileName2 = fileName2.substr(fileName2.find_last_of("/\\") + 1, fileName2.size() - fileName2.find_last_of("/\\") - 5);
+				std::string fileName2(aFilePath2);
+				if (fileName2.find_last_of("/\\") == std::string::npos)
+					fileName2 = fileName2.substr(0, fileName2.size() - 5);
+				else
+					fileName2 = fileName2.substr(fileName2.find_last_of("/\\") + 1, fileName2.size() - fileName2.find_last_of("/\\") - 5);
 
-
-			std::string objDir = getDirName(aFilePath2);
-			std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_" + itoa((int)numVariations) + ".obj";
-
-			graphExporter.exportCollisionGraph(variationFilePath.c_str(), variation, variationGraph);
+				std::string objDir = getDirName(aFilePath2);
+				std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_" + itoa((int)numVariations);
+				if (writeVariations)
+					objExporter(variation, variationFilePath.c_str());
+				
+				if (writeVariationGraphs)
+					graphExporter.exportCollisionGraph((variationFilePath + ".obj").c_str(), variation, variationGraph);
+			}
 
 			exportTime = intermTimer.get();
 			intermTimer.start();
 
 			std::string variationStrings = convertToStr(variation, variationGraph);
+			if (!multiString)
+				variationStrings = variationStrings.substr(0u, variationStrings.find_first_of("\n"));
 			result.append(variationStrings);
 
 			conversionTime += intermTimer.get();

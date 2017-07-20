@@ -17,6 +17,11 @@ const char * obj2strings(const char * aFilename)
 	return retval;
 }
 
+const char* create_variations(const char* aFileName1, const char* aFileName2)
+{
+	const char * retval = WFObjectRandomVariations(aFileName1, aFileName2);
+	return retval;
+}
 
 static PyObject * obj2string_wrapper(PyObject * self, PyObject * args)
 {

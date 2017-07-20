@@ -67,6 +67,28 @@ extern "C" {
 		return outputString;
 	}
 
+	char * WFObjectRandomVariations(const char * aFileName1, const char* aFileName2)
+	{
+		WFObject obj1;
+		obj1.read(aFileName1);
+
+		WFObject obj2;
+		obj2.read(aFileName2);
+
+		CollisionDetector detector;
+		Graph graph1 = detector.computeCollisionGraph(obj1, 0.0f);
+		Graph graph2 = detector.computeCollisionGraph(obj2, 0.0f);
+
+		VariationGenerator genRandVariation;
+		genRandVariation.writeVariationGraphs = false;
+		std::string result = genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.0f);
+
+		outputString = new char[result.length() + 1];
+		strcpy(outputString, result.c_str());
+
+		return outputString;
+	}
+
 	int buildGrid(const char * aFilename, int aResX, int aResY, int aResZ)
 	{
 		WFObject testObj;
@@ -121,6 +143,7 @@ extern "C" {
 		exporter.stats();
 
 		VariationGenerator genRandVariation;
+		genRandVariation.writeVariations = true;
 		genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.0f);
 		genRandVariation.stats();
 

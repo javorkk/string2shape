@@ -86,10 +86,10 @@ int main()
 		<< WFObjectToString(obj2strTestFile) << "\n";
 
 
-	//const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
-	//const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
-	const char* variationFile1 = "../scenes/skyscraper/test/variant_001.obj";
-	const char* variationFile2 = "../scenes/skyscraper/test/variant_001.obj";
+	const char* variationFile1 = "../scenes/church/test/variant_c19.obj";
+	const char* variationFile2 = "../scenes/church/test/variant_c28.obj";
+	//const char* variationFile1 = "../scenes/skyscraper/test/variant_001.obj";
+	//const char* variationFile2 = "../scenes/skyscraper/test/variant_001.obj";
 	//const char* variationFile1 = "../scenes/playground/s_variant_001.obj";
 	//const char* variationFile2 = "../scenes/playground/s_variant_002.obj";
 

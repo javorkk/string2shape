@@ -1,7 +1,13 @@
 #include "pch.h"
 #include "WFObjUtils.h"
 
-__host__ void ObjectCenterExporter::operator()(const WFObject & aObj, thrust::host_vector<float3>& oObjCenters, thrust::host_vector<float>& oObjSizes, const float aSizeScaleFactor)
+#include "WFObjWriter.h"
+
+__host__ void ObjectCenterExporter::operator()(
+	const WFObject & aObj,
+	thrust::host_vector<float3>& oObjCenters,
+	thrust::host_vector<float>& oObjSizes,
+	const float aSizeScaleFactor) const
 {
 	oObjCenters = thrust::host_vector<float3>(aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
 	oObjSizes = thrust::host_vector<float>(aObj.objects.size(), 1.f);
@@ -36,7 +42,8 @@ __host__ void ObjectCenterExporter::operator()(const WFObject & aObj, thrust::ho
 	}
 }
 
-__host__ void ObjectBoundsExporter::operator()(const WFObject & aObj, float3 & oMinBound, float3 & oMaxBound)
+__host__ void ObjectBoundsExporter::operator()(
+	const WFObject & aObj, float3 & oMinBound, float3 & oMaxBound) const
 {
 	oMinBound = rep(FLT_MAX);
 	oMaxBound = rep(-FLT_MAX);
@@ -47,7 +54,14 @@ __host__ void ObjectBoundsExporter::operator()(const WFObject & aObj, float3 & o
 	}
 }
 
-__host__ WFObject WFObjectMerger::operator()(const WFObject & aObj1, float3 aTranslation1, const WFObject & aObj2, float3 aTranslation2, quaternion4f aRotation2, thrust::host_vector<unsigned int>& aFlags1, thrust::host_vector<unsigned int>& aFlags2)
+__host__ WFObject WFObjectMerger::operator()(
+	const WFObject & aObj1,
+	float3 aTranslation1,
+	const WFObject & aObj2,
+	float3 aTranslation2,
+	quaternion4f aRotation2,
+	thrust::host_vector<unsigned int>& aFlags1,
+	thrust::host_vector<unsigned int>& aFlags2) const
 {
 
 	thrust::host_vector<float3> objCenters1;
@@ -161,4 +175,46 @@ __host__ WFObject WFObjectMerger::operator()(const WFObject & aObj1, float3 aTra
 	}
 
 	return obj;
+}
+
+__host__ void WFObjectFileExporter::operator()(const WFObject & aObj, const char * aFileName)
+{
+	ObjWriter output;
+	output.init(aFileName);
+
+	for (auto vtxIt = aObj.vertices.begin(); vtxIt != aObj.vertices.end(); ++vtxIt)
+	{
+		output.writeVertex(vtxIt->x, vtxIt->y, vtxIt->z);
+	}
+
+	for (auto normalIt = aObj.normals.begin(); normalIt != aObj.normals.end(); ++normalIt)
+	{
+		output.writeVertex(normalIt->x, normalIt->y, normalIt->z);
+	}
+
+	for (auto matIt = aObj.materials.begin(); matIt != aObj.materials.end(); ++matIt)
+	{
+		output.writeMaterial(matIt->name.c_str(), matIt->diffuseCoeff.x, matIt->diffuseCoeff.y, matIt->diffuseCoeff.z);
+	}
+
+	for (auto objIt = aObj.objects.begin(); objIt != aObj.objects.end(); ++objIt)
+	{
+		int2 facesInterval = *objIt;
+		if (facesInterval.x >= facesInterval.y)
+			continue;
+
+		//Assumes obj objects only consist of triangular faces
+		const size_t matId = aObj.getFace(facesInterval.x).material;
+		output.writeObjectHeader(objIt - aObj.objects.begin(), aObj.materials[matId].name.c_str());
+		for (int face_id = facesInterval.x; face_id < facesInterval.y; face_id++)
+		{
+			//Assumes obj objects only consist of triangular faces
+			WFObject::Face face = aObj.getFace(face_id);
+			output.writeTriangleIndices(face.vert1, face.vert2, face.vert3,
+				face.norm1, face.norm2, face.norm3);
+
+		}
+	}
+
+	output.cleanup();
 }

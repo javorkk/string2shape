@@ -144,7 +144,7 @@ __host__ WFObject WFObjectMerger::operator()(
 			if (aFlags1[obj1Id] == 0u)
 				continue;
 			size_t matId1 = aObj1.faces[aObj1.objects[obj1Id].x].material;
-			if (len((objCenters1[obj1Id] - aTranslation1 ) - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.3f * objSizes1[obj1Id] && matId1 == matId2)
+			if (len((objCenters1[obj1Id] - aTranslation1 ) - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
 				overlaps = true;
 		}
 		if (overlaps)

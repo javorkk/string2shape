@@ -667,7 +667,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	if (aRelativeThreshold < EPS)
 	{
 		const float volume = (maxBound.x - minBound.x) * (maxBound.y - minBound.y) * (maxBound.z - minBound.z);
-		const float lambda = 4.f;
+		const float lambda = 8.f;
 		const float magicConstant =
 			powf(lambda * static_cast<float>(aObj.faces.size()) / volume, 0.3333333f);
 

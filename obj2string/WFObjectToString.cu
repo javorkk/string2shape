@@ -23,7 +23,7 @@ extern "C" {
 		obj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph graph = detector.computeCollisionGraph(obj, 0.02f);
+		Graph graph = detector.computeCollisionGraph(obj, 0.0f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, obj, graph);
@@ -49,7 +49,7 @@ extern "C" {
 		obj.read(aFilename);
 
 		CollisionDetector detector;
-		Graph graph = detector.computeCollisionGraph(obj, 0.02f);
+		Graph graph = detector.computeCollisionGraph(obj, 0.0f);
 
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, obj, graph);
@@ -81,6 +81,8 @@ extern "C" {
 
 		VariationGenerator genRandVariation;
 		genRandVariation.writeVariationGraphs = false;
+		genRandVariation.writeVariations = true;
+
 		std::string result = genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.0f);
 
 		outputString = new char[result.length() + 1];

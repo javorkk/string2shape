@@ -338,7 +338,7 @@ public:
 					const float targetDist = inDistMatrix[inNodeId + graphSize1 * pairNodeId];
 					unsigned int pairNodeId2 = outNodeIds[subgraphStartLocation + recordedNodeId];
 					const float currentDist = outDistMatrix[nodeId2 + graphSize2 * pairNodeId2];
-					if (fabsf(currentDist - targetDist) > spatialTolerance /** outNodeSizes[pairNodeId2]*/)
+					if (fabsf(currentDist - targetDist) > spatialTolerance * outNodeSizes[pairNodeId2])
 						skip = true;//incompatible with previous participants
 				}
 				if (skip)
@@ -361,7 +361,7 @@ public:
 						if (outNodeTypes[pairingNodeId2] != pairNodeType)
 							continue;
 						const float currentDist = outDistMatrix[nodeId2 + graphSize2 * pairingNodeId2];
-						if (fabsf(currentDist - targetDist) < spatialTolerance /** inNodeSizes[pairingNodeId2]*/)
+						if (fabsf(currentDist - targetDist) < spatialTolerance * inNodeSizes[pairingNodeId2])
 							foundMatchingPair = true;
 					}//end for all other nodes in the second graph
 					if (!foundMatchingPair)
@@ -446,7 +446,7 @@ public:
 		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
 		
 		KISSRandomNumberGenerator genRand(
-			3643u + aId * 4154207u * graphSize2 + graphSize2,
+			3643u + 4154207u * graphSize2 + aId * aId,
 			1761919u + aId * 2746753u * graphSize1,
 			331801u + aId,
 			10499029u);
@@ -672,7 +672,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj1, minBound, maxBound);
 	const float boundsDiagonal = len(maxBound - minBound);
-	const float spatialTolerance = boundsDiagonal * std::max(aRelativeThreshold, 0.02f);
+	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.1f);
 	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 
@@ -705,6 +705,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
+
+	std::cout << "Mixing " << aFilePath1 << " and " << aFilePath2 << " ...\n";
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
 		subgraphSampleSize < (unsigned int) 3u * aGraph1.numNodes() / 4u;
@@ -914,8 +916,15 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 				}
 			}
 
+			bool invalidHistogram = false;
+			for (size_t typeId = 0; typeId < aObj1.materials.size() && !invalidHistogram; ++typeId)
+			{
+				if (variatioHistograms.back().typeCounts[typeId] == 0u && (variatioHistograms[0].typeCounts[typeId] > 0u || variatioHistograms[1].typeCounts[typeId] > 0u))
+					invalidHistogram = true;
+			}
+
 			bool repeatedHistogram = false;
-			for (size_t hid = 0u; hid < variatioHistograms.size() - 1 && !repeatedHistogram; ++hid)
+			for (size_t hid = 0u; hid < variatioHistograms.size() - 1 && !repeatedHistogram && !invalidHistogram; ++hid)
 			{
 				++histoChecks;
 				if (variatioHistograms.back() == variatioHistograms[hid])
@@ -923,10 +932,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			}
 
 
+
 			histTime += intermTimer.get();
 			intermTimer.start();
 
-			if (repeatedHistogram)
+			if (repeatedHistogram || invalidHistogram)
 			{
 				variatioHistograms.pop_back();
 				continue;
@@ -1022,12 +1032,20 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	}//end for subgraph size
 
-	std::cout << "Total subgraph samples: " << numSubgraphSamples * (unsigned int)3u * aGraph1.numNodes() / 4 << "\n";
+	//std::cout << "Total subgraph samples: " << numSubgraphSamples * (unsigned int)3u * aGraph1.numNodes() / 4 << "\n";
 
 	totalTime = timer.get();
 
 	intermTimer.cleanup();
 	timer.cleanup();
+
+	size_t miliseconds = (size_t)totalTime % 1000u;
+	size_t minutes = (size_t)totalTime / 60000;
+	size_t seconds = ((size_t)totalTime % 60000) / 1000;
+
+	std::cout << "Created " << numVariations << " variations in " << totalTime << "ms "
+		<< minutes << ":" << seconds << "." << miliseconds << " (min:sec.ms)\n";
+
 
 	return result;
 }
@@ -1040,7 +1058,7 @@ __host__ void VariationGenerator::stats()
 	size_t seconds = ((size_t)totalTime % 60000) / 1000;
 
 	std::cerr << "Created "<< numVariations <<" variations in " << totalTime << "ms "
-		<< minutes << ":" << seconds << ":" << miliseconds << " (min:sec:ms)\n";
+		<< minutes << ":" << seconds << "." << miliseconds << " (min:sec.ms)\n";
 	std::cerr << "Matching subgraph cuts   : " << matchingCuts << "\n";
 	std::cerr << "Matching transformations : " << matchingCutsAndTs << "\n";
 	std::cerr << "New histograms           : " << histoChecksPassed << "\n";

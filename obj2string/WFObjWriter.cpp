@@ -13,6 +13,8 @@ void ObjWriter::init(const char * aFilename)
 		std::cerr << "Could not open file " << aFileNameStr << ".obj for writing\n";
 	}
 
+	objFileStream.precision(12);
+
 	materialFileStream.open((aFileNameStr + ".mtl").c_str(), std::ios::binary | std::ios::out);
 	if (!materialFileStream)
 	{

@@ -239,8 +239,10 @@ class TilingGrammar():
     def encode_to_one_hot(self, word, max_length = 0):
         node_count = len([char for char in word if char in self.charset])
         result = np.zeros((node_count, len(self.charset) + self.max_degree()), dtype=np.float)
+        if(len(word) == 0):
+            return result
         if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
-            return result;
+            return result
         for i in range(len(self.DIGITS)):
             if(word.count(self.DIGITS[i]) % 2 != 0):
                 return result

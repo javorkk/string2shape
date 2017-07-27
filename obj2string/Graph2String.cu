@@ -109,10 +109,10 @@ __host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::ho
 		cycleIds,
 		aNodeTypes);
 
+	result.append("\n");
 	for (unsigned int startId = 1; startId < numNodes; ++startId)
 	{
 		visited = std::vector<unsigned int>(numNodes, 0u);
-		result.append("\n");
 		result.append(depthFirstTraverse(
 			startId,
 			visited,
@@ -122,6 +122,7 @@ __host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::ho
 			adjMatrixHost,
 			cycleIds,
 			aNodeTypes));
+		result.append("\n");
 	}
 	return result;
 }

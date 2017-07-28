@@ -218,3 +218,20 @@ __host__ void WFObjectFileExporter::operator()(const WFObject & aObj, const char
 
 	output.cleanup();
 }
+
+__host__ void VertexBufferUnpacker::operator()(const WFObject & aObj, thrust::host_vector<uint2>& oRanges, thrust::host_vector<float3>& oVertices) const
+{
+	oVertices.resize(aObj.faces.size() * 3u);
+	oRanges.resize(aObj.objects.size());
+	for (size_t objId = 0; objId < aObj.objects.size(); ++objId)
+	{
+		oRanges[objId] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
+		for (int faceId = aObj.objects[objId].x; faceId < aObj.objects[objId].y; ++faceId)
+		{
+			WFObject::Face face = aObj.faces[faceId];
+			oVertices[faceId * 3u + 0] = aObj.vertices[aObj.faces[faceId].vert1];
+			oVertices[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
+			oVertices[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
+		}
+	}
+}

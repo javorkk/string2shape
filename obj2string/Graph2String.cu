@@ -181,14 +181,21 @@ __host__ void GrammarCheck::init(
 		if (!seenCount)
 			mNeighborCounts[typeId].push_back(nbrCount);
 		
+		std::vector<unsigned int> nbrTypeCounts(mNumTypes, 0u);
+
 		for (size_t nbrId = aIntervals[i]; nbrId < aIntervals[i+1]; nbrId++)
 		{
 			unsigned int nbrTypeId = aNodeTypes[aNbrIds[nbrId]];
+			
+			nbrTypeCounts[nbrTypeId]++;
+
 			std::pair<unsigned int, unsigned int> nbrPair1 = std::make_pair(typeId, nbrTypeId);
 			std::pair<unsigned int, unsigned int> nbrPair2 = std::make_pair(nbrTypeId, typeId);
 			mNeighborTypes.insert(nbrPair1);
 			mNeighborTypes.insert(nbrPair2);
 		}
+
+		mNeighborTypeCounts.insert(std::make_pair(typeId, nbrTypeCounts));
 	}
 }
 
@@ -212,13 +219,29 @@ __host__ bool GrammarCheck::check(
 		if (!seenCount)
 			return false;
 
+		std::vector<unsigned int> nbrTypeCounts(mNumTypes, 0u);
+
 		for (size_t nbrId = aIntervals[i]; nbrId < aIntervals[i + 1]; nbrId++)
 		{
 			unsigned int nbrTypeId = aNodeTypes[aNbrIds[nbrId]];
+			nbrTypeCounts[nbrTypeId]++;
+
 			std::pair<unsigned int, unsigned int> nbrPair1 = std::make_pair(typeId, nbrTypeId);
 			if (mNeighborTypes.find(nbrPair1) == mNeighborTypes.end())
 				return false;
 		}
+
+		std::pair<unsigned int, std::vector<unsigned int> > pair = std::make_pair(typeId, nbrTypeCounts);
+		if (mNeighborTypeCounts.find(pair) == mNeighborTypeCounts.end())
+			return false;
 	}
 	return true;
+}
+
+__host__ void GrammarCheck::cleanup()
+{
+	mNumTypes = 0u;
+	mNeighborCounts.clear();
+	mNeighborTypes.clear();
+	mNeighborTypeCounts.clear();
 }

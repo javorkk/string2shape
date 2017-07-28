@@ -465,6 +465,7 @@ public:
 
 };
 
+template <bool taUseObjectVertices = true>
 class TransformationEstimator
 {
 public:
@@ -472,6 +473,13 @@ public:
 
 	thrust::device_ptr<float3> positions1;
 	thrust::device_ptr<float3> positions2;
+
+	thrust::device_ptr<uint2> vertexRanges1;
+	thrust::device_ptr<uint2> vertexRanges2;
+
+	thrust::device_ptr<float3> vertexBuffer1;
+	thrust::device_ptr<float3> vertexBuffer2;
+
 
 	thrust::device_ptr<unsigned int> nodeIds1;
 	thrust::device_ptr<unsigned int> borderNodeFlags;
@@ -492,6 +500,10 @@ public:
 		unsigned int aSampleSize,
 		thrust::device_ptr<float3> aPositions1,
 		thrust::device_ptr<float3> aPositions2,
+		thrust::device_ptr<uint2> aRanges1,
+		thrust::device_ptr<uint2> aRanges2,
+		thrust::device_ptr<float3> aBuffer1,
+		thrust::device_ptr<float3> aBuffer2,
 		thrust::device_ptr<unsigned int> inIds,
 		thrust::device_ptr<unsigned int> inFlags,
 		thrust::device_ptr<unsigned int> outIds,
@@ -506,6 +518,10 @@ public:
 	) : subgraphSize(aSampleSize),
 		positions1(aPositions1),
 		positions2(aPositions2),
+		vertexRanges1(aRanges1),
+		vertexRanges2(aRanges2),
+		vertexBuffer1(aBuffer1),
+		vertexBuffer2(aBuffer2),
 		nodeIds1(inIds),
 		borderNodeFlags(inFlags),
 		nodeIds2(outIds),
@@ -535,9 +551,26 @@ public:
 		{
 			if (borderNodeFlags[subgraphStartLocation + i] != 0u)
 			{
-				center1 += positions1[nodeIds1[subgraphStartLocation + i]];
-				center2 += positions2[nodeIds2[subgraphStartLocation + i]];
-				numPoints += 1.f;
+				if (taUseObjectVertices)
+				{
+					unsigned int objId1 = nodeIds1[subgraphStartLocation + i];
+					unsigned int objId2 = nodeIds2[subgraphStartLocation + i];
+					uint2 vtxRange1 = vertexRanges1[objId1];
+					uint2 vtxRange2 = vertexRanges2[objId2];
+					unsigned int vtxCount = min(vtxRange1.y - vtxRange1.x, vtxRange2.y - vtxRange2.x);
+					for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
+					{
+						center1 += vertexBuffer1[vtxRange1.x + vtxId];
+						center2 += vertexBuffer2[vtxRange2.x + vtxId];
+						numPoints += 1.f;
+					}
+				}
+				else //use object centers instead
+				{
+					center1 += positions1[nodeIds1[subgraphStartLocation + i]];
+					center2 += positions2[nodeIds2[subgraphStartLocation + i]];
+					numPoints += 1.f;
+				}//end if use object vertices or object centers
 			}
 		}
 		center1 /= numPoints;
@@ -549,22 +582,53 @@ public:
 		{
 			if (borderNodeFlags[subgraphStartLocation + i] != 0u)
 			{
-				float3 vec1 = positions1[nodeIds1[subgraphStartLocation + i]] - center1;
-				float3 vec2 = positions2[nodeIds2[subgraphStartLocation + i]] - center2;
+				if (taUseObjectVertices)
+				{
+					unsigned int objId1 = nodeIds1[subgraphStartLocation + i];
+					unsigned int objId2 = nodeIds2[subgraphStartLocation + i];
+					uint2 vtxRange1 = vertexRanges1[objId1];
+					uint2 vtxRange2 = vertexRanges2[objId2];
+					unsigned int vtxCount = min(vtxRange1.y - vtxRange1.x, vtxRange2.y - vtxRange2.x);
+					for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
+					{
+						float3 vec1 = vertexBuffer1[vtxRange1.x + vtxId];
+						float3 vec2 = vertexBuffer2[vtxRange2.x + vtxId];
 
-				covMat[0 * 3 + 0] += vec2.x * vec1.x;
-				covMat[1 * 3 + 0] += vec2.y * vec1.x;
-				covMat[2 * 3 + 0] += vec2.z * vec1.x;
+						covMat[0 * 3 + 0] += vec2.x * vec1.x;
+						covMat[1 * 3 + 0] += vec2.y * vec1.x;
+						covMat[2 * 3 + 0] += vec2.z * vec1.x;
 
-				covMat[0 * 3 + 1] += vec2.x * vec1.y;
-				covMat[1 * 3 + 1] += vec2.y * vec1.y;
-				covMat[2 * 3 + 1] += vec2.z * vec1.y;
+						covMat[0 * 3 + 1] += vec2.x * vec1.y;
+						covMat[1 * 3 + 1] += vec2.y * vec1.y;
+						covMat[2 * 3 + 1] += vec2.z * vec1.y;
 
-				covMat[0 * 3 + 2] += vec2.x * vec1.z;
-				covMat[1 * 3 + 2] += vec2.y * vec1.z;
-				covMat[2 * 3 + 2] += vec2.z * vec1.z;
-			}
-		}
+						covMat[0 * 3 + 2] += vec2.x * vec1.z;
+						covMat[1 * 3 + 2] += vec2.y * vec1.z;
+						covMat[2 * 3 + 2] += vec2.z * vec1.z;
+					}
+				}
+				else //use object centers instead
+				{
+					float3 vec1 = positions1[nodeIds1[subgraphStartLocation + i]] - center1;
+					float3 vec2 = positions2[nodeIds2[subgraphStartLocation + i]] - center2;
+
+					covMat[0 * 3 + 0] += vec2.x * vec1.x;
+					covMat[1 * 3 + 0] += vec2.y * vec1.x;
+					covMat[2 * 3 + 0] += vec2.z * vec1.x;
+
+					covMat[0 * 3 + 1] += vec2.x * vec1.y;
+					covMat[1 * 3 + 1] += vec2.y * vec1.y;
+					covMat[2 * 3 + 1] += vec2.z * vec1.y;
+
+					covMat[0 * 3 + 2] += vec2.x * vec1.z;
+					covMat[1 * 3 + 2] += vec2.y * vec1.z;
+					covMat[2 * 3 + 2] += vec2.z * vec1.z;
+				}//end if use object vertices or object centers
+
+			}//end if matching graph nodes
+		
+		}//end for subgraph nodes
+
 		//Singular Value Decomposition
 		float* diag = thrust::raw_pointer_cast(tmpDiagonalW + aId * 3);
 		float* vMat = thrust::raw_pointer_cast(tmpMatrixV + aId * 3 * 3);
@@ -594,15 +658,15 @@ public:
 			vMat[2], vMat[5], vMat[8]
 		);
 
-		if (rotDet < 0.f)
-		{
-			vMat[6] = -vMat[6];
-			vMat[7] = -vMat[7];
-			vMat[8] = -vMat[8];
-			rotDet = -rotDet;
-		}
+		//if (rotDet < 0.f)
+		//{
+		//	vMat[6] = -vMat[6];
+		//	vMat[7] = -vMat[7];
+		//	vMat[8] = -vMat[8];
+		//	rotDet = -rotDet;
+		//}
 
-		if (fabsf(rotDet - 1.f)> EPS)
+		if (fabsf(fabsf(rotDet) - 1.f)> EPS )
 			outValidSubgraphFlags[aId] = 0u;
 
 
@@ -676,6 +740,24 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 
+	//Unpack and upload the vertex buffer for both objects
+	thrust::host_vector<uint2> vertexRangesHost1;
+	thrust::host_vector<uint2> vertexRangesHost2;
+
+	thrust::host_vector<float3> vertexBufferHost1;
+	thrust::host_vector<float3> vertexBufferHost2;
+
+	VertexBufferUnpacker unpackVertices;
+	unpackVertices(aObj1, vertexRangesHost1, vertexBufferHost1);
+	unpackVertices(aObj2, vertexRangesHost2, vertexBufferHost2);
+
+	thrust::device_vector<uint2> vertexRangesDevice1(vertexRangesHost1);
+	thrust::device_vector<uint2> vertexRangesDevice2(vertexRangesHost2);
+	thrust::device_vector<float3> vertexBufferDevice1(vertexBufferHost1);
+	thrust::device_vector<float3> vertexBufferDevice2(vertexBufferHost2);
+
+
+
 	std::string result = "";
 
 	initTime = intermTimer.get();
@@ -706,13 +788,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
-	std::cout << "Mixing " << aFilePath1 << " and " << aFilePath2 << " ...\n";
-
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
 		subgraphSampleSize < (unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
-		std::cout << "Subgraph sample size: " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
+		std::cout << "Mixing " << aFilePath1 << " and " << aFilePath2 << " : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
 
 		if (subgraphSampleSize < 3)
 			continue;
@@ -792,10 +872,14 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		thrust::device_vector<float> tmpVecRV(numSubgraphSamples * 3);
 		thrust::device_vector<quaternion4f> outRotation2(numSubgraphSamples);
 
-		TransformationEstimator estimateT(
+		TransformationEstimator<true> estimateT(
 			subgraphSampleSize,
 			centersDevice1.data(),
 			centersDevice2.data(),
+			vertexRangesDevice1.data(),
+			vertexRangesDevice2.data(),
+			vertexBufferDevice1.data(),
+			vertexBufferDevice2.data(),
 			subgraphNodeIds1.data(),
 			subgraphBorderFlags1.data(),
 			subgraphNodeIds2.data(),
@@ -1043,7 +1127,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	size_t minutes = (size_t)totalTime / 60000;
 	size_t seconds = ((size_t)totalTime % 60000) / 1000;
 
-	std::cout << "Created " << numVariations << " variations in " << totalTime << "ms "
+	std::cout << "\nCreated " << numVariations << " variations in " << totalTime << "ms "
 		<< minutes << ":" << seconds << "." << miliseconds << " (min:sec.ms)\n";
 
 
@@ -1053,12 +1137,12 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 __host__ void VariationGenerator::stats()
 {
-	size_t miliseconds = (size_t)totalTime % 1000u;
-	size_t minutes = (size_t)totalTime / 60000;
-	size_t seconds = ((size_t)totalTime % 60000) / 1000;
+	//size_t miliseconds = (size_t)totalTime % 1000u;
+	//size_t minutes = (size_t)totalTime / 60000;
+	//size_t seconds = ((size_t)totalTime % 60000) / 1000;
 
-	std::cerr << "Created "<< numVariations <<" variations in " << totalTime << "ms "
-		<< minutes << ":" << seconds << "." << miliseconds << " (min:sec.ms)\n";
+	//std::cerr << "Created "<< numVariations <<" variations in " << totalTime << "ms "
+	//	<< minutes << ":" << seconds << "." << miliseconds << " (min:sec.ms)\n";
 	std::cerr << "Matching subgraph cuts   : " << matchingCuts << "\n";
 	std::cerr << "Matching transformations : " << matchingCutsAndTs << "\n";
 	std::cerr << "New histograms           : " << histoChecksPassed << "\n";

@@ -99,6 +99,7 @@ class GrammarCheck
 	unsigned int mNumTypes;
 	std::vector< std::vector<unsigned int> > mNeighborCounts;
 	std::set< std::pair<unsigned int, unsigned int> > mNeighborTypes;
+	std::set< std::pair<unsigned int, std::vector<unsigned int> > > mNeighborTypeCounts;
 public:
 	GrammarCheck():mNumTypes(0u)
 	{}
@@ -111,6 +112,8 @@ public:
 		thrust::host_vector<unsigned int>& aIntervals,
 		thrust::host_vector<unsigned int>& aNbrIds,
 		thrust::host_vector<unsigned int>& aNodeTypes);
+
+	__host__ void cleanup();
 
 };
 #endif // GRAPH2STRING_H_18BBEE2E_4283_4957_8B2C_8AC609108C63

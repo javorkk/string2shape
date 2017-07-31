@@ -489,10 +489,10 @@ public:
 
 	thrust::device_ptr<float3> outTranslation1;
 	thrust::device_ptr<float3> outTranslation2;
-	thrust::device_ptr<float> tmpCovMatrix;
-	thrust::device_ptr<float> tmpDiagonalW;
-	thrust::device_ptr<float> tmpMatrixV;
-	thrust::device_ptr<float> tmpVecRV;
+	thrust::device_ptr<double> tmpCovMatrix;
+	thrust::device_ptr<double> tmpDiagonalW;
+	thrust::device_ptr<double> tmpMatrixV;
+	thrust::device_ptr<double> tmpVecRV;
 	thrust::device_ptr<quaternion4f> outRotation2;
 
 
@@ -510,10 +510,10 @@ public:
 		thrust::device_ptr<unsigned int> outSubgraphFlags,
 		thrust::device_ptr<float3> aTranslation1,
 		thrust::device_ptr<float3> aTranslation2,
-		thrust::device_ptr<float> aCovMatrix,
-		thrust::device_ptr<float> aDiagonalW,
-		thrust::device_ptr<float> aMatrixV,
-		thrust::device_ptr<float> aVecRV,
+		thrust::device_ptr<double> aCovMatrix,
+		thrust::device_ptr<double> aDiagonalW,
+		thrust::device_ptr<double> aMatrixV,
+		thrust::device_ptr<double> aVecRV,
 		thrust::device_ptr<quaternion4f> aOutRot
 	) : subgraphSize(aSampleSize),
 		positions1(aPositions1),
@@ -577,7 +577,7 @@ public:
 		center2 /= numPoints;
 
 		//Compute covariance matrix
-		float* covMat = thrust::raw_pointer_cast(tmpCovMatrix + aId * 3 * 3);
+		double* covMat = thrust::raw_pointer_cast(tmpCovMatrix + aId * 3 * 3);
 		for (unsigned int i = 0u; i < subgraphSize; ++i)
 		{
 			if (borderNodeFlags[subgraphStartLocation + i] != 0u)
@@ -594,17 +594,17 @@ public:
 						float3 vec1 = vertexBuffer1[vtxRange1.x + vtxId];
 						float3 vec2 = vertexBuffer2[vtxRange2.x + vtxId];
 
-						covMat[0 * 3 + 0] += vec2.x * vec1.x;
-						covMat[1 * 3 + 0] += vec2.y * vec1.x;
-						covMat[2 * 3 + 0] += vec2.z * vec1.x;
+						covMat[0 * 3 + 0] += (double)vec2.x * vec1.x;
+						covMat[1 * 3 + 0] += (double)vec2.y * vec1.x;
+						covMat[2 * 3 + 0] += (double)vec2.z * vec1.x;
 
-						covMat[0 * 3 + 1] += vec2.x * vec1.y;
-						covMat[1 * 3 + 1] += vec2.y * vec1.y;
-						covMat[2 * 3 + 1] += vec2.z * vec1.y;
+						covMat[0 * 3 + 1] += (double)vec2.x * vec1.y;
+						covMat[1 * 3 + 1] += (double)vec2.y * vec1.y;
+						covMat[2 * 3 + 1] += (double)vec2.z * vec1.y;
 
-						covMat[0 * 3 + 2] += vec2.x * vec1.z;
-						covMat[1 * 3 + 2] += vec2.y * vec1.z;
-						covMat[2 * 3 + 2] += vec2.z * vec1.z;
+						covMat[0 * 3 + 2] += (double)vec2.x * vec1.z;
+						covMat[1 * 3 + 2] += (double)vec2.y * vec1.z;
+						covMat[2 * 3 + 2] += (double)vec2.z * vec1.z;
 					}
 				}
 				else //use object centers instead
@@ -612,17 +612,17 @@ public:
 					float3 vec1 = positions1[nodeIds1[subgraphStartLocation + i]] - center1;
 					float3 vec2 = positions2[nodeIds2[subgraphStartLocation + i]] - center2;
 
-					covMat[0 * 3 + 0] += vec2.x * vec1.x;
-					covMat[1 * 3 + 0] += vec2.y * vec1.x;
-					covMat[2 * 3 + 0] += vec2.z * vec1.x;
+					covMat[0 * 3 + 0] += (double)vec2.x * vec1.x;
+					covMat[1 * 3 + 0] += (double)vec2.y * vec1.x;
+					covMat[2 * 3 + 0] += (double)vec2.z * vec1.x;
 
-					covMat[0 * 3 + 1] += vec2.x * vec1.y;
-					covMat[1 * 3 + 1] += vec2.y * vec1.y;
-					covMat[2 * 3 + 1] += vec2.z * vec1.y;
+					covMat[0 * 3 + 1] += (double)vec2.x * vec1.y;
+					covMat[1 * 3 + 1] += (double)vec2.y * vec1.y;
+					covMat[2 * 3 + 1] += (double)vec2.z * vec1.y;
 
-					covMat[0 * 3 + 2] += vec2.x * vec1.z;
-					covMat[1 * 3 + 2] += vec2.y * vec1.z;
-					covMat[2 * 3 + 2] += vec2.z * vec1.z;
+					covMat[0 * 3 + 2] += (double)vec2.x * vec1.z;
+					covMat[1 * 3 + 2] += (double)vec2.y * vec1.z;
+					covMat[2 * 3 + 2] += (double)vec2.z * vec1.z;
 				}//end if use object vertices or object centers
 
 			}//end if matching graph nodes
@@ -630,9 +630,9 @@ public:
 		}//end for subgraph nodes
 
 		//Singular Value Decomposition
-		float* diag = thrust::raw_pointer_cast(tmpDiagonalW + aId * 3);
-		float* vMat = thrust::raw_pointer_cast(tmpMatrixV + aId * 3 * 3);
-		float* tmp = thrust::raw_pointer_cast(tmpVecRV + aId * 3);
+		double* diag = thrust::raw_pointer_cast(tmpDiagonalW + aId * 3);
+		double* vMat = thrust::raw_pointer_cast(tmpMatrixV + aId * 3 * 3);
+		double* tmp = thrust::raw_pointer_cast(tmpVecRV + aId * 3);
 
 		svd::svdcmp(covMat, 3, 3, diag, vMat, tmp);
 
@@ -652,7 +652,7 @@ public:
 		}
 
 
-		float rotDet = determinant(
+		double rotDet = determinant(
 			vMat[0], vMat[3], vMat[6],
 			vMat[1], vMat[4], vMat[7],
 			vMat[2], vMat[5], vMat[8]
@@ -666,14 +666,14 @@ public:
 		//	rotDet = -rotDet;
 		//}
 
-		if (fabsf(fabsf(rotDet) - 1.f)> EPS )
+		if (fabs(rotDet - 1.0) > EPS )
 			outValidSubgraphFlags[aId] = 0u;
 
 
 		quaternion4f rotation(
-			vMat[0], vMat[3], vMat[6],
-			vMat[1], vMat[4], vMat[7],
-			vMat[2], vMat[5], vMat[8]
+			(float)vMat[0], (float)vMat[3], (float)vMat[6],
+			(float)vMat[1], (float)vMat[4], (float)vMat[7],
+			(float)vMat[2], (float)vMat[5], (float)vMat[8]
 		);
 		outTranslation1[aId] = center1;
 		outTranslation2[aId] = center2;
@@ -688,6 +688,18 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 {
 	cudastd::timer timer;
 	cudastd::timer intermTimer;
+
+	std::string fileName1(aFilePath1);
+	if (fileName1.find_last_of("/\\") == std::string::npos)
+		fileName1 = fileName1.substr(0, fileName1.size() - 5);
+	else
+		fileName1 = fileName1.substr(fileName1.find_last_of("/\\") + 1, fileName1.size() - fileName1.find_last_of("/\\") - 5);
+
+	std::string fileName2(aFilePath2);
+	if (fileName2.find_last_of("/\\") == std::string::npos)
+		fileName2 = fileName2.substr(0, fileName2.size() - 5);
+	else
+		fileName2 = fileName2.substr(fileName2.find_last_of("/\\") + 1, fileName2.size() - fileName2.find_last_of("/\\") - 5);
 
 	if (aGraph1.numNodes() < 9u || aGraph2.numNodes() < 9u)
 		return "";
@@ -789,10 +801,10 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
-		subgraphSampleSize < (unsigned int) 3u * aGraph1.numNodes() / 4u;
+		subgraphSampleSize <= (unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
-		std::cout << "Mixing " << aFilePath1 << " and " << aFilePath2 << " : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
+		std::cout << "Mixing " << fileName1 << " and " << fileName2 << " subgraph size : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
 
 		if (subgraphSampleSize < 3)
 			continue;
@@ -866,13 +878,13 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		//Find correspondence transformation between both sub-graphs
 		thrust::device_vector<float3> outTranslation1(numSubgraphSamples);
 		thrust::device_vector<float3> outTranslation2(numSubgraphSamples);
-		thrust::device_vector<float> tmpCovMatrix(numSubgraphSamples * 3 * 3, 0.f);
-		thrust::device_vector<float> tmpDiagonalW(numSubgraphSamples * 3);
-		thrust::device_vector<float> tmpMatrixV(numSubgraphSamples * 3 * 3);
-		thrust::device_vector<float> tmpVecRV(numSubgraphSamples * 3);
+		thrust::device_vector<double> tmpCovMatrix(numSubgraphSamples * 3 * 3, 0.f);
+		thrust::device_vector<double> tmpDiagonalW(numSubgraphSamples * 3);
+		thrust::device_vector<double> tmpMatrixV(numSubgraphSamples * 3 * 3);
+		thrust::device_vector<double> tmpVecRV(numSubgraphSamples * 3);
 		thrust::device_vector<quaternion4f> outRotation2(numSubgraphSamples);
 
-		TransformationEstimator<true> estimateT(
+		TransformationEstimator<false> estimateT(
 			subgraphSampleSize,
 			centersDevice1.data(),
 			centersDevice2.data(),
@@ -1078,22 +1090,26 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 			}
 			///////////////////////////////////////////////////////////////////////////////////
+			//Double check the node histogram after merging
+			variatioHistograms.pop_back();
+			variatioHistograms.push_back(NodeTypeHistogram(nodeTypesVariation));
+
+			for (size_t hid = 0u; hid < variatioHistograms.size() - 1 && !repeatedHistogram; ++hid)
+			{
+				++histoChecks;
+				if (variatioHistograms.back() == variatioHistograms[hid])
+					repeatedHistogram = true;
+			}
+			if (repeatedHistogram)
+			{
+				variatioHistograms.pop_back();
+				continue;
+			}
+			///////////////////////////////////////////////////////////////////////////////////
 			++numVariations;
 
 			if (writeVariationGraphs || writeVariations)
 			{
-				std::string fileName1(aFilePath1);
-				if (fileName1.find_last_of("/\\") == std::string::npos)
-					fileName1 = fileName1.substr(0, fileName1.size() - 5);
-				else
-					fileName1 = fileName1.substr(fileName1.find_last_of("/\\") + 1, fileName1.size() - fileName1.find_last_of("/\\") - 5);
-
-				std::string fileName2(aFilePath2);
-				if (fileName2.find_last_of("/\\") == std::string::npos)
-					fileName2 = fileName2.substr(0, fileName2.size() - 5);
-				else
-					fileName2 = fileName2.substr(fileName2.find_last_of("/\\") + 1, fileName2.size() - fileName2.find_last_of("/\\") - 5);
-
 				std::string objDir = getDirName(aFilePath2);
 				std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_" + itoa((int)numVariations);
 				if (writeVariations)

@@ -26,7 +26,7 @@ namespace svd
 #define SIGN(a,b) ((b) > 0.0f ? fabs(a) : - fabs(a))
 
 	// prints an arbitrary size matrix to the standard output
-	void printMatrix(float *a, int rows, int cols)
+	void printMatrix(double *a, int rows, int cols)
 	{
 		for (int i = 0; i < rows; i++)
 		{
@@ -42,7 +42,7 @@ namespace svd
 
 
 	// prints an arbitrary size vector to the standard output
-	void printVector(float *v, int size)
+	void printVector(double *v, int size)
 	{
 		for (int i = 0; i < size; i++)
 		{
@@ -54,39 +54,39 @@ namespace svd
 
 
 	// calculates sqrt( a^2 + b^2 ) with decent precision
-	__host__ __device__ float pythag(float a, float b)
+	__host__ __device__ double pythag(double a, double b)
 	{
-		float sqrarg;
+		double sqrarg;
 #define SQR(a) ((sqrarg = (a)) == 0.0f ? 0.0f : sqrarg * sqrarg)
 
-		float absa, absb;
+		double absa, absb;
 		absa = fabs(a);
 		absb = fabs(b);
 
 		if (absa > absb)
-			return (absa * sqrtf(1.0f + SQR(absb / absa)));
+			return (absa * sqrt(1.0f + SQR(absb / absa)));
 		else
-			return (absb == 0.0f ? 0.0f : absb * sqrtf(1.0f + SQR(absa / absb)));
+			return (absb == 0.0f ? 0.0f : absb * sqrt(1.0f + SQR(absa / absb)));
 	}
 
 
 	__host__ __device__ FORCE_INLINE void svdcmp(
-		float* a, //input matrix & output U  dim: rows x cols 
+		double* a, //input matrix & output U  dim: rows x cols 
 		int nRows,
 		int nCols,
-		float* w, //diagonal (singularities) dim: cols x 1
-		float *v, //output V, dim: col x cols
-		float* rv1 //temp storage, dim: cols x 1
+		double* w, //diagonal (singularities) dim: cols x 1
+		double *v, //output V, dim: col x cols
+		double* rv1 //temp storage, dim: cols x 1
 	)
 	{
-		float maxarg1, maxarg2;
+		double maxarg1, maxarg2;
 #define FMAX(a,b) (maxarg1 = (a),maxarg2 = (b),(maxarg1) > (maxarg2) ? (maxarg1) : (maxarg2))
 
 		int iminarg1, iminarg2;
 #define IMIN(a,b) (iminarg1 = (a),iminarg2 = (b),(iminarg1 < (iminarg2) ? (iminarg1) : iminarg2))
 
 		int flag, i, its, j, jj, k, l, nm;
-		float anorm, c, f, g, h, s, scale, x, y, z;
+		double anorm, c, f, g, h, s, scale, x, y, z;
 
 		g = scale = anorm = 0.0f;
 

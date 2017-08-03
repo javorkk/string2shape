@@ -261,10 +261,10 @@ void WFObject::read(const char* aFileName)
     {
         loadWFObj(aFileName);
         //normalize reflectance coefficients
-        for (auto it = materials.begin(); it != materials.end(); ++it)
-        {
-            it->setupPhongCoefficients();
-        }
+        //for (auto it = materials.begin(); it != materials.end(); ++it)
+        //{
+        //    it->setupPhongCoefficients();
+        //}
     }
     else
     {

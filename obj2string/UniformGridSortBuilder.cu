@@ -7,6 +7,7 @@
 #include "Primitive.h"
 #include "BBox.h"
 
+#include <thrust/device_allocator.h>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/copy.h>
@@ -326,9 +327,9 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	oGrid.res[1] = thrust::max<int>(aResY, 1);
 	oGrid.res[2] = thrust::max<int>(aResZ, 1);
 	//allocate grid cells
-	oGrid.cells = thrust::device_vector<uint2>(oGrid.res[0] * oGrid.res[1] * oGrid.res[2]);
+	oGrid.cells = thrust::device_new<uint2>(oGrid.res[0] * oGrid.res[1] * oGrid.res[2]);
 	//initialize empy cells
-	thrust::device_ptr<uint2> dev_ptr_uint2 = oGrid.cells.data();
+	thrust::device_ptr<uint2> dev_ptr_uint2 = oGrid.cells;
 	uint2 * raw_ptr_uint2 = thrust::raw_pointer_cast(dev_ptr_uint2);
 	uint *  raw_ptr_uint = (uint*)raw_ptr_uint2;
 	thrust::device_ptr<uint> dev_ptr_uint(raw_ptr_uint);
@@ -383,7 +384,8 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 
 	//allocate cell index and triangle index buffers
 	thrust::device_vector<uint> fragment_keys(num_fragments);
-	oGrid.primitives = thrust::device_vector<uint> (num_fragments);//fragment_vals
+	oGrid.primitives = thrust::device_new<uint> (num_fragments);//fragment_vals
+	oGrid.numRefs = (unsigned)num_fragments;
 
 	//write triangle-cell pairs
 	FragmentWriter frag_write(
@@ -393,7 +395,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 		oGrid.getCellSizeRCP(),
 		device_vertices.data(),
 		fragment_keys.data(),
-		oGrid.primitives.data()
+		oGrid.primitives
 	);
 
 	thrust::counting_iterator<size_t> first(0u);
@@ -405,7 +407,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 		frag_write);
 
 	//sort the pairs
-	thrust::sort_by_key(fragment_keys.begin(), fragment_keys.end(), oGrid.primitives.begin());
+	thrust::sort_by_key(fragment_keys.begin(), fragment_keys.end(), oGrid.primitives);
 	
 //#ifdef _DEBUG
 //	outputDeviceVector("sorted keys: ", fragment_keys);
@@ -415,7 +417,7 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	//initilize the grid cells
 	CellExtractor extract_ranges(
 		oGrid.res[0], oGrid.res[1], oGrid.res[2],
-		thrust::raw_pointer_cast(oGrid.cells.data())
+		thrust::raw_pointer_cast(oGrid.cells)
 	);
 
 
@@ -447,8 +449,15 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 
 __host__ int UniformGridSortBuilder::test(UniformGrid& aGrid, WFObject & aGeometry)
 {
-	thrust::host_vector<uint2> host_cells(aGrid.cells);
-	thrust::host_vector<unsigned int> host_primitives(aGrid.primitives);
+	const size_t numCells = (size_t)(aGrid.res[0] * aGrid.res[1] * aGrid.res[2]);
+	thrust::host_vector<uint2> host_cells(numCells);
+
+	thrust::copy(aGrid.cells, aGrid.cells + numCells, host_cells.begin());
+
+	thrust::host_vector<unsigned int> host_primitives(aGrid.numRefs);
+
+	thrust::copy(aGrid.primitives, aGrid.primitives + aGrid.numRefs, host_primitives.begin());
+
 
 	for (int z = 0; z < aGrid.res[2]; ++z)
 	{

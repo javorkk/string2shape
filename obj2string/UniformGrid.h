@@ -5,7 +5,8 @@
 #ifndef UNIFORMGRID_H_5A89108F_6F07_4F96_81EB_63A65F538434
 #define UNIFORMGRID_H_5A89108F_6F07_4F96_81EB_63A65F538434
 
-#include <thrust/device_vector.h>
+#include <thrust/device_ptr.h>
+#include <thrust/device_free.h>
 #include "Algebra.h"
 
 class UniformGrid
@@ -15,11 +16,16 @@ public:
 	int res[3];
 	//float3 cellSize;
 	//float3 cellSizeRCP;
-	thrust::device_vector<uint2> cells;
-	thrust::device_vector<unsigned int> primitives;
+	thrust::device_ptr<uint2> cells;
+	thrust::device_ptr<unsigned int> primitives;
+	unsigned int numRefs;
 
 	//uint  numPrimitiveReferences;
-	
+	~UniformGrid()
+	{
+		cleanup();
+	}
+
 	__host__ __device__ const float3 getResolution() const
 	{
 		float3 retval;
@@ -106,6 +112,17 @@ public:
 	__host__ __device__ unsigned int getPrimitiveId(unsigned int aId) const
 	{
 		return primitives[aId];
+	}
+
+	__host__ __device__ unsigned int getNumCells()
+	{
+		return (unsigned int)(res[0] * res[1] * res[2]);
+	}
+
+	__host__ void cleanup()
+	{
+		thrust::device_free(cells);
+		thrust::device_free(primitives);
 	}
 };
 

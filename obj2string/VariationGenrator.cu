@@ -660,13 +660,13 @@ public:
 
 		//if (rotDet < 0.f)
 		//{
-		//	vMat[6] = -vMat[6];
-		//	vMat[7] = -vMat[7];
-		//	vMat[8] = -vMat[8];
+		//	vMat[0] = -vMat[0];
+		//	vMat[1] = -vMat[1];
+		//	vMat[2] = -vMat[2];
 		//	rotDet = -rotDet;
 		//}
 
-		if (fabs(rotDet - 1.0) > EPS )
+		if (fabs(rotDet - 1.0) > 0.01 )
 			outValidSubgraphFlags[aId] = 0u;
 
 

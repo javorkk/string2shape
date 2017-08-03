@@ -34,7 +34,7 @@ def augment_folder(file_list=[], word_list=[]):
         current_str = obj_tools.create_variations(item_name_1, item_name_2)
         current_words = current_str.split("\n")                
         for w in current_words:
-            if(len(str(w)) <= MAX_WORD_LENGTH):
+            if(len(str(w)) <= MAX_WORD_LENGTH and len(str(w)) > 0):
                 word_list.append(str(w))
 
 def main():
@@ -52,16 +52,16 @@ def main():
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
     print("max # neighbors: " + str(tile_grammar.max_degree()))
     tile_grammar.store(args.out_grammarpath)
-    loaded_grammar = grammar.TilingGrammar([])
-    loaded_grammar.load(args.out_grammarpath)
-    for w in initial_smiles_strings:
-        if(loaded_grammar.check_word(w) == False):
-            print("Wrongly detected as invalid " + w)
-        one_hot_vec = loaded_grammar.encode_to_one_hot(w, 120)
-        valid_vec = loaded_grammar.check_one_hot(one_hot_vec)
-        if not valid_vec:
-            print("Wrongly detected as invalid ")
-            print(loaded_grammar.print_one_hot(one_hot_vec))        
+    #loaded_grammar = grammar.TilingGrammar([])
+    #loaded_grammar.load(args.out_grammarpath)
+    #for w in initial_smiles_strings:
+    #    if(loaded_grammar.check_word(w) == False):
+    #        print("Wrongly detected as invalid " + w)
+    #    one_hot_vec = loaded_grammar.encode_to_one_hot(w, 120)
+    #    valid_vec = loaded_grammar.check_one_hot(one_hot_vec)
+    #    if not valid_vec:
+    #        print("Wrongly detected as invalid ")
+    #        print(loaded_grammar.print_one_hot(one_hot_vec))        
 
     print("# items: " + str(len(initial_smiles_strings)))
     df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})

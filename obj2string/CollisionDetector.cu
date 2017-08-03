@@ -707,9 +707,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 //#endif
 
 	//delete all grid cells that contain primitives from a single object
-	thrust::device_vector<uint2> trimmed_cells(grid.cells.size());
-	CellTrimmer trimmCells(objectIdPerFaceDevice.data(), grid.primitives.data());
-	thrust::transform(grid.cells.begin(), grid.cells.end(), trimmed_cells.begin(), trimmCells);
+	thrust::device_vector<uint2> trimmed_cells(grid.getNumCells());
+	CellTrimmer trimmCells(objectIdPerFaceDevice.data(), grid.primitives);
+	thrust::transform(grid.cells, grid.cells + grid.getNumCells(), trimmed_cells.begin(), trimmCells);
 
 	auto trimmed_cells_end = thrust::copy_if(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells.begin(), nonEmptyRange());
 
@@ -765,13 +765,13 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 		ExactCollisionOperator collide(
 			objectIdPerFaceDevice.data(),
-			grid.primitives.data(),
+			grid.primitives,
 			(unsigned int)aObj.objects.size(),
 			adjMatrix.data(),
 			device_indices.data(),
 			device_vertices.data());
 
-		thrust::for_each(grid.cells.begin(), grid.cells.end(), collide);
+		thrust::for_each(grid.cells, grid.cells + grid.getNumCells(), collide);
 
 	}
 	else
@@ -782,11 +782,11 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 		CollisionOperator collide(
 			objectIdPerFaceDevice.data(),
-			grid.primitives.data(),
+			grid.primitives,
 			(unsigned int)aObj.objects.size(),
 			adjMatrix.data());
 
-		thrust::for_each(grid.cells.begin(), grid.cells.end(), collide);
+		thrust::for_each(grid.cells, grid.cells + grid.getNumCells(), collide);
 
 	}//end if exact/approx collision detection
 
@@ -887,8 +887,6 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 	totalTime = timer.get();
 	timer.cleanup();
-
-	
 
 	return result;
 }

@@ -652,7 +652,7 @@ public:
 		}
 
 
-		double rotDet = determinant(
+		double rotDet = determinantd(
 			vMat[0], vMat[3], vMat[6],
 			vMat[1], vMat[4], vMat[7],
 			vMat[2], vMat[5], vMat[8]

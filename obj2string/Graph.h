@@ -21,7 +21,7 @@ public:
 
 	__host__ FORCE_INLINE size_t numNodes() const { return intervals.size() > 1u ? intervals.size() - 1u : 0u; }
 
-	__host__ FORCE_INLINE size_t numEdges() const { return adjacencyVals.size(); }
+	__host__ FORCE_INLINE size_t numEdges() const { return adjacencyVals.size() / 2u; }
 
 	__host__ FORCE_INLINE unsigned int neighborsBegin(const unsigned int aNodeId)
 	{

@@ -279,6 +279,16 @@ __host__ __device__ FORCE_INLINE float determinant(
 		m20 * m11 * m02 - m10 * m01 * m22 - m00 * m21 * m12;
 }
 
+__host__ __device__ FORCE_INLINE double determinantd(
+	double m00, double m10, double m20,
+	double m01, double m11, double m21,
+	double m02, double m12, double m22
+)
+{
+	return m00 * m11 * m22 + m10 * m21 * m02 + m20 * m01 * m12 -
+		m20 * m11 * m02 - m10 * m01 * m22 - m00 * m21 * m12;
+}
+
 struct quaternion4f
 {
 	float x, y, z, w;

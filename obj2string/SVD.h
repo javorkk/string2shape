@@ -26,7 +26,7 @@ namespace svd
 #define SIGN(a,b) ((b) > 0.0f ? fabs(a) : - fabs(a))
 
 	// prints an arbitrary size matrix to the standard output
-	void printMatrix(double *a, int rows, int cols)
+	__host__ __device__ FORCE_INLINE void printMatrix(double *a, int rows, int cols)
 	{
 		for (int i = 0; i < rows; i++)
 		{
@@ -42,7 +42,7 @@ namespace svd
 
 
 	// prints an arbitrary size vector to the standard output
-	void printVector(double *v, int size)
+	__host__ __device__ FORCE_INLINE void printVector(double *v, int size)
 	{
 		for (int i = 0; i < size; i++)
 		{
@@ -54,7 +54,7 @@ namespace svd
 
 
 	// calculates sqrt( a^2 + b^2 ) with decent precision
-	__host__ __device__ double pythag(double a, double b)
+	__host__ __device__ FORCE_INLINE double pythag(double a, double b)
 	{
 		double sqrarg;
 #define SQR(a) ((sqrarg = (a)) == 0.0f ? 0.0f : sqrarg * sqrarg)

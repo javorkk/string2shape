@@ -29,6 +29,7 @@
     <ClInclude Include="obj2string.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Primitive.h" />
+    <ClInclude Include="Wiggle.h" />
     <ClInclude Include="SVD.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
@@ -61,6 +62,7 @@
     <CudaCompile Include="CollisionGraphExporter.cu" />
     <CudaCompile Include="Graph.cu" />
     <CudaCompile Include="Graph2String.cu" />
+    <CudaCompile Include="Wiggle.cu" />
     <CudaCompile Include="UniformGridSortBuilder.cu" />
     <CudaCompile Include="VariationGenrator.cu" />
     <CudaCompile Include="WFObjectToString.cu" />

@@ -8,32 +8,30 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/copy.h>
+#include <thrust/sort.h>
 
 class LocalCoordsEstimator
 {
 public:
-	thrust::device_ptr<uint2> vertexRanges;
-	thrust::device_ptr<float3> vertexBuffer;
-
-
-	thrust::device_ptr<double> tmpCovMatrix;
-	thrust::device_ptr<double> tmpDiagonalW;
-	thrust::device_ptr<double> tmpMatrixV;
-	thrust::device_ptr<double> tmpVecRV;
-
-	thrust::device_ptr<float3> outTranslation;
-	thrust::device_ptr<quaternion4f> outRotation;
+	uint2*			vertexRanges;
+	float3*			vertexBuffer;
+	double*			tmpCovMatrix;
+	double*			tmpDiagonalW;
+	double*			tmpMatrixV;
+	double*			tmpVecRV;
+	float3*			outTranslation;
+	quaternion4f*	outRotation;
 
 
 	LocalCoordsEstimator(
-		thrust::device_ptr<uint2> aRanges,
-		thrust::device_ptr<float3> aBuffer,
-		thrust::device_ptr<double> aCovMatrix,
-		thrust::device_ptr<double> aDiagonalW,
-		thrust::device_ptr<double> aMatrixV,
-		thrust::device_ptr<double> aVecRV,
-		thrust::device_ptr<float3> aOutTranslation,
-		thrust::device_ptr<quaternion4f> aOutRot
+		uint2*			aRanges,
+		float3*			aBuffer,
+		double*			aCovMatrix,
+		double*			aDiagonalW,
+		double*			aMatrixV,
+		double*			aVecRV,
+		float3*			aOutTranslation,
+		quaternion4f*	aOutRot
 	) : 
 		vertexRanges(aRanges),
 		vertexBuffer(aBuffer),
@@ -207,14 +205,14 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	thrust::device_vector<double> tmpVecRV(aObj.getNumObjects() * 3);
 
 	LocalCoordsEstimator estimateT(
-		vertexRangesDevice.data(),
-		vertexBufferDevice.data(),
-		tmpCovMatrix.data(),
-		tmpDiagonalW.data(),
-		tmpMatrixV.data(),
-		tmpVecRV.data(),
-		outTranslation.data(),
-		outRotation.data()
+		thrust::raw_pointer_cast(vertexRangesDevice.data()),
+		thrust::raw_pointer_cast(vertexBufferDevice.data()),
+		thrust::raw_pointer_cast(tmpCovMatrix.data()),
+		thrust::raw_pointer_cast(tmpDiagonalW.data()),
+		thrust::raw_pointer_cast(tmpMatrixV.data()),
+		thrust::raw_pointer_cast(tmpVecRV.data()),
+		thrust::raw_pointer_cast(outTranslation.data()),
+		thrust::raw_pointer_cast(outRotation.data())
 	);
 
 	thrust::counting_iterator<size_t> first(0u);
@@ -276,8 +274,127 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 		thrust::copy(relativeTranslation.begin(), relativeTranslation.end(), mRelativeTranslation.begin() + oldCount);
 		thrust::copy(relativeRotation.begin(), relativeRotation.end(), mRelativeRotation.begin() + oldCount);
 	}
+
+	//sort by node type
+	thrust::sort_by_key(
+		mNeighborTypeKeys.begin(),
+		mNeighborTypeKeys.end(),
+		thrust::make_zip_iterator(thrust::make_tuple(mNeighborTypeVals.begin(), mRelativeTranslation.begin(), mRelativeRotation.begin()))
+		);
+
+	//setup search intervals for each node type
+	mIntervals.resize(aObj.materials.size() + 1u, 0u);
+	for (size_t i = 0u; i < mNeighborTypeKeys.size() - 1u; ++i)
+	{
+		if (mNeighborTypeKeys[i] < mNeighborTypeKeys[i + 1u])
+		{
+			mIntervals[mNeighborTypeKeys[i + 1]] = (unsigned)i + 1u;
+		}
+	}
+	//last element
+	if (mNeighborTypeKeys.size() > 0u)
+		mIntervals[mNeighborTypeKeys[mNeighborTypeKeys.size() - 1u]] = (unsigned)mNeighborTypeKeys.size();
+
+	//fill gaps due to missing node types
+	for (size_t i = 1u; i < mIntervals.size(); ++i)
+	{
+		mIntervals[i] = std::max(mIntervals[i - 1u], mIntervals[i]);
+	}
 }
 
 __host__ void Wiggle::refine(WFObject & aObj, Graph & aGraph)
 {
+	//Unpack and upload the vertex buffer
+	thrust::host_vector<uint2> vertexRangesHost;
+	thrust::host_vector<float3> vertexBufferHost;
+
+	VertexBufferUnpacker unpackVertices;
+	unpackVertices(aObj, vertexRangesHost, vertexBufferHost);
+
+	thrust::device_vector<uint2> vertexRangesDevice(vertexRangesHost);
+	thrust::device_vector<float3> vertexBufferDevice(vertexBufferHost);
+
+
+	size_t numNodes = aObj.objects.size();
+	thrust::host_vector<unsigned int> visited(numNodes, 0u);
+	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
+	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph.adjacencyVals);
+
+
+	//Extract and upload node type information
+	thrust::host_vector<unsigned int> nodeTypesHost(aGraph.numNodes(), (unsigned int)aObj.materials.size());
+	for (size_t nodeId = 0; nodeId < aObj.objects.size(); ++nodeId)
+	{
+		size_t faceId = aObj.objects[nodeId].x;
+		size_t materialId = aObj.faces[faceId].material;
+		nodeTypesHost[nodeId] = (unsigned int)materialId;
+	}
+
+	depthFirstTraverse(
+		aObj,
+		0u,
+		visited,
+		(unsigned int)-1,
+		intervalsHost,
+		adjacencyValsHost,
+		nodeTypesHost);
+}
+
+__host__ void Wiggle::depthFirstTraverse(
+	WFObject& aObj,
+	unsigned int aObjId,
+	thrust::host_vector<unsigned int>& visited,
+	unsigned int parent,
+	thrust::host_vector<unsigned int>& intervalsHost,
+	thrust::host_vector<unsigned int>& adjacencyValsHost,
+	thrust::host_vector<unsigned int>& nodeTypeIds)
+{
+	//unsigned int nbrCount = intervalsHost[aObjId + 1u] - intervalsHost[aObjId];
+	//thrust::host_vector<unsigned int> nbrIds(adjacencyValsHost.begin() + intervalsHost[aObjId], adjacencyValsHost.begin() + intervalsHost[aObjId + 1u]);
+	//unsigned int vtxCount = 0u;
+
+	//for (unsigned int i = 0; i < nbrCount; i++)
+	//{
+	//	vtxCount += 3 * (aObj.objects[nbrIds[i]].y - aObj.objects[nbrIds[i]].x);
+	//}
+	////Unpack the vertex buffer
+	//thrust::host_vector<float3> vertexBufferHost(vtxCount);
+	//thrust::host_vector<uint2> vtxRanges(nbrCount);
+
+	//for (unsigned int i = 0; i < nbrCount; i++)
+	//{
+	//	for (int faceId = aObj.objects[aObjId].x; faceId < aObj.objects[aObjId].y; ++faceId)
+	//	{
+	//		oRanges[i] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
+	//		WFObject::Face face = aObj.faces[faceId];
+	//		vertexBufferHost[faceId * 3u + 0] = aObj.vertices[aObj.faces[faceId].vert1];
+	//		vertexBufferHost[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
+	//		vertexBufferHost[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
+	//	}
+	//}
+
+
+	////Use PCA to compute local coordiante system for each object
+	//thrust::host_vector<float3> outTranslation(nbrCount);
+	//thrust::host_vector<quaternion4f> outRotation(nbrCount);
+	//thrust::host_vector<double> tmpCovMatrix(nbrCount * 3 * 3, 0.f);
+	//thrust::host_vector<double> tmpDiagonalW(nbrCount * 3);
+	//thrust::host_vector<double> tmpMatrixV(nbrCount * 3 * 3);
+	//thrust::host_vector<double> tmpVecRV(nbrCount * 3);
+
+	//LocalCoordsEstimator estimateT(
+	//	&vtxRange,
+	//	thrust::raw_pointer_cast(vertexBufferHost.data()),
+	//	thrust::raw_pointer_cast(tmpCovMatrix.data()),
+	//	thrust::raw_pointer_cast(tmpDiagonalW.data()),
+	//	thrust::raw_pointer_cast(tmpMatrixV.data()),
+	//	thrust::raw_pointer_cast(tmpVecRV.data()),
+	//	thrust::raw_pointer_cast(outTranslation.data()),
+	//	thrust::raw_pointer_cast(outRotation.data())
+	//);
+
+	//estimateT(0);
+
+
+
 }

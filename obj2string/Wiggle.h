@@ -18,6 +18,7 @@
 
 class Wiggle
 {
+	thrust::host_vector<unsigned int> mIntervals;
 	//Node a's type
 	thrust::host_vector<unsigned int> mNeighborTypeKeys;
 	//Node b's type
@@ -35,6 +36,15 @@ public:
 	__host__ void refine(
 		WFObject& aObj,
 		Graph & aGraph);
+
+	__host__ void depthFirstTraverse(
+		WFObject& aObj,
+		unsigned int v,
+		thrust::host_vector<unsigned int>& visited,
+		unsigned int parent,
+		thrust::host_vector<unsigned int>& intervalsHost,
+		thrust::host_vector<unsigned int>& adjacencyValsHost,
+		thrust::host_vector<unsigned int>& nodeTypeIds);
 };
 
 

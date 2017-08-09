@@ -19,12 +19,7 @@ public:
 	thrust::device_ptr<uint2> cells;
 	thrust::device_ptr<unsigned int> primitives;
 	unsigned int numRefs;
-
 	//uint  numPrimitiveReferences;
-	~UniformGrid()
-	{
-		cleanup();
-	}
 
 	__host__ __device__ const float3 getResolution() const
 	{

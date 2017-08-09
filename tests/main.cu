@@ -9,13 +9,14 @@
 #include "CollisionTest.h"
 #include "ShapeVariationTest.h"
 #include "RNGTest.h"
+#include "WiggleTest.h"
 
 #include <thrust/detail/config.h>
 
 int main()
 {
 
-#if 0 //THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+#if THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
 	cudaError_t cudaStatus;
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	cudaStatus = cudaSetDevice(0);
@@ -25,6 +26,22 @@ int main()
 	}
 #endif
 	
+	const char* wiggleFile1 = "../scenes/playground/v001.obj";
+	const char* wiggleFile2 = "../scenes/playground/v002.obj";
+	//const char* wiggleFile3 = "../scenes/playground/v001_v002_2_v002_2_v001_v002_3_v002_3_2_v001_v002_3_v002_3_v002_5_1.obj";
+	const char* wiggleFile3 = "../scenes/playground/v002.obj";
+
+	WiggleTest wiggleTest;
+	int wiggle_test_result = wiggleTest.testAll(wiggleFile1, wiggleFile2, wiggleFile3);
+	if (wiggle_test_result != 0)
+	{
+		std::cerr << "Wiggle test failed!\n";
+		return wiggle_test_result;
+	}
+	else
+	{
+		std::cerr << "Wiggle test passed. \n";
+	}
 
 	RNGTest rngTest;
 	int rng_test_result = rngTest.testAll();
@@ -109,8 +126,7 @@ int main()
 
 
 
-
-#if 0// THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+#if THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
      //cudaDeviceReset must be called before exiting in order for profiling and
      //tracing tools such as Nsight and Visual Profiler to show complete traces.
     cudaStatus = cudaDeviceReset();

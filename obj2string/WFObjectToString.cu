@@ -10,6 +10,8 @@
 #include "CollisionGraphExporter.h"
 #include "Graph2String.h"
 #include "VariationGenerator.h"
+#include "Wiggle.h"
+#include "WFObjUtils.h"
 
 
 #ifdef __cplusplus
@@ -100,7 +102,10 @@ extern "C" {
 		UniformGrid grid = builder.build(testObj, aResX, aResY, aResZ);
 		builder.stats();
 
-		return builder.test(grid, testObj);
+		int result = builder.test(grid, testObj);
+		grid.cleanup();
+
+		return result;
 	}
 
 	int testGraphConstruction(int aGraphSize)
@@ -152,6 +157,36 @@ extern "C" {
 		return 0;
 
 	}
+
+	int testVariationFix(const char * aFileName1, const char* aFileName2, const char* aFileName3)
+	{
+		WFObject obj1;
+		obj1.read(aFileName1);
+
+		WFObject obj2;
+		obj2.read(aFileName2);
+
+		WFObject obj3;
+		obj3.read(aFileName3);
+
+		CollisionDetector detector;
+		Graph graph1 = detector.computeCollisionGraph(obj1, 0.0f);
+		Graph graph2 = detector.computeCollisionGraph(obj2, 0.0f);
+		Graph graph3 = detector.computeCollisionGraph(obj3, 0.0f);
+
+		Wiggle wiggle;
+		wiggle.init(obj1, graph1);
+		wiggle.init(obj2, graph2);
+
+		wiggle.fixRelativeTransformations(obj3, graph3);
+
+		WFObjectFileExporter   objExporter;
+		objExporter(obj3, aFileName3);
+
+		return 0;
+
+	}
+
 
 	int testRandomNumberGenerator()
 	{

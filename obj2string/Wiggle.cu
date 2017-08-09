@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Wiggle.h"
 
+#include <deque>
 
 #include "WFObjUtils.h"
 #include "SVD.h"
@@ -256,7 +257,7 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	{ 
 		//first call of init
 		mNeighborTypeKeys = thrust::host_vector<unsigned int>(neighborTypeKeys);
-		mNeighborTypeVals = thrust::host_vector<unsigned int>(mNeighborTypeVals);
+		mNeighborTypeVals = thrust::host_vector<unsigned int>(neighborTypeVals);
 		mRelativeTranslation = thrust::host_vector<float3>(relativeTranslation);
 		mRelativeRotation = thrust::host_vector<quaternion4f>(relativeRotation);
 	}
@@ -302,7 +303,7 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	}
 }
 
-__host__ void Wiggle::refine(WFObject & aObj, Graph & aGraph)
+__host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph)
 {
 	//Unpack and upload the vertex buffer
 	thrust::host_vector<uint2> vertexRangesHost;
@@ -320,7 +321,6 @@ __host__ void Wiggle::refine(WFObject & aObj, Graph & aGraph)
 	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph.adjacencyVals);
 
-
 	//Extract and upload node type information
 	thrust::host_vector<unsigned int> nodeTypesHost(aGraph.numNodes(), (unsigned int)aObj.materials.size());
 	for (size_t nodeId = 0; nodeId < aObj.objects.size(); ++nodeId)
@@ -330,71 +330,209 @@ __host__ void Wiggle::refine(WFObject & aObj, Graph & aGraph)
 		nodeTypesHost[nodeId] = (unsigned int)materialId;
 	}
 
-	depthFirstTraverse(
-		aObj,
-		0u,
-		visited,
-		(unsigned int)-1,
-		intervalsHost,
-		adjacencyValsHost,
-		nodeTypesHost);
+	std::deque<unsigned int> frontier;
+	frontier.push_back(0u);
+	visited[0u] = 1u;
+	while (!frontier.empty())
+	{
+		const unsigned int nodeId = frontier.front();
+		frontier.pop_front();
+		
+		processNeighbors(
+			aObj,
+			nodeId,
+			visited,
+			intervalsHost,
+			adjacencyValsHost,
+			nodeTypesHost);
+
+		for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
+		{
+			const unsigned int nodeId = adjacencyValsHost[nbrId];
+			if (visited[nodeId] == 0u)
+			{
+				frontier.push_back(nodeId);
+				visited[nodeId] = 1u;
+			}
+		}
+
+	}
+
 }
 
-__host__ void Wiggle::depthFirstTraverse(
-	WFObject& aObj,
-	unsigned int aObjId,
-	thrust::host_vector<unsigned int>& visited,
-	unsigned int parent,
-	thrust::host_vector<unsigned int>& intervalsHost,
-	thrust::host_vector<unsigned int>& adjacencyValsHost,
-	thrust::host_vector<unsigned int>& nodeTypeIds)
+__host__ void Wiggle::processNeighbors(
+	WFObject&							aObj,
+	unsigned int						aObjId,
+	thrust::host_vector<unsigned int>&	visited,
+	thrust::host_vector<unsigned int>&	intervalsHost,
+	thrust::host_vector<unsigned int>&	adjacencyValsHost,
+	thrust::host_vector<unsigned int>&	nodeTypeIds)
 {
-	//unsigned int nbrCount = intervalsHost[aObjId + 1u] - intervalsHost[aObjId];
-	//thrust::host_vector<unsigned int> nbrIds(adjacencyValsHost.begin() + intervalsHost[aObjId], adjacencyValsHost.begin() + intervalsHost[aObjId + 1u]);
-	//unsigned int vtxCount = 0u;
+	const unsigned int nbrCount = intervalsHost[aObjId + 1u] - intervalsHost[aObjId];
 
-	//for (unsigned int i = 0; i < nbrCount; i++)
-	//{
-	//	vtxCount += 3 * (aObj.objects[nbrIds[i]].y - aObj.objects[nbrIds[i]].x);
-	//}
-	////Unpack the vertex buffer
-	//thrust::host_vector<float3> vertexBufferHost(vtxCount);
-	//thrust::host_vector<uint2> vtxRanges(nbrCount);
+	if (nbrCount == 0)
+		return;
 
-	//for (unsigned int i = 0; i < nbrCount; i++)
-	//{
-	//	for (int faceId = aObj.objects[aObjId].x; faceId < aObj.objects[aObjId].y; ++faceId)
-	//	{
-	//		oRanges[i] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
-	//		WFObject::Face face = aObj.faces[faceId];
-	//		vertexBufferHost[faceId * 3u + 0] = aObj.vertices[aObj.faces[faceId].vert1];
-	//		vertexBufferHost[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
-	//		vertexBufferHost[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
-	//	}
-	//}
+	const unsigned int nodeCount = nbrCount + 1u;
+	thrust::host_vector<unsigned int> nodeIds(nodeCount, aObjId);
+	thrust::copy(nodeIds.begin() + 1u, nodeIds.end(), adjacencyValsHost.begin() + intervalsHost[aObjId]);
+	
+	unsigned int vtxCount = 0u;
+	for (unsigned int i = 0; i < nodeIds.size(); i++)
+	{
+		vtxCount += 3 * (aObj.objects[nodeIds[i]].y - aObj.objects[nodeIds[i]].x);
+	}
 
-
-	////Use PCA to compute local coordiante system for each object
-	//thrust::host_vector<float3> outTranslation(nbrCount);
-	//thrust::host_vector<quaternion4f> outRotation(nbrCount);
-	//thrust::host_vector<double> tmpCovMatrix(nbrCount * 3 * 3, 0.f);
-	//thrust::host_vector<double> tmpDiagonalW(nbrCount * 3);
-	//thrust::host_vector<double> tmpMatrixV(nbrCount * 3 * 3);
-	//thrust::host_vector<double> tmpVecRV(nbrCount * 3);
-
-	//LocalCoordsEstimator estimateT(
-	//	&vtxRange,
-	//	thrust::raw_pointer_cast(vertexBufferHost.data()),
-	//	thrust::raw_pointer_cast(tmpCovMatrix.data()),
-	//	thrust::raw_pointer_cast(tmpDiagonalW.data()),
-	//	thrust::raw_pointer_cast(tmpMatrixV.data()),
-	//	thrust::raw_pointer_cast(tmpVecRV.data()),
-	//	thrust::raw_pointer_cast(outTranslation.data()),
-	//	thrust::raw_pointer_cast(outRotation.data())
-	//);
-
-	//estimateT(0);
+	//Unpack the vertex buffer
+	thrust::host_vector<float3> vertexBufferHost(vtxCount);
+	thrust::host_vector<uint2> vtxRanges(nodeCount);
+	unsigned int currentVtxId = 0u;
+	for (unsigned int i = 0; i < nodeIds.size(); i++)
+	{
+		vtxRanges[i].x = currentVtxId;
+		for (int faceId = aObj.objects[nodeIds[i]].x; faceId < aObj.objects[nodeIds[i]].y; ++faceId)
+		{
+			WFObject::Face face = aObj.faces[faceId];
+			vertexBufferHost[currentVtxId++] = aObj.vertices[aObj.faces[faceId].vert1];
+			vertexBufferHost[currentVtxId++] = aObj.vertices[aObj.faces[faceId].vert2];
+			vertexBufferHost[currentVtxId++] = aObj.vertices[aObj.faces[faceId].vert3];
+		}
+		vtxRanges[i].y = currentVtxId;
+	}
 
 
+	//Use PCA to compute local coordiante system for each object
+	thrust::host_vector<float3> translations(nodeCount);
+	thrust::host_vector<quaternion4f> rotations(nodeCount);
+	thrust::host_vector<double> tmpCovMatrix(nodeCount * 3 * 3, 0.f);
+	thrust::host_vector<double> tmpDiagonalW(nodeCount * 3);
+	thrust::host_vector<double> tmpMatrixV(nodeCount * 3 * 3);
+	thrust::host_vector<double> tmpVecRV(nodeCount * 3);
 
+	LocalCoordsEstimator estimateT(
+		thrust::raw_pointer_cast(vtxRanges.data()),
+		thrust::raw_pointer_cast(vertexBufferHost.data()),
+		thrust::raw_pointer_cast(tmpCovMatrix.data()),
+		thrust::raw_pointer_cast(tmpDiagonalW.data()),
+		thrust::raw_pointer_cast(tmpMatrixV.data()),
+		thrust::raw_pointer_cast(tmpVecRV.data()),
+		thrust::raw_pointer_cast(translations.data()),
+		thrust::raw_pointer_cast(rotations.data())
+	);
+
+	thrust::counting_iterator<size_t> first(0u);
+	thrust::counting_iterator<size_t> last(nodeCount);
+
+	thrust::for_each(first, last, estimateT);
+
+	for (unsigned int i = 1; i < nodeIds.size(); i++)
+	{
+		const unsigned int nbrNodeId = nodeIds[i];
+		if (visited[nbrNodeId])
+			continue;
+
+		const unsigned int nodeId1 = nodeIds[0];
+		const unsigned int nodeId2 = nbrNodeId;
+
+		const unsigned int typeId1 = nodeTypeIds[nodeId1];
+		const unsigned int typeId2 = nodeTypeIds[nodeId2];
+
+		quaternion4f rot = rotations[nodeId1];
+		quaternion4f irot = rot.conjugate();
+		float3 relativeT = transformVec(irot, translations[nodeId2] - translations[nodeId1]);
+		quaternion4f relativeR = rotations[nodeId2] * irot;
+
+		float3 bestT;
+		quaternion4f bestR;
+
+		findBestMatch(typeId1, typeId2, relativeT, relativeR, bestT, bestR);
+
+		if (magnitudeSQR(relativeR * bestR.conjugate()) < angleTolerance)
+			continue;
+
+		transformObj(aObj, nodeId2, -translations[i], relativeR.conjugate(), bestR, bestT, irot, translations[0]);
+	}
+
+}
+
+__host__ void Wiggle::findBestMatch(
+	unsigned int		aTypeId1,
+	unsigned int		aTypeId2,
+	const float3&		aTranslation,
+	const quaternion4f&	aRotation,
+	float3&				oTranslation,
+	quaternion4f&		oRotation)
+{
+	float bestSpatialDist = FLT_MAX;
+	for (unsigned int id = mIntervals[aTypeId1]; id < mIntervals[aTypeId1 + 1]; id++)
+	{
+		if (mNeighborTypeVals[id] != aTypeId2)
+			continue;
+		const float3 delta = mRelativeTranslation[id] - aTranslation;
+		const float currentSpatialDist = dot(delta, delta);
+		if (currentSpatialDist < bestSpatialDist)
+		{
+			bestSpatialDist = currentSpatialDist;
+			oTranslation = mRelativeTranslation[id];
+			oRotation = mRelativeRotation[id];
+		}
+	}
+}
+
+__host__ void Wiggle::transformObj(
+	WFObject & aObj,
+	unsigned int aObjId,
+	const float3 & aTranslation0toB,
+	const quaternion4f & aRotationBtoA,
+	const quaternion4f & aRotationAtoC,
+	const float3 & aTranslationAtoC,
+	const quaternion4f & aRotationAto0,
+	const float3 & aTranslationAto0)
+{
+	thrust::host_vector<unsigned int> processed(aObj.getNumVertices(), 0u);
+	for (int faceId = aObj.objects[aObjId].x; faceId < aObj.objects[aObjId].y; ++faceId)
+	{
+		WFObject::Face face = aObj.faces[faceId];
+		size_t vtxId1 = aObj.faces[faceId].vert1;
+		size_t vtxId2 = aObj.faces[faceId].vert2;
+		size_t vtxId3 = aObj.faces[faceId].vert3;
+		if (processed[vtxId1] == 0u)
+		{
+			processed[vtxId1] = 1u;
+			float3 vtx = aObj.vertices[vtxId1];
+			aObj.vertices[vtxId1] = transformVtx(vtx, aTranslation0toB, aRotationBtoA, aRotationAtoC, aTranslationAtoC, aRotationAto0, aTranslationAto0);
+		}
+		if (processed[vtxId2] == 0u)
+		{
+			processed[vtxId2] = 1u;
+			float3 vtx = aObj.vertices[vtxId2];
+			aObj.vertices[vtxId2] = transformVtx(vtx, aTranslation0toB, aRotationBtoA, aRotationAtoC, aTranslationAtoC, aRotationAto0, aTranslationAto0);
+
+		}
+		if (processed[vtxId3] == 0u)
+		{
+			processed[vtxId3] = 1u;
+			float3 vtx = aObj.vertices[vtxId2];
+			aObj.vertices[vtxId2] = transformVtx(vtx, aTranslation0toB, aRotationBtoA, aRotationAtoC, aTranslationAtoC, aRotationAto0, aTranslationAto0);
+		}
+	}
+
+}
+
+__host__ __device__ float3 Wiggle::transformVtx(
+	const float3 & aVtx,
+	const float3 & aTranslation0toB,
+	const quaternion4f & aRotationBtoA,
+	const quaternion4f & aRotationAtoC,
+	const float3 & aTranslationAtoC,
+	const quaternion4f & aRotationAto0,
+	const float3 & aTranslationAto0)
+{
+	const float3 t_b_to_0 = aVtx + aTranslation0toB;
+	const float3 r_b_to_a = transformVec(aRotationBtoA, t_b_to_0);
+	const float3 r_a_to_c = transformVec(aRotationAtoC, r_b_to_a);
+	const float3 t_a_to_c = r_a_to_c + aTranslationAtoC;
+	const float3 r_a_to_0 = transformVec(aRotationAto0, t_a_to_c);
+	const float3 t_a_to_0 = r_a_to_0 + aTranslationAto0;
+	return t_a_to_0;
 }

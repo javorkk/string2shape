@@ -659,6 +659,20 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	cudastd::timer timer;
 	cudastd::timer intermTimer;
 
+	//build a collision graph
+	Graph result;
+
+	if (aObj.getNumObjects() < 2u)
+	{
+		graphTime = intermTimer.get();
+		intermTimer.cleanup();
+
+		totalTime = timer.get();
+		timer.cleanup();
+
+		return result;
+	}
+
 	//compute scene diagonal
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj, minBound, maxBound);
@@ -791,10 +805,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	}//end if exact/approx collision detection
 
 	adjMatTime = intermTimer.get();
-	intermTimer.start();
-
-	//build a collision graph
-	Graph result;
+	intermTimer.start();	
 
 	result.fromAdjacencyMatrix(adjMatrix, aObj.objects.size());
 #else
@@ -887,6 +898,8 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 	totalTime = timer.get();
 	timer.cleanup();
+
+	grid.cleanup();
 
 	return result;
 }

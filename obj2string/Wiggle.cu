@@ -6,6 +6,8 @@
 #include "WFObjUtils.h"
 #include "SVD.h"
 
+#include "DebugUtils.h"
+
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/copy.h>
@@ -289,18 +291,24 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	{
 		if (mNeighborTypeKeys[i] < mNeighborTypeKeys[i + 1u])
 		{
-			mIntervals[mNeighborTypeKeys[i + 1]] = (unsigned)i + 1u;
+			mIntervals[mNeighborTypeKeys[i] + 1] = (unsigned)i + 1u;
 		}
 	}
 	//last element
 	if (mNeighborTypeKeys.size() > 0u)
-		mIntervals[mNeighborTypeKeys[mNeighborTypeKeys.size() - 1u]] = (unsigned)mNeighborTypeKeys.size();
+		mIntervals[mNeighborTypeKeys[mNeighborTypeKeys.size() - 1u] + 1] = (unsigned)mNeighborTypeKeys.size();
 
 	//fill gaps due to missing node types
 	for (size_t i = 1u; i < mIntervals.size(); ++i)
 	{
 		mIntervals[i] = std::max(mIntervals[i - 1u], mIntervals[i]);
 	}
+
+#ifdef _DEBUG
+	outputHostVector("wiggle type key intervals: ", mIntervals);
+	outputHostVector("wiggle keys: ", mNeighborTypeKeys);
+	outputHostVector("wiggle vals: ", mNeighborTypeVals);
+#endif
 }
 
 __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph)
@@ -375,7 +383,7 @@ __host__ void Wiggle::processNeighbors(
 
 	const unsigned int nodeCount = nbrCount + 1u;
 	thrust::host_vector<unsigned int> nodeIds(nodeCount, aObjId);
-	thrust::copy(nodeIds.begin() + 1u, nodeIds.end(), adjacencyValsHost.begin() + intervalsHost[aObjId]);
+	thrust::copy(adjacencyValsHost.begin() + intervalsHost[aObjId], adjacencyValsHost.begin() + intervalsHost[aObjId + 1], nodeIds.begin() + 1u);
 	
 	unsigned int vtxCount = 0u;
 	for (unsigned int i = 0; i < nodeIds.size(); i++)
@@ -420,10 +428,14 @@ __host__ void Wiggle::processNeighbors(
 		thrust::raw_pointer_cast(rotations.data())
 	);
 
-	thrust::counting_iterator<size_t> first(0u);
-	thrust::counting_iterator<size_t> last(nodeCount);
+	//thrust::counting_iterator<size_t> first(0u);
+	//thrust::counting_iterator<size_t> last(nodeCount);
+	//thrust::for_each(first, last, estimateT);
 
-	thrust::for_each(first, last, estimateT);
+	for (unsigned int i = 0u; i < nodeCount; ++i)
+	{
+		estimateT(i);
+	}
 
 	for (unsigned int i = 1; i < nodeIds.size(); i++)
 	{
@@ -437,17 +449,17 @@ __host__ void Wiggle::processNeighbors(
 		const unsigned int typeId1 = nodeTypeIds[nodeId1];
 		const unsigned int typeId2 = nodeTypeIds[nodeId2];
 
-		quaternion4f rot = rotations[nodeId1];
+		quaternion4f rot = rotations[0];
 		quaternion4f irot = rot.conjugate();
-		float3 relativeT = transformVec(irot, translations[nodeId2] - translations[nodeId1]);
-		quaternion4f relativeR = rotations[nodeId2] * irot;
+		float3 relativeT = transformVec(irot, translations[i] - translations[0]);
+		quaternion4f relativeR = rotations[i] * irot;
 
-		float3 bestT;
-		quaternion4f bestR;
+		float3 bestT = relativeT;
+		quaternion4f bestR = relativeR;
 
 		findBestMatch(typeId1, typeId2, relativeT, relativeR, bestT, bestR);
 
-		if (magnitudeSQR(relativeR * bestR.conjugate()) < angleTolerance)
+		if (magnitudeSQR(relativeR * bestR.conjugate()) - 1.f < angleTolerance)
 			continue;
 
 		transformObj(aObj, nodeId2, -translations[i], relativeR.conjugate(), bestR, bestT, irot, translations[0]);

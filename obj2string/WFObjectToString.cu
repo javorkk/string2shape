@@ -180,8 +180,18 @@ extern "C" {
 
 		wiggle.fixRelativeTransformations(obj3, graph3);
 
+		std::string fileName3(aFileName3);
+		if (fileName3.find_last_of("/\\") == std::string::npos)
+			fileName3 = fileName3.substr(0, fileName3.size() - 5);
+		else
+			fileName3 = fileName3.substr(fileName3.find_last_of("/\\") + 1, fileName3.size() - fileName3.find_last_of("/\\") - 5);
+
+		std::string objDir = getDirName(aFileName3);
+		std::string fixedFilePath = objDir + fileName3 + "_fixed";
+
+
 		WFObjectFileExporter   objExporter;
-		objExporter(obj3, aFileName3);
+		objExporter(obj3, fixedFilePath.c_str());
 
 		return 0;
 

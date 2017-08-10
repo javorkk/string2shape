@@ -785,7 +785,8 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 			device_indices.data(),
 			device_vertices.data());
 
-		thrust::for_each(grid.cells, grid.cells + grid.getNumCells(), collide);
+		//thrust::for_each(grid.cells, grid.cells + grid.getNumCells(), collide);
+		thrust::for_each(trimmed_cells.begin(), trimmed_cells_end, collide);
 
 	}
 	else

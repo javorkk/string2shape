@@ -276,7 +276,7 @@ public:
 
     size_t insertMaterial(const Material& aMaterial);
 
-    //Reads the FrontWave3D object from a file
+    //Reads the WaveFront3D object from a file
     void read(const char* aFileName);
     void loadWFObj(const char* aFileName);
     void loadInstances(const char* aFileName);

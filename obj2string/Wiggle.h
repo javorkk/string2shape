@@ -22,12 +22,14 @@ class Wiggle
 	thrust::host_vector<float3> mRelativeTranslation;
 	//Rotates a's local coordinate frame into b's
 	thrust::host_vector<quaternion4f> mRelativeRotation;
+	//Rotates the canonical coordinates into b's
+	thrust::host_vector<quaternion4f> mAbsoluteRotation;
 
 public:
 	float spatialTolerance;
 	float angleTolerance;
 
-	Wiggle():spatialTolerance(0.001f), angleTolerance(0.01f)
+	Wiggle():spatialTolerance(-0.001f), angleTolerance(0.0038053019f)//1.f - cos(5)
 	{}
 
 	__host__ void init(
@@ -59,21 +61,8 @@ public:
 		WFObject& aObj,
 		unsigned int aObjId,
 		const float3& aTranslation0toB,
-		const quaternion4f& aRotationBtoA,
-		const quaternion4f& aRotationAtoC,
-		const float3& aTranslationAtoC,
-		const quaternion4f& aRotationAto0,
-		const float3& aTranslationAto0
+		const quaternion4f& aRotationBtoAtoC
 		);
-	__host__ __device__ float3 transformVtx(
-		const float3& aVtx,
-		const float3& aTranslation0toB,
-		const quaternion4f& aRotationBtoA,
-		const quaternion4f& aRotationAtoC,
-		const float3& aTranslationAtoC,
-		const quaternion4f& aRotationAto0,
-		const float3& aTranslationAto0
-	);
 };
 
 

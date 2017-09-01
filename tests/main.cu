@@ -43,7 +43,8 @@ int main()
 		std::cerr << "Wiggle test passed. \n";
 	}
 
-	
+	return 0;
+
 	RNGTest rngTest;
 	int rng_test_result = rngTest.testAll();
 	//graphTest.testAll(1000);
@@ -104,10 +105,10 @@ int main()
 		<< WFObjectToString(obj2strTestFile) << "\n";
 
 
-	//const char* variationFile1 = "../scenes/church/test/c19.obj";
-	//const char* variationFile2 = "../scenes/church/test/c28.obj";
-	const char* variationFile1 = "../scenes/skyscraper/v01.obj";
-	const char* variationFile2 = "../scenes/skyscraper/v02.obj";
+	const char* variationFile1 = "../scenes/church/test/c19.obj";
+	const char* variationFile2 = "../scenes/church/test/c28.obj";
+	//const char* variationFile1 = "../scenes/skyscraper/v01.obj";
+	//const char* variationFile2 = "../scenes/skyscraper/v02.obj";
 	//const char* variationFile1 = "../scenes/playground/v001.obj";
 	//const char* variationFile2 = "../scenes/playground/v002.obj";
 	//const char* variationFile1 = "../scenes/moon_base/variant_01.obj";

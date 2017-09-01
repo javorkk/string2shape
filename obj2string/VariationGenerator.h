@@ -109,15 +109,15 @@ class VariationGenerator
 	{
 		thrust::host_vector<unsigned int> typeCounts;
 
-		NodeTypeHistogram()
+		__host__ NodeTypeHistogram()
 		{}
 		
-		NodeTypeHistogram(size_t aNumTypes)
+		__host__ NodeTypeHistogram(size_t aNumTypes)
 		{
 			typeCounts = thrust::host_vector<unsigned int>(aNumTypes, 0u);
 		}
 
-		NodeTypeHistogram(const thrust::host_vector<unsigned int>& aTypeArray)
+		__host__ NodeTypeHistogram(const thrust::host_vector<unsigned int>& aTypeArray)
 		{
 			unsigned int numTypes = 1u + thrust::reduce(aTypeArray.begin(), aTypeArray.end(), 0u, thrust::maximum<unsigned int>());
 			typeCounts.resize(numTypes);
@@ -125,7 +125,7 @@ class VariationGenerator
 				typeCounts[typeId] = (unsigned int)thrust::count(aTypeArray.begin(), aTypeArray.end(), typeId);
 		}
 
-		bool operator == (const NodeTypeHistogram& aHistogram) const
+		__host__ bool operator == (const NodeTypeHistogram& aHistogram) const
 		{
 			if (typeCounts.size() != aHistogram.typeCounts.size())
 				return false;

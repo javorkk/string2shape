@@ -15,6 +15,7 @@
 
 class LocalCoordsEstimator
 {
+	static const bool USE_PCA = false;
 public:
 	uint2*			vertexRanges;
 	float3*			vertexBuffer;
@@ -51,7 +52,7 @@ public:
 		const unsigned int objId = (unsigned)aId;
 
 
-		//Compute the means of the border node locations
+		//Compute the mean of the vertex locations
 		float3 center = make_float3(0.f, 0.f, 0.f);
 		uint2 vtxRange = vertexRanges[objId];
 		unsigned int vtxCount = vtxRange.y - vtxRange.x;
@@ -62,71 +63,124 @@ public:
 			center += vertexBuffer[vtxRange.x + vtxId];
 		}
 		center /= numPoints;
-		
-		//Compute covariance matrix
-		double* covMat = thrust::raw_pointer_cast(tmpCovMatrix + aId * 3 * 3);
+
+		outTranslation[aId] = center;
+
+		//Find the vertex furthest away from the center
+		float3 vtx0 = center;
+		float dist0 = 0.f;
 		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
 		{
-			float3 vec1 = vertexBuffer[vtxRange.x + vtxId];
-
-			covMat[0 * 3 + 0] += (double)vec1.x * vec1.x;
-			covMat[1 * 3 + 0] += (double)vec1.y * vec1.x;
-			covMat[2 * 3 + 0] += (double)vec1.z * vec1.x;
-
-			covMat[0 * 3 + 1] += (double)vec1.x * vec1.y;
-			covMat[1 * 3 + 1] += (double)vec1.y * vec1.y;
-			covMat[2 * 3 + 1] += (double)vec1.z * vec1.y;
-
-			covMat[0 * 3 + 2] += (double)vec1.x * vec1.z;
-			covMat[1 * 3 + 2] += (double)vec1.y * vec1.z;
-			covMat[2 * 3 + 2] += (double)vec1.z * vec1.z;
-		}
-
-		//Singular Value Decomposition
-		double* diag = thrust::raw_pointer_cast(tmpDiagonalW + aId * 3);
-		double* vMat = thrust::raw_pointer_cast(tmpMatrixV + aId * 3 * 3);
-		double* tmp = thrust::raw_pointer_cast(tmpVecRV + aId * 3);
-
-		svd::svdcmp(covMat, 3, 3, diag, vMat, tmp);
-
-		//Rotation is V * transpose(U)		
-		for (unsigned int row = 0; row < 3; ++row)
-		{
-			for (unsigned int col = 0; col < 3; ++col)
+			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
+			const float3 delta = vec - center;
+			const float distSQR = dot(delta, delta);
+			if (distSQR > dist0)
 			{
-				tmp[col] =
-					vMat[row * 3 + 0] * covMat[col * 3 + 0] +
-					vMat[row * 3 + 1] * covMat[col * 3 + 1] +
-					vMat[row * 3 + 2] * covMat[col * 3 + 2];
+				vtx0 = vec;
+				dist0 = distSQR;
 			}
-			vMat[row * 3 + 0] = tmp[0];
-			vMat[row * 3 + 1] = tmp[1];
-			vMat[row * 3 + 2] = tmp[2];
 		}
-
-
-		double rotDet = determinantd(
-			vMat[0], vMat[3], vMat[6],
-			vMat[1], vMat[4], vMat[7],
-			vMat[2], vMat[5], vMat[8]
-		);
-
-		//if (rotDet < 0.f)
-		//{
-		//	vMat[0] = -vMat[0];
-		//	vMat[1] = -vMat[1];
-		//	vMat[2] = -vMat[2];
-		//	rotDet = -rotDet;
-		//}
-
+		//Find the other end of the diameter
+		float3 vtx1 = vtx0;
+		float diameter = 0.f;
+		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
+		{
+			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
+			const float3 delta = vec - vtx0;
+			const float distSQR = dot(delta, delta);
+			if (distSQR > diameter)
+			{
+				vtx1 = vec;
+				diameter = distSQR;
+			}
+		}
+		const float3 dir0 = ~(vtx1 - vtx0);
+		//Find the vertex furthest away from the diameter
+		float3 vtx2 = vtx0;
+		float dist2 = 0.f;
+		float distC = 0.f;
+		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
+		{
+			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
+			const float3 delta = cross(dir0, vec - vtx0);
+			const float distSQR = dot(delta, delta);
+			const float distCenterSQR = dot(vec - center, vec - center);
+			if (distSQR >= dist2
+				//if multiple points have the max distance to the diameter, choose the one furtherst away from the center
+				|| (dist2 - distSQR < 0.001f * dist2 && distCenterSQR > distC && distCenterSQR - distC > 0.01f * distC)
+				)
+			{
+				vtx2 = vec;
+				dist2 = distSQR;
+				distC = distCenterSQR;
+			}
+		}
+		const float3 dir1 = ~((vtx2 - vtx0) - dir0 * dot(vtx2 - vtx0, dir0));
+		const float3 dir2 = ~cross(dir0, dir1);
 
 		quaternion4f rotation(
-			(float)vMat[0], (float)vMat[3], (float)vMat[6],
-			(float)vMat[1], (float)vMat[4], (float)vMat[7],
-			(float)vMat[2], (float)vMat[5], (float)vMat[8]
+			dir0.x, dir1.x, dir2.x,
+			dir0.y, dir1.y, dir2.y,
+			dir0.z, dir1.z, dir2.z
 		);
-		outTranslation[aId] = center;
+
 		outRotation[aId] = rotation;
+
+		if (USE_PCA)
+		{
+			//Compute covariance matrix
+			double* covMat = thrust::raw_pointer_cast(tmpCovMatrix + aId * 3 * 3);
+			for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
+			{
+				float3 vec1 = vertexBuffer[vtxRange.x + vtxId] - center;
+
+				covMat[0 * 3 + 0] += (double)vec1.x * vec1.x;
+				covMat[1 * 3 + 0] += (double)vec1.y * vec1.x;
+				covMat[2 * 3 + 0] += (double)vec1.z * vec1.x;
+
+				covMat[0 * 3 + 1] += (double)vec1.x * vec1.y;
+				covMat[1 * 3 + 1] += (double)vec1.y * vec1.y;
+				covMat[2 * 3 + 1] += (double)vec1.z * vec1.y;
+
+				covMat[0 * 3 + 2] += (double)vec1.x * vec1.z;
+				covMat[1 * 3 + 2] += (double)vec1.y * vec1.z;
+				covMat[2 * 3 + 2] += (double)vec1.z * vec1.z;
+			}
+
+			//Singular Value Decomposition
+			double* diag = thrust::raw_pointer_cast(tmpDiagonalW + aId * 3);
+			double* vMat = thrust::raw_pointer_cast(tmpMatrixV + aId * 3 * 3);
+			double* tmp = thrust::raw_pointer_cast(tmpVecRV + aId * 3);
+
+			svd::svdcmp(covMat, 3, 3, diag, vMat, tmp);
+
+			const float3 col0 = make_float3((float)vMat[0], (float)vMat[1], (float)vMat[2]);
+			const float3 col1 = make_float3((float)vMat[3], (float)vMat[4], (float)vMat[5]);
+			const float3 col2 = make_float3((float)vMat[6], (float)vMat[7], (float)vMat[8]);
+
+			float rotDet = determinant(
+				col0.x, col1.x, col2.x,
+				col0.y, col1.y, col2.y,
+				col0.z, col1.z, col2.z
+			);
+
+			//if (rotDet < 0.f)
+			//{
+			//	vMat[0] = -vMat[0];
+			//	vMat[1] = -vMat[1];
+			//	vMat[2] = -vMat[2];
+			//	rotDet = -rotDet;
+			//}
+			if (fabsf(rotDet - 1.0f) <= 0.01f)
+			{
+				quaternion4f rotation(
+					col0.x, col1.x, col2.x,
+					col0.y, col1.y, col2.y,
+					col0.z, col1.z, col2.z
+				);
+				outRotation[aId] = rotation;
+			}
+		}		
 	}
 
 };
@@ -177,9 +231,9 @@ public:
 		outNeighborTypeVals[outId] = nodeTypes[nodeId2];
 
 		quaternion4f rot = rotation[nodeId1];
-		quaternion4f irot = rot.conjugate();
-		outTranslation[outId] = transformVec(irot, translation[nodeId2] - translation[nodeId1]);
-		outRotation[outId] = rotation[nodeId2] * irot;
+		outTranslation[outId] = transformVec(rot.conjugate(), translation[nodeId2] - translation[nodeId1]);
+		quaternion4f rot2 = rotation[nodeId2];
+		outRotation[outId] = rot2.conjugate() * rot;
 	}
 
 };
@@ -187,6 +241,11 @@ public:
 
 __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 {
+	float3 minBound, maxBound;
+	ObjectBoundsExporter()(aObj, minBound, maxBound);
+	spatialTolerance = std::max(0.05f * len(maxBound - minBound), spatialTolerance);
+
+
 	//Unpack and upload the vertex buffer
 	thrust::host_vector<uint2> vertexRangesHost;
 	thrust::host_vector<float3> vertexBufferHost;
@@ -197,6 +256,11 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	thrust::device_vector<uint2> vertexRangesDevice(vertexRangesHost);
 	thrust::device_vector<float3> vertexBufferDevice(vertexBufferHost);
 
+
+//#ifdef _DEBUG
+//	outputDeviceVector("vertex ranges: ", vertexRangesDevice);
+//	outputDeviceVector("vertex buffer: ", vertexBufferDevice);
+//#endif
 
 	//Use PCA to compute local coordiante system for each object
 	thrust::device_vector<float3> outTranslation(aObj.getNumObjects());
@@ -222,6 +286,11 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	thrust::counting_iterator<size_t> last(aObj.getNumObjects());
 
 	thrust::for_each(first, last, estimateT);
+
+//#ifdef _DEBUG
+//	outputDeviceVector("translations: ", outTranslation);
+//	outputDeviceVector("rotations: ", outRotation);
+//#endif
 
 	//Extract and upload node type information
 	thrust::host_vector<unsigned int> nodeTypesHost(aGraph.numNodes(), (unsigned int)aObj.materials.size());
@@ -254,6 +323,7 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 		thrust::make_zip_iterator(thrust::make_tuple(aGraph.adjacencyKeys.begin(), aGraph.adjacencyVals.begin(), first)),
 		thrust::make_zip_iterator(thrust::make_tuple(aGraph.adjacencyKeys.end(), aGraph.adjacencyVals.end(), lastEdge)),
 		extractRelativeT);
+
 
 	if(mNeighborTypeKeys.size() == 0u)
 	{ 
@@ -308,6 +378,8 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	outputHostVector("wiggle type key intervals: ", mIntervals);
 	outputHostVector("wiggle keys: ", mNeighborTypeKeys);
 	outputHostVector("wiggle vals: ", mNeighborTypeVals);
+	outputHostVector("translations: ", mRelativeTranslation);
+	outputHostVector("rotations: ", mRelativeRotation);
 #endif
 }
 
@@ -363,7 +435,6 @@ __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph
 				visited[nodeId] = 1u;
 			}
 		}
-
 	}
 
 }
@@ -450,19 +521,19 @@ __host__ void Wiggle::processNeighbors(
 		const unsigned int typeId2 = nodeTypeIds[nodeId2];
 
 		quaternion4f rot = rotations[0];
-		quaternion4f irot = rot.conjugate();
-		float3 relativeT = transformVec(irot, translations[i] - translations[0]);
-		quaternion4f relativeR = rotations[i] * irot;
+		float3 relativeT = transformVec(rot.conjugate(), translations[i] - translations[0]);
+		quaternion4f relativeR = rotations[i].conjugate() * rot;
 
 		float3 bestT = relativeT;
 		quaternion4f bestR = relativeR;
 
 		findBestMatch(typeId1, typeId2, relativeT, relativeR, bestT, bestR);
-
-		if (magnitudeSQR(relativeR * bestR.conjugate()) - 1.f < angleTolerance)
+		const float angleDelta = fabsf(fabsf((bestR * relativeR.conjugate()).w) - 1.f);
+		if (angleDelta < angleTolerance)
 			continue;
-
-		transformObj(aObj, nodeId2, -translations[i], relativeR.conjugate(), bestR, bestT, irot, translations[0]);
+		//transformObj(aObj, nodeId1, -translations[0], rotations[0].conjugate());
+		//transformObj(aObj, nodeId2, -translations[1], rotations[i].conjugate());
+		transformObj(aObj, nodeId2, -translations[i], bestR * relativeR.conjugate());
 	}
 
 }
@@ -475,17 +546,21 @@ __host__ void Wiggle::findBestMatch(
 	float3&				oTranslation,
 	quaternion4f&		oRotation)
 {
-	float bestSpatialDist = FLT_MAX;
+	//float bestSpatialDist = FLT_MAX;
+	float bestAngleDist = FLT_MAX;
 	for (unsigned int id = mIntervals[aTypeId1]; id < mIntervals[aTypeId1 + 1]; id++)
 	{
 		if (mNeighborTypeVals[id] != aTypeId2)
 			continue;
 		const float3 delta = mRelativeTranslation[id] - aTranslation;
-		const float currentSpatialDist = dot(delta, delta);
-		if (currentSpatialDist < bestSpatialDist)
+		const float currentSpatialDist = len(delta);
+		const float angleDelta = fabsf(fabsf((aRotation *  mRelativeRotation[id].conjugate()).w) - 1.f);
+		if (currentSpatialDist < spatialTolerance && angleDelta < bestAngleDist)
 		{
-			bestSpatialDist = currentSpatialDist;
+			//bestSpatialDist = currentSpatialDist;
 			oTranslation = mRelativeTranslation[id];
+			
+			bestAngleDist = angleDelta;
 			oRotation = mRelativeRotation[id];
 		}
 	}
@@ -495,11 +570,7 @@ __host__ void Wiggle::transformObj(
 	WFObject & aObj,
 	unsigned int aObjId,
 	const float3 & aTranslation0toB,
-	const quaternion4f & aRotationBtoA,
-	const quaternion4f & aRotationAtoC,
-	const float3 & aTranslationAtoC,
-	const quaternion4f & aRotationAto0,
-	const float3 & aTranslationAto0)
+	const quaternion4f & aRotationBtoAtoC)
 {
 	thrust::host_vector<unsigned int> processed(aObj.getNumVertices(), 0u);
 	for (int faceId = aObj.objects[aObjId].x; faceId < aObj.objects[aObjId].y; ++faceId)
@@ -512,39 +583,21 @@ __host__ void Wiggle::transformObj(
 		{
 			processed[vtxId1] = 1u;
 			float3 vtx = aObj.vertices[vtxId1];
-			aObj.vertices[vtxId1] = transformVtx(vtx, aTranslation0toB, aRotationBtoA, aRotationAtoC, aTranslationAtoC, aRotationAto0, aTranslationAto0);
+			aObj.vertices[vtxId1] = transformVec(aRotationBtoAtoC, vtx + aTranslation0toB) - aTranslation0toB;
 		}
 		if (processed[vtxId2] == 0u)
 		{
 			processed[vtxId2] = 1u;
 			float3 vtx = aObj.vertices[vtxId2];
-			aObj.vertices[vtxId2] = transformVtx(vtx, aTranslation0toB, aRotationBtoA, aRotationAtoC, aTranslationAtoC, aRotationAto0, aTranslationAto0);
+			aObj.vertices[vtxId2] = transformVec(aRotationBtoAtoC, vtx + aTranslation0toB) - aTranslation0toB;
 
 		}
 		if (processed[vtxId3] == 0u)
 		{
 			processed[vtxId3] = 1u;
-			float3 vtx = aObj.vertices[vtxId2];
-			aObj.vertices[vtxId2] = transformVtx(vtx, aTranslation0toB, aRotationBtoA, aRotationAtoC, aTranslationAtoC, aRotationAto0, aTranslationAto0);
+			float3 vtx = aObj.vertices[vtxId3];
+			aObj.vertices[vtxId3] = transformVec(aRotationBtoAtoC, vtx + aTranslation0toB) - aTranslation0toB;
 		}
 	}
 
-}
-
-__host__ __device__ float3 Wiggle::transformVtx(
-	const float3 & aVtx,
-	const float3 & aTranslation0toB,
-	const quaternion4f & aRotationBtoA,
-	const quaternion4f & aRotationAtoC,
-	const float3 & aTranslationAtoC,
-	const quaternion4f & aRotationAto0,
-	const float3 & aTranslationAto0)
-{
-	const float3 t_b_to_0 = aVtx + aTranslation0toB;
-	const float3 r_b_to_a = transformVec(aRotationBtoA, t_b_to_0);
-	const float3 r_a_to_c = transformVec(aRotationAtoC, r_b_to_a);
-	const float3 t_a_to_c = r_a_to_c + aTranslationAtoC;
-	const float3 r_a_to_0 = transformVec(aRotationAto0, t_a_to_c);
-	const float3 t_a_to_0 = r_a_to_0 + aTranslationAto0;
-	return t_a_to_0;
 }

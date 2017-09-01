@@ -9,6 +9,7 @@
 #include <thrust/host_vector.h>
 #include <thrust/copy.h>
 #include <iostream>
+#include <iomanip>
 
 template <typename T>
 void outputDeviceVector(
@@ -67,6 +68,25 @@ public:
 		return a.y;
 	}
 };
+
+__host__ inline std::ostream& operator<<(std::ostream& os, const uint2& aVec)
+{
+	os << "(" << aVec.x << ", " << aVec.y << ")";
+	return os;
+}
+
+__host__ inline std::ostream& operator<<(std::ostream& os, const float3& aVec)
+{
+	os << std::fixed << std::setprecision(4) << "(" << aVec.x << ", " << aVec.y << ", "  << aVec.z <<")";
+	return os;
+}
+
+__host__ inline std::ostream& operator<<(std::ostream& os, const quaternion4f& aVec)
+{
+	os << std::fixed << std::setprecision(2) << "(" << aVec.x << ", " << aVec.y << ", " << aVec.z << ", " << aVec.w << ")";
+	return os;
+}
+
 
 
 

@@ -29,7 +29,7 @@ public:
 	float spatialTolerance;
 	float angleTolerance;
 
-	Wiggle():spatialTolerance(-0.001f), angleTolerance(0.0038053019f)//1.f - cos(5)
+	__host__ Wiggle():spatialTolerance(-0.001f), angleTolerance(0.0038053019f)//1.f - cos(5)
 	{}
 
 	__host__ void init(
@@ -54,15 +54,16 @@ public:
 		const float3&		aTranslation,
 		const quaternion4f&	aRotation,
 		float3&				oTranslation,
-		quaternion4f&		oRotation);
+		quaternion4f&		oRotation,
+		quaternion4f&		oAbsRotation);
 
 	//transforms object's position and orientation B->A->C
 	__host__ void transformObj(
 		WFObject& aObj,
 		unsigned int aObjId,
-		const float3& aTranslation0toB,
-		const quaternion4f& aRotationBtoAtoC
-		);
+		const float3& aObjCenter,
+		const float3 & aTranslation,
+		const quaternion4f& aRotation);
 };
 
 

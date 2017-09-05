@@ -3,6 +3,8 @@
 
 #include "WFObjWriter.h"
 
+#include <thrust/sequence.h>
+
 __host__ void ObjectCenterExporter::operator()(
 	const WFObject & aObj,
 	thrust::host_vector<float3>& oObjCenters,
@@ -221,17 +223,125 @@ __host__ void WFObjectFileExporter::operator()(const WFObject & aObj, const char
 
 __host__ void VertexBufferUnpacker::operator()(const WFObject & aObj, thrust::host_vector<uint2>& oRanges, thrust::host_vector<float3>& oVertices) const
 {
-	oVertices.resize(aObj.faces.size() * 3u);
-	oRanges.resize(aObj.objects.size());
-	for (size_t objId = 0; objId < aObj.objects.size(); ++objId)
+	thrust::host_vector<unsigned int> nodeIds(aObj.objects.size());
+	thrust::sequence(nodeIds.begin(), nodeIds.end());
+
+	this->operator()(aObj, nodeIds, oRanges, oVertices);
+
+	//oVertices.resize(aObj.faces.size() * 3u);
+	//oRanges.resize(aObj.objects.size());
+	//for (size_t objId = 0; objId < aObj.objects.size(); ++objId)
+	//{
+	//	oRanges[objId] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
+	//	for (int faceId = aObj.objects[objId].x; faceId < aObj.objects[objId].y; ++faceId)
+	//	{
+	//		WFObject::Face face = aObj.faces[faceId];
+	//		oVertices[faceId * 3u + 0] = aObj.vertices[aObj.faces[faceId].vert1];
+	//		oVertices[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
+	//		oVertices[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
+	//	}
+	//}
+}
+
+__host__ void VertexBufferUnpacker::operator()(const WFObject & aObj, thrust::host_vector<unsigned int>& aNodeIds, thrust::host_vector<uint2>& oRanges, thrust::host_vector<float3>& oVertices) const
+{
+	std::vector<float3> vertices;
+	oRanges.resize(aNodeIds.size());
+	for (size_t nodeId = 0; nodeId < aNodeIds.size(); ++nodeId)
 	{
-		oRanges[objId] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
+		unsigned int objId = aNodeIds[nodeId];
+		oRanges[nodeId].x = (unsigned int)vertices.size();
 		for (int faceId = aObj.objects[objId].x; faceId < aObj.objects[objId].y; ++faceId)
 		{
 			WFObject::Face face = aObj.faces[faceId];
-			oVertices[faceId * 3u + 0] = aObj.vertices[aObj.faces[faceId].vert1];
-			oVertices[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
-			oVertices[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
+			vertices.push_back(aObj.vertices[aObj.faces[faceId].vert1]);
+			vertices.push_back(aObj.vertices[aObj.faces[faceId].vert2]);
+			vertices.push_back(aObj.vertices[aObj.faces[faceId].vert3]);
+		}
+		oRanges[nodeId].y = (unsigned int)vertices.size();
+	}
+	
+	oVertices.resize(vertices.size());
+	thrust::copy(vertices.begin(), vertices.end(), oVertices.begin());
+}
+
+__host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::host_vector<uint2>& oRanges, thrust::host_vector<float3>& oVertices) const
+{
+	thrust::host_vector<unsigned int> nodeIds(aObj.objects.size()); 
+	thrust::sequence(nodeIds.begin(), nodeIds.end());
+
+	this->operator()(aObj, nodeIds, oRanges, oVertices);
+}
+
+__host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::host_vector<unsigned int>& aNodeIds, thrust::host_vector<uint2>& oRanges, thrust::host_vector<float3>& oVertices) const
+{
+	thrust::host_vector<uint2> ranges(aObj.objects.size());
+	thrust::host_vector<float3> vertices(aObj.faces.size() * 3u);
+	thrust::host_vector<float3> centers(aObj.faces.size());
+	for (size_t objId = 0; objId < aObj.objects.size(); ++objId)
+	{
+		ranges[objId] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
+		centers[objId] = make_float3(0.f, 0.f, 0.f);
+		const float numVerticesRCP = 1.f / (float)(3 * (aObj.objects[objId].y - aObj.objects[objId].x));
+		for (int faceId = aObj.objects[objId].x; faceId < aObj.objects[objId].y; ++faceId)
+		{
+			WFObject::Face face = aObj.faces[faceId];
+			vertices[faceId * 3u + 0] = aObj.vertices[aObj.faces[faceId].vert1];
+			vertices[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
+			vertices[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
+			centers[objId] += numVerticesRCP *  (vertices[faceId * 3u + 0] + vertices[faceId * 3u + 1] + vertices[faceId * 3u + 2]);
 		}
 	}
+
+	std::vector<float3> extremeVertices;
+	oRanges.resize(aNodeIds.size());
+
+	for (size_t nodeId = 0; nodeId < aNodeIds.size(); ++nodeId)
+	{
+		unsigned int objId = aNodeIds[nodeId];
+		oRanges[nodeId].x = (unsigned int)extremeVertices.size();
+		for (unsigned int vtxId1 = ranges[objId].x; vtxId1 < ranges[objId].y; ++vtxId1)
+		{
+			//unsigned int vtxId0 = vtxId1;
+			//float maxDistSQR = 0.f;
+			//for (unsigned int vtxId2 = ranges[objId].x; vtxId2 < ranges[objId].y; ++vtxId2)
+			//{
+			//	if (vtxId2 == vtxId1)
+			//		continue;
+			//	const float distSQR = dot(vertices[vtxId1] - vertices[vtxId2], vertices[vtxId1] - vertices[vtxId2]);
+			//	if (distSQR > maxDistSQR)
+			//	{
+			//		maxDistSQR = distSQR;
+			//		vtxId0 = vtxId2;
+			//	}
+			//}
+			float3 pseudoRadius = centers[objId] - vertices[vtxId1];
+			const float radiusLenSQR = dot(pseudoRadius, pseudoRadius);
+			pseudoRadius = ~pseudoRadius;
+			bool valid = true;
+			for (unsigned int vtxId2 = ranges[objId].x; vtxId2 < ranges[objId].y && valid; ++vtxId2)
+			{
+				if (vtxId2 == vtxId1)
+					continue;
+				if (dot(pseudoRadius, ~(vertices[vtxId2] - vertices[vtxId1])) < 0.001f)
+					valid = false;
+			}
+
+			for (unsigned int vtxId2 = 0; vtxId2 < extremeVertices.size() && valid; ++vtxId2)
+			{
+				if (dot(extremeVertices[vtxId2] - vertices[vtxId1], extremeVertices[vtxId2] - vertices[vtxId1]) < 0.001f * radiusLenSQR)
+					valid = false;
+			}
+
+			if (valid)
+			{
+				extremeVertices.push_back(vertices[vtxId1]);
+			}
+		}
+		oRanges[nodeId].y = (unsigned int)extremeVertices.size();
+
+	}
+
+	oVertices.resize(extremeVertices.size());
+	thrust::copy(extremeVertices.begin(), extremeVertices.end(), oVertices.begin());
 }

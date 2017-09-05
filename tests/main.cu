@@ -26,10 +26,15 @@ int main()
 	}
 #endif
 
-	const char* wiggleFile1 = "../scenes/playground/v001.obj";
-	const char* wiggleFile2 = "../scenes/playground/v002.obj";
-	const char* wiggleFile3 = "../scenes/playground/v001_v002_2_v002_2_v001_v002_3_v002_3_2_v001_v002_3_v002_3_v002_5_1.obj";
-	//const char* wiggleFile3 = "../scenes/playground/v002.obj";
+	//const char* wiggleFile1 = "../scenes/playground/v001.obj";
+	//const char* wiggleFile2 = "../scenes/playground/v002.obj";
+	//const char* wiggleFile3 = "../scenes/playground/v001_v002_2_v002_2_v001_v002_3_v002_3_2_v001_v002_3_v002_3_v002_5_1.obj";
+	//const char* wiggleFile3 = "../scenes/playground/v001_v001_v002_2_3_v001_v002_3_v002_3_3_v001_v002_2_v002_2_v001_v002_3_v002_3_3_3.obj";	
+
+	const char* wiggleFile1 = "../scenes/church/test/c19.obj";
+	const char* wiggleFile2 = "../scenes/church/test/c28.obj";
+	const char* wiggleFile3 = "../scenes/church/test/c19_c28_1_c19_c28_4_12.obj";
+
 
 	WiggleTest wiggleTest;
 	int wiggle_test_result = wiggleTest.testAll(wiggleFile1, wiggleFile2, wiggleFile3);

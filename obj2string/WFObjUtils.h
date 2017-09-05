@@ -53,6 +53,28 @@ public:
 		const WFObject& aObj,
 		thrust::host_vector<uint2>& oRanges,
 		thrust::host_vector<float3>& oVertices) const;
+
+	__host__ void operator()(
+		const WFObject& aObj,
+		thrust::host_vector<unsigned int>& aNodeIds,
+		thrust::host_vector<uint2>& oRanges,
+		thrust::host_vector<float3>& oVertices) const;
+};
+
+class ExtremeVertexUnpacker
+{
+public:
+	__host__ void operator()(
+		const WFObject& aObj,
+		thrust::host_vector<uint2>& oRanges,
+		thrust::host_vector<float3>& oVertices) const;
+
+	__host__ void operator()(
+		const WFObject& aObj,
+		thrust::host_vector<unsigned int>& aNodeIds,
+		thrust::host_vector<uint2>& oRanges,
+		thrust::host_vector<float3>& oVertices) const;
+
 };
 
 #endif //WFOBJUTILS_H_2CF02B80_6A49_4293_B9A9_077F0C467114

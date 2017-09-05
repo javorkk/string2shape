@@ -79,6 +79,10 @@ public:
 				vtx0 = vec;
 				dist0 = distSQR;
 			}
+			else if (dist0 - distSQR < 0.01f * dist0)
+			{
+				vtx0 = 0.5f * (vtx0 + vec);
+			}
 		}
 		//Find the other end of the diameter
 		float3 vtx1 = vtx0;
@@ -92,6 +96,10 @@ public:
 			{
 				vtx1 = vec;
 				diameter = distSQR;
+			}
+			else if (diameter - distSQR < 0.01f * diameter)
+			{
+				vtx1 = 0.5f * (vtx1 + vec);
 			}
 		}
 		const float3 dir0 = ~(vtx1 - vtx0);
@@ -118,13 +126,11 @@ public:
 		const float3 dir1 = ~((vtx2 - vtx0) - dir0 * dot(vtx2 - vtx0, dir0));
 		const float3 dir2 = ~cross(dir0, dir1);
 
-		quaternion4f rotation(
+		outRotation[aId] = quaternion4f(
 			dir0.x, dir1.x, dir2.x,
 			dir0.y, dir1.y, dir2.y,
 			dir0.z, dir1.z, dir2.z
 		);
-
-		outRotation[aId] = rotation;
 
 		if (USE_PCA)
 		{
@@ -199,6 +205,7 @@ public:
 
 	thrust::device_ptr<float3> outTranslation;
 	thrust::device_ptr<quaternion4f> outRotation;
+	thrust::device_ptr<quaternion4f> outRotationAbs;
 
 
 	TransformationExtractor(
@@ -208,7 +215,8 @@ public:
 		thrust::device_ptr<float3> aTranslation,
 		thrust::device_ptr<quaternion4f> aRotation,
 		thrust::device_ptr<float3> aOutTranslation,
-		thrust::device_ptr<quaternion4f> aOutRotation
+		thrust::device_ptr<quaternion4f> aOutRotation,
+		thrust::device_ptr<quaternion4f> aOutRotationAbs
 	) :
 		nodeTypes(aNodeTypes),
 		outNeighborTypeKeys(aOutNbrTypeKeys),
@@ -216,7 +224,8 @@ public:
 		translation(aTranslation),
 		rotation(aRotation),
 		outTranslation(aOutTranslation),
-		outRotation(aOutRotation)
+		outRotation(aOutRotation),
+		outRotationAbs(aOutRotationAbs)
 	{}
 
 	template <typename Tuple>
@@ -230,10 +239,11 @@ public:
 		outNeighborTypeKeys[outId] = nodeTypes[nodeId1];
 		outNeighborTypeVals[outId] = nodeTypes[nodeId2];
 
-		quaternion4f rot = rotation[nodeId1];
-		outTranslation[outId] = transformVec(rot.conjugate(), translation[nodeId2] - translation[nodeId1]);
+		quaternion4f rot1 = rotation[nodeId1];
+		outTranslation[outId] = transformVec(rot1.conjugate(), translation[nodeId2] - translation[nodeId1]);
 		quaternion4f rot2 = rotation[nodeId2];
-		outRotation[outId] = rot2.conjugate() * rot;
+		outRotation[outId] = rot2.conjugate() * rot1;
+		outRotationAbs[outId] = rot2;
 	}
 
 };
@@ -243,7 +253,7 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 {
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj, minBound, maxBound);
-	spatialTolerance = std::max(0.05f * len(maxBound - minBound), spatialTolerance);
+	spatialTolerance = std::max(0.01f * len(maxBound - minBound), spatialTolerance);
 
 
 	//Unpack and upload the vertex buffer
@@ -306,6 +316,7 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	thrust::device_vector<unsigned int> neighborTypeVals(aGraph.numEdges() * 2u);
 	thrust::device_vector<float3> relativeTranslation(aGraph.numEdges() * 2u);
 	thrust::device_vector<quaternion4f> relativeRotation(aGraph.numEdges() * 2u);
+	thrust::device_vector<quaternion4f> absoluteRotation(aGraph.numEdges() * 2u);
 
 	TransformationExtractor extractRelativeT(
 		nodeTypes.data(),
@@ -314,7 +325,8 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 		outTranslation.data(),
 		outRotation.data(),
 		relativeTranslation.data(),
-		relativeRotation.data()
+		relativeRotation.data(),
+		absoluteRotation.data()
 	);
 
 	thrust::counting_iterator<size_t> lastEdge(aGraph.numEdges() * 2u);
@@ -332,6 +344,7 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 		mNeighborTypeVals = thrust::host_vector<unsigned int>(neighborTypeVals);
 		mRelativeTranslation = thrust::host_vector<float3>(relativeTranslation);
 		mRelativeRotation = thrust::host_vector<quaternion4f>(relativeRotation);
+		mAbsoluteRotation = thrust::host_vector<quaternion4f>(absoluteRotation);
 	}
 	else
 	{
@@ -341,18 +354,20 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 		mNeighborTypeVals.resize(oldCount + neighborTypeVals.size());
 		mRelativeTranslation.resize(oldCount + relativeTranslation.size());
 		mRelativeRotation.resize(oldCount + relativeRotation.size());
+		mAbsoluteRotation.resize(oldCount + absoluteRotation.size());
 
 		thrust::copy(neighborTypeKeys.begin(), neighborTypeKeys.end(), mNeighborTypeKeys.begin() + oldCount);
 		thrust::copy(neighborTypeVals.begin(), neighborTypeVals.end(), mNeighborTypeVals.begin() + oldCount);
 		thrust::copy(relativeTranslation.begin(), relativeTranslation.end(), mRelativeTranslation.begin() + oldCount);
 		thrust::copy(relativeRotation.begin(), relativeRotation.end(), mRelativeRotation.begin() + oldCount);
+		thrust::copy(absoluteRotation.begin(), absoluteRotation.end(), mAbsoluteRotation.begin() + oldCount);
 	}
 
 	//sort by node type
 	thrust::sort_by_key(
 		mNeighborTypeKeys.begin(),
 		mNeighborTypeKeys.end(),
-		thrust::make_zip_iterator(thrust::make_tuple(mNeighborTypeVals.begin(), mRelativeTranslation.begin(), mRelativeRotation.begin()))
+		thrust::make_zip_iterator(thrust::make_tuple(mNeighborTypeVals.begin(), mRelativeTranslation.begin(), mRelativeRotation.begin(), mAbsoluteRotation.begin()))
 		);
 
 	//setup search intervals for each node type
@@ -385,17 +400,6 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 
 __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph)
 {
-	//Unpack and upload the vertex buffer
-	thrust::host_vector<uint2> vertexRangesHost;
-	thrust::host_vector<float3> vertexBufferHost;
-
-	VertexBufferUnpacker unpackVertices;
-	unpackVertices(aObj, vertexRangesHost, vertexBufferHost);
-
-	thrust::device_vector<uint2> vertexRangesDevice(vertexRangesHost);
-	thrust::device_vector<float3> vertexBufferDevice(vertexBufferHost);
-
-
 	size_t numNodes = aObj.objects.size();
 	thrust::host_vector<unsigned int> visited(numNodes, 0u);
 	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
@@ -455,29 +459,13 @@ __host__ void Wiggle::processNeighbors(
 	const unsigned int nodeCount = nbrCount + 1u;
 	thrust::host_vector<unsigned int> nodeIds(nodeCount, aObjId);
 	thrust::copy(adjacencyValsHost.begin() + intervalsHost[aObjId], adjacencyValsHost.begin() + intervalsHost[aObjId + 1], nodeIds.begin() + 1u);
-	
-	unsigned int vtxCount = 0u;
-	for (unsigned int i = 0; i < nodeIds.size(); i++)
-	{
-		vtxCount += 3 * (aObj.objects[nodeIds[i]].y - aObj.objects[nodeIds[i]].x);
-	}
 
-	//Unpack the vertex buffer
-	thrust::host_vector<float3> vertexBufferHost(vtxCount);
-	thrust::host_vector<uint2> vtxRanges(nodeCount);
-	unsigned int currentVtxId = 0u;
-	for (unsigned int i = 0; i < nodeIds.size(); i++)
-	{
-		vtxRanges[i].x = currentVtxId;
-		for (int faceId = aObj.objects[nodeIds[i]].x; faceId < aObj.objects[nodeIds[i]].y; ++faceId)
-		{
-			WFObject::Face face = aObj.faces[faceId];
-			vertexBufferHost[currentVtxId++] = aObj.vertices[aObj.faces[faceId].vert1];
-			vertexBufferHost[currentVtxId++] = aObj.vertices[aObj.faces[faceId].vert2];
-			vertexBufferHost[currentVtxId++] = aObj.vertices[aObj.faces[faceId].vert3];
-		}
-		vtxRanges[i].y = currentVtxId;
-	}
+	thrust::host_vector<float3> vertexBufferHost;
+	thrust::host_vector<uint2> vtxRanges;
+
+	VertexBufferUnpacker unpackVertices;
+	unpackVertices(aObj, nodeIds, vtxRanges, vertexBufferHost);
+
 
 
 	//Use PCA to compute local coordiante system for each object
@@ -508,6 +496,9 @@ __host__ void Wiggle::processNeighbors(
 		estimateT(i);
 	}
 
+	//transformObj(aObj, nodeIds[0], translations[0], make_float3(0.f, 0.f, 0.f), rotations[0].conjugate());
+
+
 	for (unsigned int i = 1; i < nodeIds.size(); i++)
 	{
 		const unsigned int nbrNodeId = nodeIds[i];
@@ -526,14 +517,16 @@ __host__ void Wiggle::processNeighbors(
 
 		float3 bestT = relativeT;
 		quaternion4f bestR = relativeR;
+		quaternion4f bestA = relativeR;
 
-		findBestMatch(typeId1, typeId2, relativeT, relativeR, bestT, bestR);
+		findBestMatch(typeId1, typeId2, relativeT, relativeR, bestT, bestR, bestA);
 		const float angleDelta = fabsf(fabsf((bestR * relativeR.conjugate()).w) - 1.f);
 		if (angleDelta < angleTolerance)
 			continue;
-		//transformObj(aObj, nodeId1, -translations[0], rotations[0].conjugate());
-		//transformObj(aObj, nodeId2, -translations[1], rotations[i].conjugate());
-		transformObj(aObj, nodeId2, -translations[i], bestR * relativeR.conjugate());
+		float3 translateDelta = transformVec(rot, bestT - relativeT);
+
+		transformObj(aObj, nodeId2, translations[i], translateDelta, rotations[i] * bestR * rot.conjugate());
+
 	}
 
 }
@@ -544,9 +537,22 @@ __host__ void Wiggle::findBestMatch(
 	const float3&		aTranslation,
 	const quaternion4f&	aRotation,
 	float3&				oTranslation,
-	quaternion4f&		oRotation)
+	quaternion4f&		oRotation,
+	quaternion4f&		oAbsRotation)
 {
-	//float bestSpatialDist = FLT_MAX;
+	float bestSpatialDist = FLT_MAX;
+	for (unsigned int id = mIntervals[aTypeId1]; id < mIntervals[aTypeId1 + 1]; id++)
+	{
+		if (mNeighborTypeVals[id] != aTypeId2)
+			continue;
+		const float3 delta = mRelativeTranslation[id] - aTranslation;
+		const float currentSpatialDist = len(delta);
+		if (currentSpatialDist < bestSpatialDist)
+		{
+			bestSpatialDist = currentSpatialDist;
+		}
+	}
+
 	float bestAngleDist = FLT_MAX;
 	for (unsigned int id = mIntervals[aTypeId1]; id < mIntervals[aTypeId1 + 1]; id++)
 	{
@@ -555,22 +561,24 @@ __host__ void Wiggle::findBestMatch(
 		const float3 delta = mRelativeTranslation[id] - aTranslation;
 		const float currentSpatialDist = len(delta);
 		const float angleDelta = fabsf(fabsf((aRotation *  mRelativeRotation[id].conjugate()).w) - 1.f);
-		if (currentSpatialDist < spatialTolerance && angleDelta < bestAngleDist)
+		if (currentSpatialDist < spatialTolerance + bestSpatialDist && angleDelta < bestAngleDist)
 		{
-			//bestSpatialDist = currentSpatialDist;
-			oTranslation = mRelativeTranslation[id];
-			
 			bestAngleDist = angleDelta;
+
+			oTranslation = mRelativeTranslation[id];
 			oRotation = mRelativeRotation[id];
+			oAbsRotation = mAbsoluteRotation[id];
 		}
 	}
+
 }
 
 __host__ void Wiggle::transformObj(
 	WFObject & aObj,
 	unsigned int aObjId,
-	const float3 & aTranslation0toB,
-	const quaternion4f & aRotationBtoAtoC)
+	const float3 & aObjCenter,
+	const float3 & aTranslation,
+	const quaternion4f & aRotation)
 {
 	thrust::host_vector<unsigned int> processed(aObj.getNumVertices(), 0u);
 	for (int faceId = aObj.objects[aObjId].x; faceId < aObj.objects[aObjId].y; ++faceId)
@@ -583,20 +591,23 @@ __host__ void Wiggle::transformObj(
 		{
 			processed[vtxId1] = 1u;
 			float3 vtx = aObj.vertices[vtxId1];
-			aObj.vertices[vtxId1] = transformVec(aRotationBtoAtoC, vtx + aTranslation0toB) - aTranslation0toB;
+			aObj.vertices[vtxId1] = transformVec(aRotation, vtx - aObjCenter) + aObjCenter + aTranslation;
+			//aObj.vertices[vtxId1] = 0.5f * aObj.vertices[vtxId1] + 0.5f * vtx;
 		}
 		if (processed[vtxId2] == 0u)
 		{
 			processed[vtxId2] = 1u;
 			float3 vtx = aObj.vertices[vtxId2];
-			aObj.vertices[vtxId2] = transformVec(aRotationBtoAtoC, vtx + aTranslation0toB) - aTranslation0toB;
+			aObj.vertices[vtxId2] = transformVec(aRotation, vtx - aObjCenter) + aObjCenter + aTranslation;
+			//aObj.vertices[vtxId2] = 0.5f * aObj.vertices[vtxId2] + 0.5f * vtx;
 
 		}
 		if (processed[vtxId3] == 0u)
 		{
 			processed[vtxId3] = 1u;
 			float3 vtx = aObj.vertices[vtxId3];
-			aObj.vertices[vtxId3] = transformVec(aRotationBtoAtoC, vtx + aTranslation0toB) - aTranslation0toB;
+			aObj.vertices[vtxId3] = transformVec(aRotation, vtx - aObjCenter) + aObjCenter + aTranslation;
+			//aObj.vertices[vtxId3] = 0.5f * aObj.vertices[vtxId3] + 0.5f * vtx;
 		}
 	}
 

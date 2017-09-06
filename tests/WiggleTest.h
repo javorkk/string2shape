@@ -17,12 +17,13 @@ public:
 	__host__ int testAll(
 		const char* aFileName1,
 		const char* aFileName2,
-		const char* aFileName3
+		const char* aFileName3,
+		const char* aOutFileName
 	)
 	{
 		std::cerr << "---------------------------------------------------------------------\n";
-		std::cerr << "Wiggle test for " << aFileName1 << ", " << aFileName2 << " and " << aFileName3 << "\n";
-		return testVariationFix(aFileName1, aFileName2, aFileName3);
+		std::cerr << "Wiggle test for\n" << aFileName1 << "\n" << aFileName2 << "\n and\n" << aFileName3 << "\n";
+		return fixVariation(aFileName1, aFileName2, aFileName3, aOutFileName);
 	}
 };
 

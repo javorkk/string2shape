@@ -226,7 +226,7 @@ __host__ void VertexBufferUnpacker::operator()(const WFObject & aObj, thrust::ho
 	thrust::host_vector<unsigned int> nodeIds(aObj.objects.size());
 	thrust::sequence(nodeIds.begin(), nodeIds.end());
 
-	this->operator()(aObj, nodeIds, oRanges, oVertices);
+	operator()(aObj, nodeIds, oRanges, oVertices);
 
 	//oVertices.resize(aObj.faces.size() * 3u);
 	//oRanges.resize(aObj.objects.size());
@@ -270,7 +270,7 @@ __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::h
 	thrust::host_vector<unsigned int> nodeIds(aObj.objects.size()); 
 	thrust::sequence(nodeIds.begin(), nodeIds.end());
 
-	this->operator()(aObj, nodeIds, oRanges, oVertices);
+	operator()(aObj, nodeIds, oRanges, oVertices);
 }
 
 __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::host_vector<unsigned int>& aNodeIds, thrust::host_vector<uint2>& oRanges, thrust::host_vector<float3>& oVertices) const
@@ -278,6 +278,8 @@ __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::h
 	thrust::host_vector<uint2> ranges(aObj.objects.size());
 	thrust::host_vector<float3> vertices(aObj.faces.size() * 3u);
 	thrust::host_vector<float3> centers(aObj.faces.size());
+	float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
+	float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 	for (size_t objId = 0; objId < aObj.objects.size(); ++objId)
 	{
 		ranges[objId] = make_uint2(aObj.objects[objId].x * 3u, aObj.objects[objId].y * 3u);
@@ -290,8 +292,18 @@ __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::h
 			vertices[faceId * 3u + 1] = aObj.vertices[aObj.faces[faceId].vert2];
 			vertices[faceId * 3u + 2] = aObj.vertices[aObj.faces[faceId].vert3];
 			centers[objId] += numVerticesRCP *  (vertices[faceId * 3u + 0] + vertices[faceId * 3u + 1] + vertices[faceId * 3u + 2]);
+			
+			minBound = min(minBound, vertices[faceId * 3u + 0]);
+			minBound = min(minBound, vertices[faceId * 3u + 1]);
+			minBound = min(minBound, vertices[faceId * 3u + 2]);
+
+			maxBound = max(maxBound, vertices[faceId * 3u + 0]);
+			maxBound = max(maxBound, vertices[faceId * 3u + 1]);
+			maxBound = max(maxBound, vertices[faceId * 3u + 2]);
+
 		}
 	}
+	const float diagonalSQR = dot(maxBound - minBound, maxBound - minBound);
 
 	std::vector<float3> extremeVertices;
 	oRanges.resize(aNodeIds.size());
@@ -315,9 +327,7 @@ __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::h
 			//		vtxId0 = vtxId2;
 			//	}
 			//}
-			float3 pseudoRadius = centers[objId] - vertices[vtxId1];
-			const float radiusLenSQR = dot(pseudoRadius, pseudoRadius);
-			pseudoRadius = ~pseudoRadius;
+			float3 pseudoRadius = ~(centers[objId] - vertices[vtxId1]);
 			bool valid = true;
 			for (unsigned int vtxId2 = ranges[objId].x; vtxId2 < ranges[objId].y && valid; ++vtxId2)
 			{
@@ -327,15 +337,16 @@ __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::h
 					valid = false;
 			}
 
-			for (unsigned int vtxId2 = 0; vtxId2 < extremeVertices.size() && valid; ++vtxId2)
+			for (unsigned int vtxId2 = oRanges[nodeId].x; vtxId2 < extremeVertices.size() && valid; ++vtxId2)
 			{
-				if (dot(extremeVertices[vtxId2] - vertices[vtxId1], extremeVertices[vtxId2] - vertices[vtxId1]) < 0.001f * radiusLenSQR)
+				if (dot(extremeVertices[vtxId2] - vertices[vtxId1], extremeVertices[vtxId2] - vertices[vtxId1]) < 0.001f * diagonalSQR)
 					valid = false;
 			}
 
 			if (valid)
 			{
-				extremeVertices.push_back(vertices[vtxId1]);
+				float3 vtx = vertices[vtxId1];
+				extremeVertices.push_back(vtx);
 			}
 		}
 		oRanges[nodeId].y = (unsigned int)extremeVertices.size();

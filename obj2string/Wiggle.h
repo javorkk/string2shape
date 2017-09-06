@@ -26,10 +26,16 @@ class Wiggle
 	thrust::host_vector<quaternion4f> mAbsoluteRotation;
 
 public:
+	unsigned int numCorrections;
+	unsigned int seedNodeId;
 	float spatialTolerance;
 	float angleTolerance;
 
-	__host__ Wiggle():spatialTolerance(-0.001f), angleTolerance(0.0038053019f)//1.f - cos(5)
+	__host__ Wiggle():
+		numCorrections(0u),
+		seedNodeId((unsigned)-1),
+		spatialTolerance(-0.001f),
+		angleTolerance(0.0038053019f)//1.f - cos(5)
 	{}
 
 	__host__ void init(

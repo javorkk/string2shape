@@ -69,21 +69,27 @@ public:
 		//Find the vertex furthest away from the center
 		float3 vtx0 = center;
 		float dist0 = 0.f;
+		float count = 0.f;
 		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
 		{
 			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
 			const float3 delta = vec - center;
 			const float distSQR = dot(delta, delta);
-			if (distSQR > dist0)
+			if (distSQR > dist0 && distSQR - dist0 > 0.001f * dist0)
 			{
 				vtx0 = vec;
 				dist0 = distSQR;
+				count = 1.f;
 			}
-			else if (dist0 - distSQR < 0.01f * dist0)
+			else if (fabsf(dist0 - distSQR) < 0.001f * dist0)
 			{
-				vtx0 = 0.5f * (vtx0 + vec);
+				vtx0 += vec;
+				count += 1.f;
 			}
 		}
+		if(count > 1.f)
+			vtx0 /= count;
+		count = 0.f;
 		//Find the other end of the diameter
 		float3 vtx1 = vtx0;
 		float diameter = 0.f;
@@ -92,39 +98,57 @@ public:
 			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
 			const float3 delta = vec - vtx0;
 			const float distSQR = dot(delta, delta);
-			if (distSQR > diameter)
+			if (distSQR > diameter && distSQR - diameter > 0.001f * diameter)
 			{
 				vtx1 = vec;
 				diameter = distSQR;
+				count = 1.f;
 			}
-			else if (diameter - distSQR < 0.01f * diameter)
+			else if (fabsf(diameter - distSQR) < 0.001f * diameter)
 			{
-				vtx1 = 0.5f * (vtx1 + vec);
+				vtx1 += vec;
+				count += 1.f;
 			}
 		}
+		if(count > 1.f)
+			vtx1 /= count;
 		const float3 dir0 = ~(vtx1 - vtx0);
 		//Find the vertex furthest away from the diameter
 		float3 vtx2 = vtx0;
 		float dist2 = 0.f;
-		float distC = 0.f;
+		count = 0.f;
 		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
 		{
 			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
 			const float3 delta = cross(dir0, vec - vtx0);
 			const float distSQR = dot(delta, delta);
 			const float distCenterSQR = dot(vec - center, vec - center);
-			if (distSQR >= dist2
-				//if multiple points have the max distance to the diameter, choose the one furtherst away from the center
-				|| (dist2 - distSQR < 0.001f * dist2 && distCenterSQR > distC && distCenterSQR - distC > 0.01f * distC)
-				)
+			if (distSQR >= dist2 && distSQR - dist2 > 0.01f * dist2)
 			{
 				vtx2 = vec;
 				dist2 = distSQR;
-				distC = distCenterSQR;
+				count = 1.f;
+			}
+			else if (fabsf(dist2 - distSQR) < 0.01f * dist2)
+			{
+				vtx2 += vec;
+				count += 1.f;
 			}
 		}
+		if (count > 1.f)
+			vtx2 /= count;
+
+		//vtx0 = vertexBuffer[vtxRange.x + 0];
+		//vtx1 = vertexBuffer[vtxRange.x + 1];
+		//vtx2 = vertexBuffer[vtxRange.x + 2];
 		const float3 dir1 = ~((vtx2 - vtx0) - dir0 * dot(vtx2 - vtx0, dir0));
 		const float3 dir2 = ~cross(dir0, dir1);
+
+		float rotDet = determinant(
+			dir0.x, dir1.x, dir2.x,
+			dir0.y, dir1.y, dir2.y,
+			dir0.z, dir1.z, dir2.z
+		);
 
 		outRotation[aId] = quaternion4f(
 			dir0.x, dir1.x, dir2.x,
@@ -390,16 +414,16 @@ __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 	}
 
 #ifdef _DEBUG
-	outputHostVector("wiggle type key intervals: ", mIntervals);
-	outputHostVector("wiggle keys: ", mNeighborTypeKeys);
-	outputHostVector("wiggle vals: ", mNeighborTypeVals);
 	outputHostVector("translations: ", mRelativeTranslation);
 	outputHostVector("rotations: ", mRelativeRotation);
 #endif
+
 }
 
 __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph)
 {
+	numCorrections = 0u;
+
 	size_t numNodes = aObj.objects.size();
 	thrust::host_vector<unsigned int> visited(numNodes, 0u);
 	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
@@ -414,9 +438,13 @@ __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph
 		nodeTypesHost[nodeId] = (unsigned int)materialId;
 	}
 
+	if (seedNodeId == (unsigned)-1)
+		seedNodeId = rand() % (int)numNodes;
+
+
 	std::deque<unsigned int> frontier;
-	frontier.push_back(0u);
-	visited[0u] = 1u;
+	frontier.push_back(seedNodeId);
+	visited[seedNodeId] = 1u;
 	while (!frontier.empty())
 	{
 		const unsigned int nodeId = frontier.front();
@@ -498,15 +526,14 @@ __host__ void Wiggle::processNeighbors(
 
 	//transformObj(aObj, nodeIds[0], translations[0], make_float3(0.f, 0.f, 0.f), rotations[0].conjugate());
 
+	const unsigned int nodeId1 = nodeIds[0];
 
 	for (unsigned int i = 1; i < nodeIds.size(); i++)
 	{
-		const unsigned int nbrNodeId = nodeIds[i];
-		if (visited[nbrNodeId])
-			continue;
+		const unsigned int nodeId2 = nodeIds[i];
 
-		const unsigned int nodeId1 = nodeIds[0];
-		const unsigned int nodeId2 = nbrNodeId;
+		if (visited[nodeId2])
+			continue;
 
 		const unsigned int typeId1 = nodeTypeIds[nodeId1];
 		const unsigned int typeId2 = nodeTypeIds[nodeId2];
@@ -523,10 +550,11 @@ __host__ void Wiggle::processNeighbors(
 		const float angleDelta = fabsf(fabsf((bestR * relativeR.conjugate()).w) - 1.f);
 		if (angleDelta < angleTolerance)
 			continue;
-		float3 translateDelta = transformVec(rot, bestT - relativeT);
+		float3 translateDelta = (1.f / 8.f) * transformVec(rot, bestT - relativeT);
 
 		transformObj(aObj, nodeId2, translations[i], translateDelta, rotations[i] * bestR * rot.conjugate());
-
+		
+		++numCorrections;
 	}
 
 }
@@ -592,14 +620,12 @@ __host__ void Wiggle::transformObj(
 			processed[vtxId1] = 1u;
 			float3 vtx = aObj.vertices[vtxId1];
 			aObj.vertices[vtxId1] = transformVec(aRotation, vtx - aObjCenter) + aObjCenter + aTranslation;
-			//aObj.vertices[vtxId1] = 0.5f * aObj.vertices[vtxId1] + 0.5f * vtx;
 		}
 		if (processed[vtxId2] == 0u)
 		{
 			processed[vtxId2] = 1u;
 			float3 vtx = aObj.vertices[vtxId2];
 			aObj.vertices[vtxId2] = transformVec(aRotation, vtx - aObjCenter) + aObjCenter + aTranslation;
-			//aObj.vertices[vtxId2] = 0.5f * aObj.vertices[vtxId2] + 0.5f * vtx;
 
 		}
 		if (processed[vtxId3] == 0u)
@@ -607,7 +633,6 @@ __host__ void Wiggle::transformObj(
 			processed[vtxId3] = 1u;
 			float3 vtx = aObj.vertices[vtxId3];
 			aObj.vertices[vtxId3] = transformVec(aRotation, vtx - aObjCenter) + aObjCenter + aTranslation;
-			//aObj.vertices[vtxId3] = 0.5f * aObj.vertices[vtxId3] + 0.5f * vtx;
 		}
 	}
 

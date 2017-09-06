@@ -199,6 +199,24 @@ __host__ void GrammarCheck::init(
 	}
 }
 
+__host__ void GrammarCheck::init(
+	WFObject& aObj,
+	thrust::device_vector<unsigned int>& aIntervals,
+	thrust::device_vector<unsigned int>& aNbrIds)
+{
+	thrust::host_vector<unsigned int> intervals(aIntervals);
+	thrust::host_vector<unsigned int> nbrIds(aNbrIds);
+	thrust::host_vector<unsigned int> nodeTypes(aObj.objects.size(), (unsigned int)aObj.materials.size());
+	for (size_t nodeId = 0; nodeId < aObj.objects.size(); ++nodeId)
+	{
+		size_t faceId = aObj.objects[nodeId].x;
+		size_t materialId = aObj.faces[faceId].material;
+		nodeTypes[nodeId] = (unsigned int)materialId;
+	}
+
+	init(intervals, nbrIds, nodeTypes);
+}
+
 __host__ bool GrammarCheck::check(
 	thrust::host_vector<unsigned int>& aIntervals,
 	thrust::host_vector<unsigned int>& aNbrIds,

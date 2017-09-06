@@ -158,7 +158,7 @@ extern "C" {
 
 	}
 
-	int testVariationFix(const char * aFileName1, const char* aFileName2, const char* aFileName3)
+	int fixVariation(const char * aFileName1, const char* aFileName2, const char* aFileName3, const char* aOutFileName)
 	{
 		WFObject obj1;
 		obj1.read(aFileName1);
@@ -174,24 +174,60 @@ extern "C" {
 		Graph graph2 = detector.computeCollisionGraph(obj2, 0.0f);
 		Graph graph3 = detector.computeCollisionGraph(obj3, 0.0f);
 
+		GrammarCheck grammarCheck;
+		grammarCheck.init(obj1, graph1.intervals, graph1.adjacencyVals);
+		grammarCheck.init(obj2, graph2.intervals, graph2.adjacencyVals);
+
+		thrust::host_vector<unsigned int> nodeTypes(graph3.numNodes());
+		for (size_t nodeId = 0; nodeId < graph3.numNodes(); ++nodeId)
+		{
+			size_t faceId = obj3.objects[nodeId].x;
+			size_t materialId = obj3.faces[faceId].material;
+			nodeTypes[nodeId] = (unsigned int)materialId;
+		}
+		thrust::host_vector<unsigned int> hostIntervals(graph3.intervals);
+		thrust::host_vector<unsigned int> hostNbrIds(graph3.adjacencyVals);
+		if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
+		{
+			//std::cerr << "Invalid repair target - does not conform grammar.\n";
+			return 1;
+		}
+
+
 		Wiggle wiggle;
 		wiggle.init(obj1, graph1);
 		wiggle.init(obj2, graph2);
 
-		wiggle.fixRelativeTransformations(obj3, graph3);
+		for (size_t i = 0; i < 64u; ++i)
+		{
+			wiggle.fixRelativeTransformations(obj3, graph3);
+			if (wiggle.numCorrections == 0u)
+				break;
+		}
 
-		std::string fileName3(aFileName3);
-		if (fileName3.find_last_of("/\\") == std::string::npos)
-			fileName3 = fileName3.substr(0, fileName3.size() - 5);
+		Graph modifiedGraph = detector.computeCollisionGraph(obj3, 0.0f);
+		hostIntervals = thrust::host_vector<unsigned int>(modifiedGraph.intervals);
+		hostNbrIds = thrust::host_vector<unsigned int>(modifiedGraph.adjacencyVals);
+
+		if (grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
+		{
+			//std::string fileName3(aFileName3);
+			//if (fileName3.find_last_of("/\\") == std::string::npos)
+			//	fileName3 = fileName3.substr(0, fileName3.size() - 5);
+			//else
+			//	fileName3 = fileName3.substr(fileName3.find_last_of("/\\") + 1, fileName3.size() - fileName3.find_last_of("/\\") - 5);
+
+			//std::string objDir = getDirName(aFileName3);
+			//std::string fixedFilePath = objDir + fileName3 + "_fixed";
+
+			WFObjectFileExporter   objExporter;
+			objExporter(obj3, aOutFileName);
+		}
 		else
-			fileName3 = fileName3.substr(fileName3.find_last_of("/\\") + 1, fileName3.size() - fileName3.find_last_of("/\\") - 5);
-
-		std::string objDir = getDirName(aFileName3);
-		std::string fixedFilePath = objDir + fileName3 + "_fixed";
-
-
-		WFObjectFileExporter   objExporter;
-		objExporter(obj3, fixedFilePath.c_str());
+		{
+			//std::cerr << "Object repair attempt failed.\n";
+			return 2;
+		}
 
 		return 0;
 

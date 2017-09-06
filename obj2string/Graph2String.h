@@ -108,6 +108,10 @@ public:
 		thrust::host_vector<unsigned int>& aIntervals,
 		thrust::host_vector<unsigned int>& aNbrIds,
 	    thrust::host_vector<unsigned int>& aNodeTypes);
+	__host__ void init(
+		WFObject& aObj,
+		thrust::device_vector<unsigned int>& aIntervals,
+		thrust::device_vector<unsigned int>& aNbrIds);
 	__host__ bool check(
 		thrust::host_vector<unsigned int>& aIntervals,
 		thrust::host_vector<unsigned int>& aNbrIds,

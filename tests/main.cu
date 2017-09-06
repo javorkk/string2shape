@@ -26,30 +26,6 @@ int main()
 	}
 #endif
 
-	//const char* wiggleFile1 = "../scenes/playground/v001.obj";
-	//const char* wiggleFile2 = "../scenes/playground/v002.obj";
-	//const char* wiggleFile3 = "../scenes/playground/v001_v002_2_v002_2_v001_v002_3_v002_3_2_v001_v002_3_v002_3_v002_5_1.obj";
-	//const char* wiggleFile3 = "../scenes/playground/v001_v001_v002_2_3_v001_v002_3_v002_3_3_v001_v002_2_v002_2_v001_v002_3_v002_3_3_3.obj";	
-
-	const char* wiggleFile1 = "../scenes/church/test/c19.obj";
-	const char* wiggleFile2 = "../scenes/church/test/c28.obj";
-	const char* wiggleFile3 = "../scenes/church/test/c19_c28_1_c19_c28_4_12.obj";
-
-
-	WiggleTest wiggleTest;
-	int wiggle_test_result = wiggleTest.testAll(wiggleFile1, wiggleFile2, wiggleFile3);
-	if (wiggle_test_result != 0)
-	{
-		std::cerr << "Wiggle test failed!\n";
-		return wiggle_test_result;
-	}
-	else
-	{
-		std::cerr << "Wiggle test passed. \n";
-	}
-
-	return 0;
-
 	RNGTest rngTest;
 	int rng_test_result = rngTest.testAll();
 	//graphTest.testAll(1000);
@@ -131,6 +107,40 @@ int main()
 		std::cerr << "Shape variation test passed. \n";
 	}
 
+
+	//const char* wiggleFile1 = "../scenes/wiggle_test/v001.obj";
+	//const char* wiggleFile2 = "../scenes/wiggle_test/v002.obj";
+	//const char* wiggleFile3 = "../scenes/wiggle_test/v001_v002_2_v002_2_v001_v002_3_v002_3_2_v001_v002_3_v002_3_v002_5_1.obj";
+	//const char* wiggleFile3 = "../scenes/wiggle_test/v001_v001_v002_2_3_v001_v002_3_v002_3_3_v001_v002_2_v002_2_v001_v002_3_v002_3_3_3.obj";	
+	//const char* wiggleFile3 = "../scenes/wiggle_test/v002.obj";
+
+	const char* wiggleFile1 = "../scenes/wiggle_test/c19.obj";
+	const char* wiggleFile2 = "../scenes/wiggle_test/c28.obj";
+	const char* wiggleFile3 = "../scenes/wiggle_test/v_1_4_11.obj";
+	//const char* wiggleFile3 = "../scenes/wiggle_test/v_1_4_12.obj";
+
+	const char* wiggleOutFile = "../scenes/wiggle_test/fixed";
+
+	WiggleTest wiggleTest;
+	int wiggle_test_result = wiggleTest.testAll(wiggleFile1, wiggleFile2, wiggleFile3, wiggleOutFile);
+	if (wiggle_test_result != 0)
+	{
+		std::cerr << "Wiggle test failed!\n";
+		if (wiggle_test_result == 1)
+		{
+			std::cerr << "Invalid repair target - does not conform grammar.\n";
+		}
+		else if (wiggle_test_result == 2)
+		{
+			std::cerr << "Object repair attempt failed.\n";
+		}
+		return wiggle_test_result;
+	}
+	else
+	{
+		std::cerr << "Object repair attempt succeeded.\n";
+		std::cerr << "Wrote " << wiggleOutFile << ".obj\n";
+	}
 
 
 #if 0//THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA

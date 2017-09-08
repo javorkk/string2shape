@@ -140,10 +140,12 @@ public:
 	bool writeVariations; //write out generated variations in .obj 
 	bool writeVariationGraphs; //write out the graphs of the generated variations
 	bool multiString;  //return single or multiple SMILES strings per variation
+	bool fixVariation; //try to repair relative part orientation in the variation
 	VariationGenerator() : 
 		writeVariations(false), 
 		writeVariationGraphs(true), 
-		multiString(true)
+		multiString(true),
+		fixVariation(false)
 	{}
 
 	static const unsigned int MAX_ALLOWED_VARIATIONS = 1000u;

@@ -267,7 +267,7 @@ public:
 		outTranslation[outId] = transformVec(rot1.conjugate(), translation[nodeId2] - translation[nodeId1]);
 		quaternion4f rot2 = rotation[nodeId2];
 		outRotation[outId] = rot2.conjugate() * rot1;
-		outRotationAbs[outId] = rot2;
+		outRotationAbs[outId] = rot1.conjugate();
 	}
 
 };
@@ -438,7 +438,7 @@ __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph
 		nodeTypesHost[nodeId] = (unsigned int)materialId;
 	}
 
-	if (seedNodeId == (unsigned)-1)
+	if (seedNodeId >= (unsigned int)numNodes)
 		seedNodeId = rand() % (int)numNodes;
 
 

@@ -26,86 +26,86 @@ int main()
 	}
 #endif
 
-	RNGTest rngTest;
-	int rng_test_result = rngTest.testAll();
-	//graphTest.testAll(1000);
+	//RNGTest rngTest;
+	//int rng_test_result = rngTest.testAll();
+	////graphTest.testAll(1000);
 
-	if (rng_test_result != 0)
-	{
-		std::cerr << "Random number generator test failed!\n";
-		return rng_test_result;
-	}
-	else
-	{
-		std::cerr << "Random number generator test passed.\n";
-	}
+	//if (rng_test_result != 0)
+	//{
+	//	std::cerr << "Random number generator test failed!\n";
+	//	return rng_test_result;
+	//}
+	//else
+	//{
+	//	std::cerr << "Random number generator test passed.\n";
+	//}
 
-	UniformGridSortBuildTest uniformGridTest;
-	int ugrid_test_result = uniformGridTest.testAll("../scenes/church/church.obj", 32, 16, 24);
-	
-	if (ugrid_test_result != 0)
-	{
-		std::cerr << "Uniform grid construction test failed!\n";
-		return ugrid_test_result;
-	}
-	else
-	{
-		std::cerr << "Uniform grid construction test passed.\n";
+	//UniformGridSortBuildTest uniformGridTest;
+	//int ugrid_test_result = uniformGridTest.testAll("../scenes/church/church.obj", 32, 16, 24);
+	//
+	//if (ugrid_test_result != 0)
+	//{
+	//	std::cerr << "Uniform grid construction test failed!\n";
+	//	return ugrid_test_result;
+	//}
+	//else
+	//{
+	//	std::cerr << "Uniform grid construction test passed.\n";
 
-	}
+	//}
+	//
+	//GraphTest graphTest;
+	//int graph_test_result = graphTest.testAll(1000);
+	////graphTest.testAll(1000);
+	//
+	//if (graph_test_result != 0)
+	//{
+	//	std::cerr << "Graph construction test failed!\n";
+	//	return graph_test_result;
+	//}
+	//else
+	//{
+	//	std::cerr << "Graph construction test passed.\n";
+	//}
+	//
+	//CollisionTest collTest;
+	//int coll_test_result = collTest.testAll("../scenes/castle/castle.obj");
+	//if (coll_test_result != 0)
+	//{
+	//	std::cerr << "Collision detection test failed!\n";
+	//	return coll_test_result;
+	//}
+	//else
+	//{
+	//	std::cerr << "Collision detection test passed. \n";
+	//}
 	
-	GraphTest graphTest;
-	int graph_test_result = graphTest.testAll(1000);
-	//graphTest.testAll(1000);
-	
-	if (graph_test_result != 0)
-	{
-		std::cerr << "Graph construction test failed!\n";
-		return graph_test_result;
-	}
-	else
-	{
-		std::cerr << "Graph construction test passed.\n";
-	}
-	
-	CollisionTest collTest;
-	int coll_test_result = collTest.testAll("../scenes/castle/castle.obj");
-	if (coll_test_result != 0)
-	{
-		std::cerr << "Collision detection test failed!\n";
-		return coll_test_result;
-	}
-	else
-	{
-		std::cerr << "Collision detection test passed. \n";
-	}
-	
-	std::cerr << "---------------------------------------------------------------------\n";
-	const char* obj2strTestFile = "../scenes/church/church.obj";
-	std::cerr << obj2strTestFile << " converted to \n"
-		<< WFObjectToString(obj2strTestFile) << "\n";
+	//std::cerr << "---------------------------------------------------------------------\n";
+	//const char* obj2strTestFile = "../scenes/church/church.obj";
+	//std::cerr << obj2strTestFile << " converted to \n"
+	//	<< WFObjectToString(obj2strTestFile) << "\n";
 
 
-	const char* variationFile1 = "../scenes/church/test/c19.obj";
-	const char* variationFile2 = "../scenes/church/test/c28.obj";
-	//const char* variationFile1 = "../scenes/skyscraper/v01.obj";
-	//const char* variationFile2 = "../scenes/skyscraper/v02.obj";
+	////const char* variationFile1 = "../scenes/church/test/c19.obj";
+	////const char* variationFile2 = "../scenes/church/test/c28.obj";
+	////const char* variationFile1 = "../scenes/skyscraper/v01.obj";
+	////const char* variationFile2 = "../scenes/skyscraper/v02.obj";
 	//const char* variationFile1 = "../scenes/playground/v001.obj";
 	//const char* variationFile2 = "../scenes/playground/v002.obj";
-	//const char* variationFile1 = "../scenes/moon_base/variant_01.obj";
-	//const char* variationFile2 = "../scenes/moon_base/variant_02.obj";
+	////const char* variationFile1 = "../scenes/moon_base/variant_01.obj";
+	////const char* variationFile2 = "../scenes/moon_base/variant_02.obj";
 
-	ShapeVariationTest variationTest;
-	int var_test_result = variationTest.testAll(variationFile1, variationFile2);
-	if (var_test_result != 0)
-	{
-		std::cerr << "Shape variation test failed!\n";
-		return var_test_result;
-	}
-	else
-	{
-		std::cerr << "Shape variation test passed. \n";
-	}
+	//ShapeVariationTest variationTest;
+	//int var_test_result = variationTest.testAll(variationFile1, variationFile2);
+	//if (var_test_result != 0)
+	//{
+	//	std::cerr << "Shape variation test failed!\n";
+	//	return var_test_result;
+	//}
+	//else
+	//{
+	//	std::cerr << "Shape variation test passed. \n";
+	//}
 
 
 	//const char* wiggleFile1 = "../scenes/wiggle_test/v001.obj";

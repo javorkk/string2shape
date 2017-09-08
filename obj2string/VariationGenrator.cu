@@ -13,6 +13,8 @@
 #include "CollisionDetector.h"
 #include "CollisionGraphExporter.h"
 
+#include "Wiggle.h"
+
 #include "DebugUtils.h"
 #include "Timer.h"
 
@@ -795,6 +797,14 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	grammarCheck.init(graph2Intervals, graph2NbrIds, nodeTypes2Host);
 	grammarCheck.init(graph1Intervals, graph1NbrIds, nodeTypes1Host);
 
+
+	Wiggle wiggle;
+	if (fixVariation)
+	{
+		wiggle.init(aObj1, aGraph1);
+		wiggle.init(aObj2, aGraph2);
+	}
+
 	numVariations = 0u;
 
 	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
@@ -1067,6 +1077,19 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			collisionTime += intermTimer.get();
 			intermTimer.start();
 			///////////////////////////////////////////////////////////////////////////////////
+			//Try fixing relative part orientations
+			if (fixVariation)
+			{
+				for (size_t i = 0; i < 128u; ++i)
+				{
+					wiggle.fixRelativeTransformations(variation, variationGraph);
+					if (wiggle.numCorrections == 0u)
+						break;
+				}
+				if (wiggle.numCorrections != 0u)
+					variationGraph = detector.computeCollisionGraph(variation, aRelativeThreshold);
+			}
+			///////////////////////////////////////////////////////////////////////////////////
 			//Check that the variation graph is valid
 			thrust::host_vector<unsigned int> nodeTypesVariation(variationGraph.numNodes());
 			for (size_t nodeId = 0; nodeId < variationGraph.numNodes(); ++nodeId)
@@ -1076,7 +1099,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 				nodeTypesVariation[nodeId] = (unsigned int)materialId;
 			}
 			thrust::host_vector<unsigned int> hostIntervals(variationGraph.intervals);
-			thrust::host_vector<unsigned int> hostNbrIds(variationGraph.adjacencyVals);
+			thrust::host_vector<unsigned int> hostNbrIds(variationGraph.adjacencyVals);			
+
 			if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
 			{
 				//variationGraph = detector.computeCollisionGraph(variation, std::max(aRelativeThreshold, 0.02f));

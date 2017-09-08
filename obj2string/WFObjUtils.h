@@ -77,4 +77,10 @@ public:
 
 };
 
+class WFObjectSanityTest
+{
+public:
+	__host__ bool operator()(const WFObject& aObj) const;
+};
+
 #endif //WFOBJUTILS_H_2CF02B80_6A49_4293_B9A9_077F0C467114

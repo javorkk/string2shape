@@ -356,3 +356,8 @@ __host__ void ExtremeVertexUnpacker::operator()(const WFObject & aObj, thrust::h
 	oVertices.resize(extremeVertices.size());
 	thrust::copy(extremeVertices.begin(), extremeVertices.end(), oVertices.begin());
 }
+
+__host__ bool WFObjectSanityTest::operator()(const WFObject & aObj) const
+{
+	return aObj.getNumVertices() > 0u && aObj.getNumFaces() > 0u && aObj.getNumObjects() > 0u && aObj.getNumMaterials() > 1u;
+}

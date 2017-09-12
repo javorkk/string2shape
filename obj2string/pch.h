@@ -31,6 +31,9 @@
 #include <vector>
 #include <map>
 
+#include <chrono>
+#include <random>
+
 #ifdef _WIN32
 #   define FORCE_INLINE __forceinline__
 #else

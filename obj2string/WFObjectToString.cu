@@ -84,6 +84,7 @@ extern "C" {
 		VariationGenerator genRandVariation;
 		genRandVariation.writeVariationGraphs = false;
 		genRandVariation.writeVariations = true;
+		//genRandVariation.fixVariation = true;
 
 		std::string result = genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.0f);
 
@@ -158,7 +159,7 @@ extern "C" {
 
 	}
 
-	int fixVariation(const char * aFileName1, const char* aFileName2, const char* aFileName3, const char* aOutFileName)
+	__host__ int fixVariation(const char * aFileName1, const char* aFileName2, const char* aFileName3, const char* aOutFileName)
 	{
 		WFObject obj1;
 		obj1.read(aFileName1);
@@ -198,7 +199,7 @@ extern "C" {
 		wiggle.init(obj1, graph1);
 		wiggle.init(obj2, graph2);
 
-		for (size_t i = 0; i < 64u; ++i)
+		for (size_t i = 0; i < 128u; ++i)
 		{
 			wiggle.fixRelativeTransformations(obj3, graph3);
 			if (wiggle.numCorrections == 0u)
@@ -211,17 +212,17 @@ extern "C" {
 
 		if (grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
 		{
-			//std::string fileName3(aFileName3);
-			//if (fileName3.find_last_of("/\\") == std::string::npos)
-			//	fileName3 = fileName3.substr(0, fileName3.size() - 5);
-			//else
-			//	fileName3 = fileName3.substr(fileName3.find_last_of("/\\") + 1, fileName3.size() - fileName3.find_last_of("/\\") - 5);
+			std::string outFileName(aOutFileName);
+			if (outFileName.find_last_of("/\\") == std::string::npos)
+				outFileName = outFileName.substr(0, outFileName.size() - 5);
+			else
+				outFileName = outFileName.substr(outFileName.find_last_of("/\\") + 1, outFileName.size() - outFileName.find_last_of("/\\") - 5);
 
-			//std::string objDir = getDirName(aFileName3);
-			//std::string fixedFilePath = objDir + fileName3 + "_fixed";
+			std::string objDir = getDirName(aFileName3);
+			std::string fixedFilePath = objDir + outFileName;
 
 			WFObjectFileExporter   objExporter;
-			objExporter(obj3, aOutFileName);
+			objExporter(obj3, fixedFilePath.c_str());
 		}
 		else
 		{

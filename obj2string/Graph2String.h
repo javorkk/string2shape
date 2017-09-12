@@ -20,7 +20,7 @@ class GraphToStringConverter
 	std::string mBranchEnd;
 	std::string mNumberSeparator;
 public:
-	GraphToStringConverter()
+	__host__  GraphToStringConverter()
 	{
 		mBranchStart = std::string("(");
 		mBranchEnd = std::string(")");
@@ -101,7 +101,7 @@ class GrammarCheck
 	std::set< std::pair<unsigned int, unsigned int> > mNeighborTypes;
 	std::set< std::pair<unsigned int, std::vector<unsigned int> > > mNeighborTypeCounts;
 public:
-	GrammarCheck():mNumTypes(0u)
+	__host__ GrammarCheck():mNumTypes(0u)
 	{}
 
 	__host__ void init(

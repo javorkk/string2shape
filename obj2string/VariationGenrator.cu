@@ -548,6 +548,8 @@ public:
 		//Compute the means of the border node locations
 		float3 center1 = make_float3(0.f, 0.f, 0.f);
 		float3 center2 = make_float3(0.f, 0.f, 0.f);
+		float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
+		float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 		float numPoints = 0.f;
 		for (unsigned int i = 0u; i < subgraphSize; ++i)
 		{
@@ -565,6 +567,12 @@ public:
 						center1 += vertexBuffer1[vtxRange1.x + vtxId];
 						center2 += vertexBuffer2[vtxRange2.x + vtxId];
 						numPoints += 1.f;
+
+						minBound = min(minBound, vertexBuffer1[vtxRange1.x + vtxId]);
+						minBound = min(minBound, vertexBuffer2[vtxRange2.x + vtxId]);
+
+						maxBound = max(maxBound, vertexBuffer1[vtxRange1.x + vtxId]);
+						maxBound = max(maxBound, vertexBuffer2[vtxRange2.x + vtxId]);
 					}
 				}
 				else //use object centers instead
@@ -572,11 +580,20 @@ public:
 					center1 += positions1[nodeIds1[subgraphStartLocation + i]];
 					center2 += positions2[nodeIds2[subgraphStartLocation + i]];
 					numPoints += 1.f;
+
+					minBound = min(minBound, positions1[nodeIds1[subgraphStartLocation + i]]);
+					minBound = min(minBound, positions2[nodeIds2[subgraphStartLocation + i]]);
+
+					maxBound = max(maxBound, positions1[nodeIds1[subgraphStartLocation + i]]);
+					maxBound = max(maxBound, positions2[nodeIds2[subgraphStartLocation + i]]);
+
 				}//end if use object vertices or object centers
 			}
 		}
 		center1 /= numPoints;
 		center2 /= numPoints;
+
+		const float diagonal = len(maxBound - minBound);
 
 		//Compute covariance matrix
 		double* covMat = thrust::raw_pointer_cast(tmpCovMatrix + aId * 3 * 3);
@@ -653,7 +670,6 @@ public:
 			vMat[row * 3 + 2] = tmp[2];
 		}
 
-
 		double rotDet = determinantd(
 			vMat[0], vMat[3], vMat[6],
 			vMat[1], vMat[4], vMat[7],
@@ -671,12 +687,31 @@ public:
 		if (fabs(rotDet - 1.0) > 0.01 )
 			outValidSubgraphFlags[aId] = 0u;
 
-
 		quaternion4f rotation(
 			(float)vMat[0], (float)vMat[3], (float)vMat[6],
 			(float)vMat[1], (float)vMat[4], (float)vMat[7],
 			(float)vMat[2], (float)vMat[5], (float)vMat[8]
 		);
+
+		const float spatialTolerance = 0.01f * diagonal;
+		bool valid = true;
+		for (unsigned int i = 0u; i < subgraphSize && valid; ++i)
+		{
+			if (borderNodeFlags[subgraphStartLocation + i] != 0u)
+			{
+				float3 vtx1 = positions1[nodeIds1[subgraphStartLocation + i]];
+				float3 vtx2 = positions2[nodeIds2[subgraphStartLocation + i]];
+				vtx2 = transformVec(rotation, vtx2 - center2) + center1;
+
+				if (len(vtx1 - vtx2) > spatialTolerance)
+					valid = false;
+			}
+		}
+
+		if (!valid)
+			outValidSubgraphFlags[aId] = 0u;
+
+
 		outTranslation1[aId] = center1;
 		outTranslation2[aId] = center2;
 		outRotation2[aId] = rotation;

@@ -141,7 +141,7 @@ public:
 	bool writeVariationGraphs; //write out the graphs of the generated variations
 	bool multiString;  //return single or multiple SMILES strings per variation
 	bool fixVariation; //try to repair relative part orientation in the variation
-	VariationGenerator() : 
+	__host__ VariationGenerator() : 
 		writeVariations(false), 
 		writeVariationGraphs(true), 
 		multiString(true),

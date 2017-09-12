@@ -239,7 +239,7 @@ namespace svd
 
 		for (k = nCols - 1; k >= 0; k--)
 		{
-			for (its = 0; its < 30; its++)
+			for (its = 0; its < 64; its++)
 			{
 				flag = 1;
 				for (l = k; l >= 0; l--)

@@ -37,16 +37,43 @@ def augment_folder(file_list=[], word_list=[]):
             if(len(str(w)) <= MAX_WORD_LENGTH and len(str(w)) > 0):
                 word_list.append(str(w))
 
+def fix_variations(folder_name, exclude_file_list, inputA, inputB):
+    for item_name in os.listdir(folder_name):
+        subfolfer_name = os.path.join(folder_name, item_name)
+        if os.path.isdir(subfolfer_name):
+            process_folder(subfolfer_name, word_list)
+        if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
+            file_path = folder_name + "/" + item_name
+            if file_path != inputA and file_path != inputB and file_path not in exclude_file_list:
+                fixed = obj_tools.fix_variation(inputA, inputB, file_path, file_path)
+                if fixed != 0:
+                    fixed = obj_tools.fix_variation(inputA, inputB, file_path, file_path)
+                    if fixed != 0:
+                        os.remove(file_path)
+                        base_path, extension = os.path.splitext(file_path)
+                        os.remove(base_path + ".mtl")
+
+
 def main():
     args = get_arguments()
+    
+    initial_file_list = []
+    process_folder(args.in_folder, initial_file_list)
+    if len(initial_file_list) == 0:
+        print("Did not find a valid input file in " + args.in_folder)
+        exit()
+
+    inputA = initial_file_list[0]
+    inputB = initial_file_list[len(initial_file_list) - 1]
 
     initial_smiles_strings = []
     for i in range(args.num_iterations):
-        initial_file_list = []
-        process_folder(args.in_folder, initial_file_list)
+        current_file_list = []
+        process_folder(args.in_folder, current_file_list)
         initial_smiles_strings = []
-        augment_folder(initial_file_list, initial_smiles_strings)
+        augment_folder(current_file_list, initial_smiles_strings)
         initial_smiles_strings = list(set(initial_smiles_strings))
+        fix_variations(args.in_folder, initial_file_list,  inputA, inputB)
         print("Iteration " + str(i) +" # of strings: " + str(len(initial_smiles_strings)))
 
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)

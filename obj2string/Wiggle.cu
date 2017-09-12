@@ -275,6 +275,8 @@ public:
 
 __host__ void Wiggle::init(WFObject & aObj, Graph & aGraph)
 {
+	seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
+
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj, minBound, maxBound);
 	spatialTolerance = std::max(0.01f * len(maxBound - minBound), spatialTolerance);
@@ -438,8 +440,14 @@ __host__ void Wiggle::fixRelativeTransformations(WFObject & aObj, Graph & aGraph
 		nodeTypesHost[nodeId] = (unsigned int)materialId;
 	}
 
+
 	if (seedNodeId >= (unsigned int)numNodes)
-		seedNodeId = rand() % (int)numNodes;
+	{
+		std::default_random_engine generator(seed);
+		std::uniform_int_distribution<unsigned int> distribution(0u, (unsigned int)numNodes - 1u);
+		seedNodeId = distribution(generator);
+	}
+		
 
 
 	std::deque<unsigned int> frontier;

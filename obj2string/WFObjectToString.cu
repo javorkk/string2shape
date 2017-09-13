@@ -159,7 +159,7 @@ extern "C" {
 
 	}
 
-	__host__ int fixVariation(const char * aFileName1, const char* aFileName2, const char* aFileName3, const char* aOutFileName)
+	int fixVariation(const char * aFileName1, const char* aFileName2, const char* aFileName3, const char* aOutFileName)
 	{
 		WFObject obj1;
 		obj1.read(aFileName1);
@@ -198,6 +198,7 @@ extern "C" {
 		Wiggle wiggle;
 		wiggle.init(obj1, graph1);
 		wiggle.init(obj2, graph2);
+		//wiggle.debugOutputLocalFrames = true;
 
 		for (size_t i = 0; i < 128u; ++i)
 		{
@@ -210,7 +211,7 @@ extern "C" {
 		hostIntervals = thrust::host_vector<unsigned int>(modifiedGraph.intervals);
 		hostNbrIds = thrust::host_vector<unsigned int>(modifiedGraph.adjacencyVals);
 
-		if (grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
+		if (wiggle.debugOutputLocalFrames || grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
 		{
 			std::string outFileName(aOutFileName);
 			if (outFileName.find_last_of("/\\") == std::string::npos)
@@ -246,7 +247,14 @@ extern "C" {
 				1761919u + tId * 2746753u * aConst1,
 				331801u + tId,
 				10499029u);
-
+			bool between0000_0125 = false;
+			bool between0125_0025 = false;
+			bool between0250_0375 = false;
+			bool between0375_0500 = false;
+			bool between0500_0625 = false;
+			bool between0625_0750 = false;
+			bool between0750_0875 = false;
+			bool between0875_1000 = false;
 			for (unsigned int testId = 0u; testId < 10000u; ++testId)
 			{
 				const float r = genRand();
@@ -261,6 +269,52 @@ extern "C" {
 					std::cerr << "Random number " << r << " > 1\n";
 					return 2;
 				}
+
+				if (r < 0.125f)
+				{
+					between0000_0125 = true;
+				}
+				else if (r < 0.25f)
+				{
+					between0125_0025 = true;
+				}
+				else if (r < 0.375f)
+				{
+					between0250_0375 = true;
+				}
+				else if (r < 0.5f)
+				{
+					between0375_0500 = true;
+				}
+				else if (r < 0.625f)
+				{
+					between0500_0625 = true;
+				}
+				else if (r < 0.75f)
+				{
+					between0625_0750 = true;
+				}
+				else if (r < 0.875f)
+				{
+					between0750_0875 = true;
+				}
+				else
+				{
+					between0875_1000 = true;
+				}
+			}
+
+			if (!(between0000_0125
+				&& between0125_0025
+				&& between0250_0375
+				&& between0375_0500
+				&& between0500_0625
+				&& between0625_0750
+				&& between0750_0875
+				&& between0875_1000))
+			{
+				std::cerr << "Failed to cover each of eight bins [0,1] with 10000 samples.\n";
+				return 3;
 			}
 		}
 

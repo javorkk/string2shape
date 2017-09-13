@@ -158,8 +158,10 @@ public:
 
 		if (USE_PCA)
 		{
+			//TODO: covMat currently is transpose(X)*X. We need SVD(X) instead
+
 			//Compute covariance matrix
-			double* covMat = thrust::raw_pointer_cast(tmpCovMatrix + aId * 3 * 3);
+			double* covMat = tmpCovMatrix + aId * 3;
 			for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
 			{
 				float3 vec1 = vertexBuffer[vtxRange.x + vtxId] - center;
@@ -178,9 +180,9 @@ public:
 			}
 
 			//Singular Value Decomposition
-			double* diag = thrust::raw_pointer_cast(tmpDiagonalW + aId * 3);
-			double* vMat = thrust::raw_pointer_cast(tmpMatrixV + aId * 3 * 3);
-			double* tmp = thrust::raw_pointer_cast(tmpVecRV + aId * 3);
+			double* diag = tmpDiagonalW + aId * 3;
+			double* vMat = tmpMatrixV + aId * 3 * 3;
+			double* tmp = tmpVecRV + aId * 3;
 
 			svd::svdcmp(covMat, 3, 3, diag, vMat, tmp);
 
@@ -194,13 +196,13 @@ public:
 				col0.z, col1.z, col2.z
 			);
 
-			//if (rotDet < 0.f)
-			//{
-			//	vMat[0] = -vMat[0];
-			//	vMat[1] = -vMat[1];
-			//	vMat[2] = -vMat[2];
-			//	rotDet = -rotDet;
-			//}
+			if (rotDet < 0.f)
+			{
+				vMat[0] = -vMat[0];
+				vMat[1] = -vMat[1];
+				vMat[2] = -vMat[2];
+				rotDet = -rotDet;
+			}
 			if (fabsf(rotDet - 1.0f) <= 0.01f)
 			{
 				quaternion4f rotation(
@@ -208,7 +210,7 @@ public:
 					col0.y, col1.y, col2.y,
 					col0.z, col1.z, col2.z
 				);
-				outRotation[aId] = rotation;
+				outRotation[aId] = ~rotation;
 			}
 		}		
 	}
@@ -532,7 +534,11 @@ __host__ void Wiggle::processNeighbors(
 		estimateT(i);
 	}
 
-	//transformObj(aObj, nodeIds[0], translations[0], make_float3(0.f, 0.f, 0.f), rotations[0].conjugate());
+	if (debugOutputLocalFrames)
+	{
+		transformObj(aObj, nodeIds[0], translations[0], make_float3(0.f, 0.f, 0.f), rotations[0].conjugate());
+		return;
+	}
 
 	const unsigned int nodeId1 = nodeIds[0];
 
@@ -558,10 +564,10 @@ __host__ void Wiggle::processNeighbors(
 		const float angleDelta = fabsf(fabsf((bestR * relativeR.conjugate()).w) - 1.f);
 		if (angleDelta < angleTolerance)
 			continue;
-		float3 translateDelta = (1.f / 8.f) * transformVec(rot, bestT - relativeT);
+		float3 translateDelta = (0.25f) * transformVec(rot, bestT - relativeT);
 
 		transformObj(aObj, nodeId2, translations[i], translateDelta, rotations[i] * bestR * rot.conjugate());
-		
+
 		++numCorrections;
 	}
 

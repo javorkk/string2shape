@@ -31,13 +31,16 @@ public:
 	unsigned int seedNodeId;
 	float spatialTolerance;
 	float angleTolerance;
+	bool debugOutputLocalFrames;
 
 	__host__ Wiggle():
 		seed(123456u),
 		numCorrections(0u),
 		seedNodeId((unsigned)-1),
 		spatialTolerance(-0.001f),
-		angleTolerance(0.0038053019f)//1.f - cos(5)
+		angleTolerance(0.0038053019f),//1.f - cos(5)
+		//angleTolerance(0.055f),
+		debugOutputLocalFrames(false)
 	{}
 
 	__host__ void init(

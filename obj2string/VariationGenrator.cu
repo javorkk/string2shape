@@ -82,8 +82,8 @@ public:
 		unsigned int aId = (unsigned int)aId_s;
 
 		KISSRandomNumberGenerator genRand(
-			3643u + aId * 4154207u * subgraphsPerSeedNode + numSubgraphs,
-			1761919u + aId * 2746753u * subgraphsPerSeedNode ,
+			3643u + numSubgraphs * 4154207u * subgraphsPerSeedNode + aId,
+			1761919u + aId * 2746753u,
 			331801u + aId,
 			10499029u);
 
@@ -103,7 +103,6 @@ public:
 			for (unsigned int localNodeId = 0u; localNodeId < currentSize; ++localNodeId)
 			{
 				unsigned int nodeId = outNodeIds[subgraphStartLocation + localNodeId];
-				//const float numNbrsRCP = 1.f / (float)(adjIntervals[nodeId + 1u] - adjIntervals[nodeId]);
 				for (unsigned int localNeighborId = adjIntervals[nodeId]; localNeighborId < adjIntervals[nodeId + 1u]; ++localNeighborId)
 				{
 					unsigned int neighborId = neighborIds[localNeighborId];					
@@ -132,7 +131,11 @@ public:
 					if (!alreadyIncluded)
 					{
 						//randomly discard the neighbor node
-						alreadyIncluded = genRand() < 0.5f; // numNbrsRCP;
+						alreadyIncluded = genRand() < 0.5f;
+						
+						//const float numNbrsRCP = 1.f / (float)(adjIntervals[neighborId + 1u] - adjIntervals[neighborId]);
+						//alreadyIncluded = genRand() > numNbrsRCP;
+
 					}
 
 					if (!alreadyIncluded && neighborCount + currentSize < subgraphSize) //add to subgraph
@@ -448,8 +451,8 @@ public:
 		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
 		
 		KISSRandomNumberGenerator genRand(
-			3643u + 4154207u * graphSize2 + aId * aId,
-			1761919u + aId * 2746753u * graphSize1,
+			3643u + 4154207u * graphSize2 + aId,
+			1761919u + 2746753u * graphSize1,
 			331801u + aId,
 			10499029u);
 
@@ -842,7 +845,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 	numVariations = 0u;
 
-	const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
+	//const unsigned int numSubgraphSamples = 32u * (unsigned int)aGraph1.numNodes();// std::max(aGraph1.numNodes(), aGraph2.numNodes());
+	const unsigned int numSubgraphSamples = 2048;
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
@@ -1125,7 +1129,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 					variationGraph = detector.computeCollisionGraph(variation, aRelativeThreshold);
 			}
 			///////////////////////////////////////////////////////////////////////////////////
-			//Check that the variation graph is valid
+			//Check if the variation graph is valid
 			thrust::host_vector<unsigned int> nodeTypesVariation(variationGraph.numNodes());
 			for (size_t nodeId = 0; nodeId < variationGraph.numNodes(); ++nodeId)
 			{

@@ -558,6 +558,13 @@ void WFObject::loadWFObj(const char* aFileName)
         readMtlLib(mtlFileName, materials, materialMap);
     }
 
+	if (normals.size() <= 0u)
+	{
+		for (auto it = faces.begin(); it != faces.end(); it++)
+		{
+			it->norm1 = it->norm2 = it->norm3 = (size_t)-1;
+		}
+	}
 
     for (auto it = faces.begin(); it != faces.end(); it++)
     {

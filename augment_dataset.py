@@ -11,7 +11,7 @@ ITERATIONS = 2
 FIX_VARIATIONS = False
 
 def get_arguments():
-    parser = argparse.ArgumentParser(description="Wavefront .obj to SMILES string conversion")
+    parser = argparse.ArgumentParser(description="Wavefront .obj shape sampling and string conversion")
     parser.add_argument("in_folder", type=str, help="The folder containing the input .obj files.")
     parser.add_argument("out_filepath", type=str, help="The output file path in HDF5 format.")
     parser.add_argument("out_grammarpath", type=str, help="The tiling grammar export path in HDF5 format.")

@@ -79,33 +79,15 @@ __host__ WFObject WFObjectMerger::operator()(
 
 	WFObject obj;
 
-	obj.vertices.resize(aObj1.getNumVertices() + aObj2.getNumVertices());
-	for (size_t vtxId = 0u; vtxId < aObj1.getNumVertices(); ++vtxId)
-	{
-		obj.vertices[vtxId] = aObj1.vertices[vtxId] - aTranslation1;
-	}
-
-	for (size_t vtxId = 0u; vtxId < aObj2.getNumVertices(); ++vtxId)
-	{
-		obj.vertices[vtxId + aObj1.getNumVertices()] = transformVec(aRotation2,aObj2.vertices[vtxId] - aTranslation2);
-	}
-
-
-	obj.normals.resize(aObj1.getNumNormals() + aObj2.getNumNormals());
-	for (size_t nId = 0u; nId < aObj1.getNumNormals(); ++nId)
-	{
-		obj.normals[nId] = aObj1.normals[nId];
-	}
-
-	for (size_t nId = 0u; nId < aObj2.getNumNormals(); ++nId)
-	{
-		obj.normals[nId + aObj1.getNumNormals()] = transformVec(aRotation2, aObj2.normals[nId]);
-	}
-
-	//assume identical materials
+	//assume identical materials in aObj1 and aObj2
 	obj.materials.assign(aObj1.materials.begin(), aObj1.materials.end());
-	
-	int numFaces = 0;	
+
+	std::vector<size_t> vtxIndexMap1(aObj1.getNumVertices(), (size_t)-1);
+	std::vector<size_t> vtxIndexMap2(aObj2.getNumVertices(), (size_t)-1);
+	std::vector<size_t> normIndexMap1(aObj1.getNumNormals(), (size_t)-1);
+	std::vector<size_t> normIndexMap2(aObj2.getNumNormals(), (size_t)-1);
+
+	int numFaces = 0;
 	for (size_t obj1Id = 0; obj1Id < aObj1.objects.size(); ++obj1Id)
 	{
 		if (aFlags1[obj1Id] == 0u)
@@ -115,17 +97,53 @@ __host__ WFObject WFObjectMerger::operator()(
 			WFObject::Face face(&obj);
 			face.material = aObj1.faces[faceId].material;
 
-			face.vert1 = aObj1.faces[faceId].vert1;
-			face.vert2 = aObj1.faces[faceId].vert2;
-			face.vert3 = aObj1.faces[faceId].vert3;
+			size_t vtxId1 = aObj1.faces[faceId].vert1;
+			size_t vtxId2 = aObj1.faces[faceId].vert2;
+			size_t vtxId3 = aObj1.faces[faceId].vert3;
 
-			face.norm1 = aObj1.faces[faceId].norm1;
-			face.norm2 = aObj1.faces[faceId].norm2;
-			face.norm3 = aObj1.faces[faceId].norm3;
+			if (vtxIndexMap1[vtxId1] == (size_t)-1)
+			{
+				vtxIndexMap1[vtxId1] = obj.vertices.size();
+				obj.vertices.push_back(aObj1.vertices[vtxId1] - aTranslation1);
+			}
+			if (vtxIndexMap1[vtxId2] == (size_t)-1)
+			{
+				vtxIndexMap1[vtxId2] = obj.vertices.size();
+				obj.vertices.push_back(aObj1.vertices[vtxId2] - aTranslation1);
+			}
+			if (vtxIndexMap1[vtxId3] == (size_t)-1)
+			{
+				vtxIndexMap1[vtxId3] = obj.vertices.size();
+				obj.vertices.push_back(aObj1.vertices[vtxId3] - aTranslation1);
+			}
 
-			face.tex1 = aObj1.faces[faceId].tex1;
-			face.tex2 = aObj1.faces[faceId].tex2;
-			face.tex3 = aObj1.faces[faceId].tex3;
+			face.vert1 = vtxIndexMap1[vtxId1];
+			face.vert2 = vtxIndexMap1[vtxId2];
+			face.vert3 = vtxIndexMap1[vtxId3];
+
+			size_t normId1 = aObj1.faces[faceId].norm1;
+			size_t normId2 = aObj1.faces[faceId].norm2;
+			size_t normId3 = aObj1.faces[faceId].norm3;
+
+			if (normIndexMap1[normId1] == (size_t)-1)
+			{
+				normIndexMap1[normId1] = obj.normals.size();
+				obj.normals.push_back(transformVec(aRotation2.conjugate(), aObj1.normals[normId1]));
+			}
+			if (normIndexMap1[normId2] == (size_t)-1)
+			{
+				normIndexMap1[normId2] = obj.normals.size();
+				obj.normals.push_back(transformVec(aRotation2.conjugate(), aObj1.normals[normId2]));
+			}
+			if (normIndexMap1[normId3] == (size_t)-1)
+			{
+				normIndexMap1[normId3] = obj.normals.size();
+				obj.normals.push_back(transformVec(aRotation2.conjugate(), aObj1.normals[normId3]));
+			}
+
+			face.norm1 = normIndexMap1[normId1];
+			face.norm2 = normIndexMap1[normId2];
+			face.norm3 = normIndexMap1[normId3];
 
 			obj.faces.push_back(face);
 		}
@@ -146,7 +164,7 @@ __host__ WFObject WFObjectMerger::operator()(
 			if (aFlags1[obj1Id] == 0u)
 				continue;
 			size_t matId1 = aObj1.faces[aObj1.objects[obj1Id].x].material;
-			if (len((objCenters1[obj1Id] - aTranslation1 ) - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
+			if (len((objCenters1[obj1Id] - aTranslation1) - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
 				overlaps = true;
 		}
 		if (overlaps)
@@ -157,17 +175,53 @@ __host__ WFObject WFObjectMerger::operator()(
 			WFObject::Face face(&obj);
 			face.material = aObj2.faces[faceId].material;
 
-			face.vert1 = aObj2.faces[faceId].vert1 + aObj1.getNumVertices();
-			face.vert2 = aObj2.faces[faceId].vert2 + aObj1.getNumVertices();
-			face.vert3 = aObj2.faces[faceId].vert3 + aObj1.getNumVertices();
+			size_t vtxId1 = aObj2.faces[faceId].vert1;
+			size_t vtxId2 = aObj2.faces[faceId].vert2;
+			size_t vtxId3 = aObj2.faces[faceId].vert3;
 
-			face.norm1 = aObj2.faces[faceId].norm1 + aObj1.getNumNormals();
-			face.norm2 = aObj2.faces[faceId].norm2 + aObj1.getNumNormals();
-			face.norm3 = aObj2.faces[faceId].norm3 + aObj1.getNumNormals();
+			if (vtxIndexMap2[vtxId1] == (size_t)-1)
+			{
+				vtxIndexMap2[vtxId1] = obj.vertices.size();
+				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId1] - aTranslation2));
+			}
+			if (vtxIndexMap2[vtxId2] == (size_t)-1)
+			{
+				vtxIndexMap2[vtxId2] = obj.vertices.size();
+				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId2] - aTranslation2));
+			}
+			if (vtxIndexMap2[vtxId3] == (size_t)-1)
+			{
+				vtxIndexMap2[vtxId3] = obj.vertices.size();
+				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId3] - aTranslation2));
+			}
 
-			face.tex1 = aObj2.faces[faceId].tex1 + aObj1.getNumTexCoords();
-			face.tex2 = aObj2.faces[faceId].tex2 + aObj1.getNumTexCoords();
-			face.tex3 = aObj2.faces[faceId].tex3 + aObj1.getNumTexCoords();
+			face.vert1 = vtxIndexMap2[vtxId1];
+			face.vert2 = vtxIndexMap2[vtxId2];
+			face.vert3 = vtxIndexMap2[vtxId3];
+
+			size_t normId1 = aObj2.faces[faceId].norm1;
+			size_t normId2 = aObj2.faces[faceId].norm2;
+			size_t normId3 = aObj2.faces[faceId].norm3;
+
+			if (normIndexMap2[normId1] == (size_t)-1)
+			{
+				normIndexMap2[normId1] = obj.normals.size();
+				obj.normals.push_back(aObj2.normals[normId1]);
+			}
+			if (normIndexMap2[normId2] == (size_t)-1)
+			{
+				normIndexMap2[normId2] = obj.normals.size();
+				obj.normals.push_back(aObj2.normals[normId2]);
+			}
+			if (normIndexMap2[normId3] == (size_t)-1)
+			{
+				normIndexMap2[normId3] = obj.normals.size();
+				obj.normals.push_back(aObj2.normals[normId3]);
+			}
+
+			face.norm1 = normIndexMap2[normId1];
+			face.norm2 = normIndexMap2[normId2];
+			face.norm3 = normIndexMap2[normId3];
 
 			obj.faces.push_back(face);
 		}
@@ -191,7 +245,7 @@ __host__ void WFObjectFileExporter::operator()(const WFObject & aObj, const char
 
 	for (auto normalIt = aObj.normals.begin(); normalIt != aObj.normals.end(); ++normalIt)
 	{
-		output.writeVertex(normalIt->x, normalIt->y, normalIt->z);
+		output.writeVertexNormal(normalIt->x, normalIt->y, normalIt->z);
 	}
 
 	for (auto matIt = aObj.materials.begin(); matIt != aObj.materials.end(); ++matIt)
@@ -212,8 +266,14 @@ __host__ void WFObjectFileExporter::operator()(const WFObject & aObj, const char
 		{
 			//Assumes obj objects only consist of triangular faces
 			WFObject::Face face = aObj.getFace(face_id);
-			output.writeTriangleIndices(face.vert1, face.vert2, face.vert3,
-				face.norm1, face.norm2, face.norm3);
+			if (face.norm1 < aObj.normals.size() && face.norm2 < aObj.normals.size() && face.norm3 < aObj.normals.size())
+			{
+				output.writeTriangleIndices(face.vert1, face.vert2, face.vert3, face.norm1, face.norm2, face.norm3);
+			}
+			else
+			{
+				output.writeTriangleIndices((int)face.vert1, (int)face.vert2, (int)face.vert3);
+			}
 
 		}
 	}

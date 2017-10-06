@@ -48,6 +48,7 @@ public:
 class SubgraphInitializer
 {
 public:
+	unsigned int seed;
 	unsigned int graphSize;
 	unsigned int subgraphSize;
 	unsigned int numSubgraphs;
@@ -60,6 +61,7 @@ public:
 	thrust::device_ptr<unsigned int> outBorderNodeFlags;
 
 	SubgraphInitializer(
+		unsigned int aRndSeed,
 		unsigned int aGraphSize,
 		unsigned int aSampleSize,
 		unsigned int aNumSamples,
@@ -67,7 +69,9 @@ public:
 		thrust::device_ptr<unsigned int> aNeighborIds,
 		thrust::device_ptr<unsigned int> outIds,
 		thrust::device_ptr<unsigned int> outFlags
-		) : graphSize(aGraphSize),
+		) : 
+		seed(aRndSeed),
+		graphSize(aGraphSize),
 		subgraphSize(aSampleSize),
 		numSubgraphs(aNumSamples),
 		subgraphsPerSeedNode(aNumSamples / aGraphSize),
@@ -82,8 +86,8 @@ public:
 		unsigned int aId = (unsigned int)aId_s;
 
 		KISSRandomNumberGenerator genRand(
-			3643u + numSubgraphs * 4154207u * subgraphsPerSeedNode + aId,
-			1761919u + aId * 2746753u,
+			3643u + seed + aId,
+			1761919u + aId * seed,
 			331801u + aId,
 			10499029u);
 
@@ -217,6 +221,7 @@ public:
 class CutMatching
 {
 public:
+	unsigned int seed;
 	unsigned int graphSize1;
 	unsigned int graphSize2;
 	unsigned int subgraphSize;
@@ -245,6 +250,7 @@ public:
 	thrust::device_ptr<unsigned int> outValidSubgraphFlags;
 
 	CutMatching(
+		unsigned int aRndSeed,
 		unsigned int aGraphSize1,
 		unsigned int aGraphSize2,
 		unsigned int aSampleSize,
@@ -261,7 +267,8 @@ public:
 		thrust::device_ptr<float> outMatrix,
 		thrust::device_ptr<float> outSizes,
 		thrust::device_ptr<unsigned int> outSubgraphFlags
-	) : graphSize1(aGraphSize1),
+	) : seed(aRndSeed),
+		graphSize1(aGraphSize1),
 		graphSize2(aGraphSize2),
 		subgraphSize(aSampleSize),
 		numSubgraphs(aNumSamples),
@@ -451,9 +458,9 @@ public:
 		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
 		
 		KISSRandomNumberGenerator genRand(
-			3643u + 4154207u * graphSize2 + aId,
-			1761919u + 2746753u * graphSize1,
-			331801u + aId,
+			3643u + seed + aId * aId,
+			seed,
+			331801u + aId * seed,
 			10499029u);
 
 		unsigned int offset = (unsigned int)(genRand() * (float)graphSize2);
@@ -741,6 +748,14 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	else
 		fileName2 = fileName2.substr(fileName2.find_last_of("/\\") + 1, fileName2.size() - fileName2.find_last_of("/\\") - 5);
 
+	std::string shortName1(fileName1);
+	if (fileName1.length() >= 32)
+		shortName1 = fileName1.substr(0u, 12u) + std::string("...") + fileName1.substr(fileName1.size() - 12u);
+
+	std::string shortName2(fileName2);
+	if (fileName2.length() >= 32)
+		shortName2 = fileName2.substr(0u, 12u) + std::string("...") + fileName2.substr(fileName2.size() - 12u);
+
 	if (aGraph1.numNodes() < 9u || aGraph2.numNodes() < 9u)
 		return "";
 
@@ -788,7 +803,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj1, minBound, maxBound);
 	const float boundsDiagonal = len(maxBound - minBound);
-	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.1f);
+	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.05f);
 	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 
@@ -853,7 +868,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		subgraphSampleSize <= (unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
-		std::cout << "Mixing " << fileName1 << " and " << fileName2 << " subgraph size : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
+		std::cout << "Mixing " << shortName1 << " and " << shortName2 << " subgraph size : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
 
 		if (subgraphSampleSize < 3)
 			continue;
@@ -865,6 +880,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		thrust::device_vector<unsigned int> subgraphBorderFlags2(numSubgraphSamples * subgraphSampleSize);
 
 		SubgraphInitializer initSubgraphSamples(
+			(unsigned int)std::chrono::system_clock::now().time_since_epoch().count(),
 			(unsigned int)objCenters1.size(),
 			subgraphSampleSize,
 			numSubgraphSamples,
@@ -890,6 +906,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		thrust::device_vector<unsigned int> validSubgraphFlags(numSubgraphSamples, 0u);
 
 		CutMatching matchCuts(
+			(unsigned int)std::chrono::system_clock::now().time_since_epoch().count(),
 			(unsigned int)objCenters1.size(),
 			(unsigned int)objCenters2.size(),
 			subgraphSampleSize,

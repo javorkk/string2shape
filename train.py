@@ -77,8 +77,6 @@ def main():
     )
 
     # summarize history for loss
-    plt.plot(history.history['val_t_loss'])
-    plt.plot(history.history['val_c_loss'])
     plt.plot(history.history['val_loss'])
     plt.title('model loss')
     plt.ylabel('loss')

@@ -67,36 +67,40 @@ def main():
         print("Did not find a valid input file in " + args.in_folder)
         exit()
 
+    if len(initial_file_list) == 1:
+        initial_file_list.append(initial_file_list[0])
+
     inputA = initial_file_list[0]
     inputB = initial_file_list[len(initial_file_list) - 1]
 
     initial_smiles_strings = []
-    for i in range(args.num_iterations):
-        current_file_list = []
-        process_folder(args.in_folder, current_file_list)
-        initial_smiles_strings = []
-        augment_folder(current_file_list, initial_smiles_strings)
-        initial_smiles_strings = list(set(initial_smiles_strings))
-        if FIX_VARIATIONS:
-            fix_variations(args.in_folder, initial_file_list,  inputA, inputB)
-        print("Iteration " + str(i) +" # of strings: " + str(len(initial_smiles_strings)))
+    initial_smiles_strings.append(str(obj_tools.obj2string(inputA)))
+    initial_smiles_strings.append(str(obj_tools.obj2string(inputB)))
 
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
     print("max # neighbors: " + str(tile_grammar.max_degree()))
     tile_grammar.store(args.out_grammarpath)
-    #loaded_grammar = grammar.TilingGrammar([])
-    #loaded_grammar.load(args.out_grammarpath)
-    #for w in initial_smiles_strings:
-    #    if(loaded_grammar.check_word(w) == False):
-    #        print("Wrongly detected as invalid " + w)
-    #    one_hot_vec = loaded_grammar.encode_to_one_hot(w, 120)
-    #    valid_vec = loaded_grammar.check_one_hot(one_hot_vec)
-    #    if not valid_vec:
-    #        print("Wrongly detected as invalid ")
-    #        print(loaded_grammar.print_one_hot(one_hot_vec))        
 
-    print("# items: " + str(len(initial_smiles_strings)))
-    df = pandas.DataFrame({args.smiles_column : initial_smiles_strings})
+    smiles_strings = []
+    for i in range(args.num_iterations):
+        current_file_list = []
+        process_folder(args.in_folder, current_file_list)        
+        augment_folder(current_file_list, smiles_strings)
+        smiles_strings = list(set(smiles_strings))
+        if FIX_VARIATIONS:
+            fix_variations(args.in_folder, initial_file_list,  inputA, inputB)
+        print("Iteration " + str(i) +" # of strings: " + str(len(smiles_strings)))
+
+    loaded_grammar = grammar.TilingGrammar([])
+    loaded_grammar.load(args.out_grammarpath)
+    
+    valid_strings = []
+    for w in smiles_strings:
+        if(loaded_grammar.check_word(w) == True):
+            valid_strings.append(w)      
+
+    print("# valid items: " + str(len(valid_strings)))
+    df = pandas.DataFrame({args.smiles_column : valid_strings})
     df.to_hdf(args.out_filepath, "table", format = "table", data_columns = True)
 
 if __name__ == "__main__":

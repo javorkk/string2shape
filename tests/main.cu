@@ -90,6 +90,8 @@ int main()
 	const char* variationFile2 = "../scenes/church/test/c28.obj";
 	//const char* variationFile1 = "../scenes/test_skyscraper/v01.obj";
 	//const char* variationFile2 = "../scenes/test_skyscraper/v02.obj";
+	//const char* variationFile1 = "../scenes/test_sand_castle/v01.obj";
+	//const char* variationFile2 = "../scenes/test_sand_castle/v02.obj";
 	//const char* variationFile1 = "../scenes/test_playground/v001.obj";
 	//const char* variationFile2 = "../scenes/test_playground/v002.obj";
 	//const char* variationFile1 = "../scenes/moon_base/variant_01.obj";

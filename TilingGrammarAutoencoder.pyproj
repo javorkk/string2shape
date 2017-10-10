@@ -17,7 +17,7 @@
     <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
     <InterpreterVersion>2.7</InterpreterVersion>
     <CommandLineArguments>data\church_cycles\encoded_cycles.h5 data\church_cycles\model_400k.h5  data\church_cycles\grammar.h5 --target decoder_lerp --sample 10</CommandLineArguments>
-    <InterpreterId>{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}</InterpreterId>
+    <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
     <InterpreterVersion>2.7</InterpreterVersion>
     <CommandLineArguments>scenes\church\test data\church_test\data.h5 data\church_test\grammar.h5 --num_iterations=3</CommandLineArguments>
   </PropertyGroup>

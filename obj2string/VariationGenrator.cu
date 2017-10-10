@@ -86,9 +86,9 @@ public:
 		unsigned int aId = (unsigned int)aId_s;
 
 		KISSRandomNumberGenerator genRand(
-			3643u + seed + aId,
+			3643u + seed + aId * aId,
 			1761919u + aId * seed,
-			331801u + aId,
+			seed,
 			10499029u);
 
 		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
@@ -803,7 +803,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj1, minBound, maxBound);
 	const float boundsDiagonal = len(maxBound - minBound);
-	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.05f);
+	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.15f);
 	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 

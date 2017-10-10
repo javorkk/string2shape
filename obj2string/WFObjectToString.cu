@@ -152,6 +152,7 @@ extern "C" {
 
 		VariationGenerator genRandVariation;
 		genRandVariation.writeVariations = true;
+		//genRandVariation.fixVariation = true;
 		genRandVariation(aFileName1, aFileName2, obj1, obj2, graph1, graph2, 0.0f);
 		genRandVariation.stats();
 
@@ -238,15 +239,16 @@ extern "C" {
 
 	int testRandomNumberGenerator()
 	{
-		const unsigned int aConst1 = 101;
+		const unsigned int aConst1 = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
 		const unsigned int aConst2 = 22;
 		for (unsigned int tId = 0u; tId < 500u; ++tId)
 		{
 			KISSRandomNumberGenerator genRand(
-				3643u + tId * 4154207u * aConst1 + aConst2,
-				1761919u + tId * 2746753u * aConst1,
-				331801u + tId,
+				3643u + aConst1 + aConst2 * aConst2,
+				aConst1,
+				331801u + aConst2 * aConst1,
 				10499029u);
+
 			bool between0000_0125 = false;
 			bool between0125_0025 = false;
 			bool between0250_0375 = false;

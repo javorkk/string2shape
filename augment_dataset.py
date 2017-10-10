@@ -8,7 +8,6 @@ import neuralnets.grammar as grammar
 SMILES_COL_NAME = "structure"
 MAX_WORD_LENGTH = 120
 ITERATIONS = 2
-FIX_VARIATIONS = False
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="Wavefront .obj shape sampling and string conversion")
@@ -17,8 +16,8 @@ def get_arguments():
     parser.add_argument("out_grammarpath", type=str, help="The tiling grammar export path in HDF5 format.")
     parser.add_argument('--num_iterations', type=int, metavar='N', default=ITERATIONS, help="Number of iterations for creating random variations out of pairs of objects in the input folder.")
     parser.add_argument("--smiles_column", type=str, default = SMILES_COL_NAME, help="Name of the column that contains the SMILES strings. Default: %s" % SMILES_COL_NAME)
-    parser.add_argument('--fix_variations', dest='FIX_VARIATIONS', action='store_true')
-    parser.set_defaults(FIX_VARIATIONS=False)
+    parser.add_argument('--fix_variations', dest='fix_variations', action='store_true',
+                        help='Try to fix local part orientations and remove variations if attempt fails.')
 
     return parser.parse_args()
 
@@ -84,11 +83,13 @@ def main():
     smiles_strings = []
     for i in range(args.num_iterations):
         current_file_list = []
-        process_folder(args.in_folder, current_file_list)        
+        process_folder(args.in_folder, current_file_list)
+        print("Current # of variations: " + str(len(current_file_list)))        
         augment_folder(current_file_list, smiles_strings)
         smiles_strings = list(set(smiles_strings))
-        if FIX_VARIATIONS:
-            fix_variations(args.in_folder, initial_file_list,  inputA, inputB)
+        if args.fix_variations:
+            print("fixing variations...")
+            fix_variations(args.in_folder, current_file_list,  inputA, inputB)
         print("Iteration " + str(i) +" # of strings: " + str(len(smiles_strings)))
 
     loaded_grammar = grammar.TilingGrammar([])

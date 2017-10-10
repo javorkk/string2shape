@@ -81,7 +81,6 @@ def main():
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['type', 'connectivity', 'combined'], loc='upper left')
     plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
 if __name__ == '__main__':

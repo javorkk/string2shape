@@ -135,10 +135,10 @@ public:
 					if (!alreadyIncluded)
 					{
 						//randomly discard the neighbor node
-						alreadyIncluded = genRand() < 0.5f;
+						//alreadyIncluded = genRand() < 0.5f;
 						
-						//const float numNbrsRCP = 1.f / (float)(adjIntervals[neighborId + 1u] - adjIntervals[neighborId]);
-						//alreadyIncluded = genRand() > numNbrsRCP;
+						const float numNbrsRCP = 1.f / (float)(adjIntervals[neighborId + 1u] - adjIntervals[neighborId]);
+						alreadyIncluded = genRand() > numNbrsRCP;
 
 					}
 
@@ -1192,6 +1192,13 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			{
 				std::string objDir = getDirName(aFilePath2);
 				std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_" + itoa((int)numVariations);
+				if (variationFilePath.length() >= 120)
+				{
+					std::string shortNoDotsName1 = fileName1.substr(0u, 12u) + std::string("___") + fileName1.substr(fileName1.size() - 12u);
+					std::string shortNoDotsName2 = fileName2.substr(0u, 12u) + std::string("___") + fileName2.substr(fileName1.size() - 12u);
+					variationFilePath = objDir + shortNoDotsName1 + "_" + shortNoDotsName2 + "_" + itoa((int)numVariations);
+				}
+					
 				if (writeVariations)
 					objExporter(variation, variationFilePath.c_str());
 				

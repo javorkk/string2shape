@@ -74,7 +74,7 @@ public:
 		graphSize(aGraphSize),
 		subgraphSize(aSampleSize),
 		numSubgraphs(aNumSamples),
-		subgraphsPerSeedNode(aNumSamples / aGraphSize),
+		subgraphsPerSeedNode(aNumSamples / aGraphSize + 1u),
 		adjIntervals(aIntervals),
 		neighborIds(aNeighborIds),
 		outNodeIds(outIds),
@@ -132,7 +132,7 @@ public:
 					//	++globalNbrCount;
 					//}
 
-					if (!alreadyIncluded)
+					if (!alreadyIncluded && neighborCount > 0u)
 					{
 						//randomly discard the neighbor node
 						//alreadyIncluded = genRand() < 0.5f;
@@ -272,7 +272,7 @@ public:
 		graphSize2(aGraphSize2),
 		subgraphSize(aSampleSize),
 		numSubgraphs(aNumSamples),
-		subgraphsPerSeedNode(aNumSamples / aGraphSize1),
+		subgraphsPerSeedNode(aNumSamples / aGraphSize1 + 1u),
 		spatialTolerance(aSpatialTolerance),
 		inNodeTypes(inTypes),
 		inNodeIds(inIds),
@@ -1194,8 +1194,15 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 				std::string variationFilePath = objDir + fileName1 + "_" + fileName2 + "_" + itoa((int)numVariations);
 				if (variationFilePath.length() >= 120)
 				{
-					std::string shortNoDotsName1 = fileName1.substr(0u, 12u) + std::string("___") + fileName1.substr(fileName1.size() - 12u);
-					std::string shortNoDotsName2 = fileName2.substr(0u, 12u) + std::string("___") + fileName2.substr(fileName1.size() - 12u);
+
+					std::string shortNoDotsName1 = fileName1; 
+					std::string shortNoDotsName2 = fileName2;
+
+					if(fileName1.length() >= 32)
+						shortNoDotsName1 = fileName1.substr(0u, 12u) + std::string("___") + fileName1.substr(fileName1.size() - 12u);
+					if(fileName2.length() >= 32)
+						shortNoDotsName2 = fileName2.substr(0u, 12u) + std::string("___") + fileName2.substr(fileName2.size() - 12u);
+
 					variationFilePath = objDir + shortNoDotsName1 + "_" + shortNoDotsName2 + "_" + itoa((int)numVariations);
 				}
 					

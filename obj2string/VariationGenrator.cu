@@ -847,8 +847,10 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	thrust::device_vector<float> objSizes2Device(objSizes2);
 
 	GrammarCheck grammarCheck;
-	grammarCheck.init(graph2Intervals, graph2NbrIds, nodeTypes2Host);
-	grammarCheck.init(graph1Intervals, graph1NbrIds, nodeTypes1Host);
+	//grammarCheck.init(graph2Intervals, graph2NbrIds, nodeTypes2Host);
+	//grammarCheck.init(graph1Intervals, graph1NbrIds, nodeTypes1Host);
+	grammarCheck.init(aObj1, aGraph1.intervals, aGraph1.adjacencyVals);
+	grammarCheck.init(aObj2, aGraph2.intervals, aGraph2.adjacencyVals);
 
 
 	Wiggle wiggle;
@@ -1168,6 +1170,11 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 					continue;
 				//}
 
+			}
+			if (requireSupport && !grammarCheck.checkSupport(variation, hostIntervals, hostNbrIds, nodeTypesVariation))
+			{
+				variatioHistograms.pop_back();
+				continue;
 			}
 			///////////////////////////////////////////////////////////////////////////////////
 			//Double check the node histogram after merging

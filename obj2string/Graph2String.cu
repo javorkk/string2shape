@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Graph2String.h"
+#include "WFObjUtils.h"
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -167,6 +168,7 @@ __host__ void GrammarCheck::init(
 	{
 		mNumTypes = newTypes;
 		mNeighborCounts.resize(mNumTypes);
+		mSupportFlags.resize(mNumTypes, true);
 	}
 
 	
@@ -197,6 +199,7 @@ __host__ void GrammarCheck::init(
 
 		mNeighborTypeCounts.insert(std::make_pair(typeId, nbrTypeCounts));
 	}
+
 }
 
 __host__ void GrammarCheck::init(
@@ -204,6 +207,7 @@ __host__ void GrammarCheck::init(
 	thrust::device_vector<unsigned int>& aIntervals,
 	thrust::device_vector<unsigned int>& aNbrIds)
 {
+
 	thrust::host_vector<unsigned int> intervals(aIntervals);
 	thrust::host_vector<unsigned int> nbrIds(aNbrIds);
 	thrust::host_vector<unsigned int> nodeTypes(aObj.objects.size(), (unsigned int)aObj.materials.size());
@@ -212,6 +216,44 @@ __host__ void GrammarCheck::init(
 		size_t faceId = aObj.objects[nodeId].x;
 		size_t materialId = aObj.faces[faceId].material;
 		nodeTypes[nodeId] = (unsigned int)materialId;
+	}
+
+	unsigned int newTypes = 1u + thrust::reduce(nodeTypes.begin(), nodeTypes.end(), 0u, thrust::maximum<unsigned int>());
+
+	if (newTypes >= mNumTypes)
+	{
+		mNumTypes = newTypes;
+		mNeighborCounts.resize(mNumTypes);
+		mSupportFlags.resize(mNumTypes, true);
+
+	}
+	thrust::host_vector<float3> objCenters;
+	thrust::host_vector<float> objSizes;
+
+	ObjectCenterExporter()(aObj, objCenters, objSizes);
+
+	float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
+	float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	ObjectBoundsExporter()(aObj, minBound, maxBound);
+
+	const float objSize = len(maxBound - minBound);
+
+	for (size_t i = 0; i < aIntervals.size() - 1; i++)
+	{
+		unsigned int typeId = nodeTypes[i];
+		if (!mSupportFlags[typeId])
+			continue;
+
+		bool hasSupport = isOnTheGround(objCenters[i], minBound, maxBound);
+
+		for (size_t nbrId = aIntervals[i]; nbrId < aIntervals[i + 1] && !hasSupport; nbrId++)
+		{
+			if (objCenters[i].z > objCenters[aNbrIds[nbrId]].z + 0.25f * objSizes[i])
+				hasSupport = true;
+		}
+		if (!hasSupport)
+			mSupportFlags[typeId] = false;
 	}
 
 	init(intervals, nbrIds, nodeTypes);
@@ -251,6 +293,44 @@ __host__ bool GrammarCheck::check(
 
 		std::pair<unsigned int, std::vector<unsigned int> > pair = std::make_pair(typeId, nbrTypeCounts);
 		if (mNeighborTypeCounts.find(pair) == mNeighborTypeCounts.end())
+			return false;
+	}
+	return true;
+}
+
+__host__ bool GrammarCheck::checkSupport(
+	WFObject& aObj,
+	thrust::host_vector<unsigned int>& aIntervals,
+	thrust::host_vector<unsigned int>& aNbrIds,
+	thrust::host_vector<unsigned int>& aNodeTypes)
+{
+
+	thrust::host_vector<float3> objCenters;
+	thrust::host_vector<float> objSizes;
+
+	ObjectCenterExporter()(aObj, objCenters, objSizes);
+
+	float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
+	float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	ObjectBoundsExporter()(aObj, minBound, maxBound);
+
+	const float objSize = len(maxBound - minBound);
+
+	for (size_t i = 0; i < aIntervals.size() - 1; i++)
+	{
+		unsigned int typeId = aNodeTypes[i];
+		if (!mSupportFlags[typeId])
+			continue;
+
+		bool hasSupport = isOnTheGround(objCenters[i], minBound, maxBound);
+
+		for (size_t nbrId = aIntervals[i]; nbrId < aIntervals[i + 1] && !hasSupport; nbrId++)
+		{
+			if (objCenters[i].z > objCenters[aNbrIds[nbrId]].z + 0.25f * objSizes[i])
+				hasSupport = true;
+		}
+		if (!hasSupport)
 			return false;
 	}
 	return true;

@@ -100,6 +100,13 @@ class GrammarCheck
 	std::vector< std::vector<unsigned int> > mNeighborCounts;
 	std::set< std::pair<unsigned int, unsigned int> > mNeighborTypes;
 	std::set< std::pair<unsigned int, std::vector<unsigned int> > > mNeighborTypeCounts;
+	std::vector<bool> mSupportFlags;
+
+	__host__ bool isOnTheGround(const float3& aPt, const float3& aMinBound, const float3& aMaxBound)
+	{
+		const float objSize = len(aMaxBound - aMinBound);
+		return aPt.z < aMinBound.z + 0.05f * objSize;
+	}
 public:
 	__host__ GrammarCheck():mNumTypes(0u)
 	{}
@@ -113,6 +120,12 @@ public:
 		thrust::device_vector<unsigned int>& aIntervals,
 		thrust::device_vector<unsigned int>& aNbrIds);
 	__host__ bool check(
+		thrust::host_vector<unsigned int>& aIntervals,
+		thrust::host_vector<unsigned int>& aNbrIds,
+		thrust::host_vector<unsigned int>& aNodeTypes);
+
+	__host__ bool checkSupport(
+		WFObject& aObj,
 		thrust::host_vector<unsigned int>& aIntervals,
 		thrust::host_vector<unsigned int>& aNbrIds,
 		thrust::host_vector<unsigned int>& aNodeTypes);

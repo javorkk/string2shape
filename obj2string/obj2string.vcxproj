@@ -172,7 +172,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -202,7 +202,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -235,7 +235,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -269,7 +269,7 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>

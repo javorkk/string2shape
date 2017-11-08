@@ -141,11 +141,13 @@ public:
 	bool writeVariationGraphs; //write out the graphs of the generated variations
 	bool multiString;  //return single or multiple SMILES strings per variation
 	bool fixVariation; //try to repair relative part orientation in the variation
+	bool requireSupport; //require that each part is either on the ground (z-axis) or on top of another part
 	__host__ VariationGenerator() : 
 		writeVariations(false), 
 		writeVariationGraphs(true), 
 		multiString(true),
-		fixVariation(false)
+		fixVariation(false),
+		requireSupport(true)
 	{}
 
 	static const unsigned int MAX_ALLOWED_VARIATIONS = 1000u;

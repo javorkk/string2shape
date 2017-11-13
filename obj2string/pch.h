@@ -35,10 +35,9 @@
 #include <random>
 
 #ifdef _WIN32
-#   define FORCE_INLINE __forceinline__
+#   define FORCE_INLINE __forceinline
 #else
 #   define FORCE_INLINE inline
-#   include <libgen.h>
 #endif
 
 //////////////////////////////////////////////////////////////////////////

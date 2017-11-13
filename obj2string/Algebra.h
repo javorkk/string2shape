@@ -14,10 +14,12 @@
 #define EPS 0.00001f
 #endif // !EPS
 
+#ifndef FORCE_INLINE
 #ifdef _WIN32
-#   define FORCE_INLINE __forceinline__
+#   define FORCE_INLINE __forceinline
 #else
 #   define FORCE_INLINE inline
+#endif
 #endif
 
 #define _DEF_BIN_OP3(_OP)                                                      \

@@ -158,8 +158,6 @@ public:
 
 		if (USE_PCA)
 		{
-			//TODO: covMat currently is transpose(X)*X. We need SVD(X) instead
-
 			//Compute covariance matrix
 			double* covMat = tmpCovMatrix + aId * 3;
 			for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)

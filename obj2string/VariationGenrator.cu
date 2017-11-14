@@ -8,6 +8,7 @@
 
 #include "Algebra.h"
 #include "SVD.h"
+#include "RNG.h"
 #include "WFObjUtils.h"
 #include "Graph2String.h"
 #include "CollisionDetector.h"
@@ -85,11 +86,15 @@ public:
 	{
 		unsigned int aId = (unsigned int)aId_s;
 
-		KISSRandomNumberGenerator genRand(
-			3643u + seed + aId * aId,
-			1761919u + aId * seed,
-			seed,
-			10499029u);
+		//KISSRandomNumberGenerator genRand(
+		//	3643u + seed + aId * aId,
+		//	1761919u + aId * seed,
+		//	seed,
+		//	10499029u);
+
+		XorShift32Plus genRand(seed + aId, aId * aId * seed);
+		for (unsigned int i = 0u; i < aId; ++i)
+			genRand();
 
 		unsigned int subgraphSeedNodeId = subgraphsPerSeedNode == 0u ? aId : aId / subgraphsPerSeedNode;
 		//unsigned int subgraphSeedNodeId = max(min((unsigned int)(genRand() * (float)graphSize), graphSize - 1u), 0u);
@@ -136,9 +141,9 @@ public:
 					{
 						//randomly discard the neighbor node
 						//alreadyIncluded = genRand() < 0.5f;
-						
-						const float numNbrsRCP = 1.f / (float)(adjIntervals[neighborId + 1u] - adjIntervals[neighborId]);
-						alreadyIncluded = genRand() > numNbrsRCP;
+						const float numOtherNeighbors = (float)(adjIntervals[neighborId + 1u] - adjIntervals[neighborId]) - 1.f;
+						const float alpha = numOtherNeighbors > 0.5f ? 1.f / numOtherNeighbors : 1.5f;
+						alreadyIncluded = genRand() > alpha;
 
 					}
 
@@ -457,11 +462,15 @@ public:
 		//unsigned int subgraphOffset = subgraphsPerSeedNode == 0u ? 0u : aId % subgraphsPerSeedNode;
 		//unsigned int subgraphStartLocation = subgraphOffset * subgraphSize + subgraphSeedNodeId * subgraphsPerSeedNode * subgraphSize;
 		
-		KISSRandomNumberGenerator genRand(
-			3643u + seed + aId * aId,
-			seed,
-			331801u + aId * seed,
-			10499029u);
+		//KISSRandomNumberGenerator genRand(
+		//	3643u + seed + aId * aId,
+		//	seed,
+		//	331801u + aId * seed,
+		//	10499029u);
+
+		XorShift32Plus genRand(seed + aId, aId * aId * seed);
+		for (unsigned int i = 0u; i < aId; ++i)
+			genRand();
 
 		unsigned int offset = (unsigned int)(genRand() * (float)graphSize2);
 		bool success = randomMatchingOperator(aId, offset);
@@ -875,6 +884,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		if (subgraphSampleSize < 3)
 			continue;
 
+		unsigned int numTriesThisSize = 0u;
+
 		thrust::device_vector<unsigned int> subgraphNodeIds1(numSubgraphSamples * subgraphSampleSize);
 		thrust::device_vector<unsigned int> subgraphBorderFlags1(numSubgraphSamples * subgraphSampleSize);
 
@@ -1161,7 +1172,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 
 			if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
 			{
-				//variationGraph = detector.computeCollisionGraph(variation, std::max(aRelativeThreshold, 0.02f));
+				//variationGraph = detector.computeCollisionGraph(variation, aRelativeThreshold + 0.02f);
 				//hostIntervals = variationGraph.intervals;
 				//hostNbrIds = variationGraph.adjacencyVals;
 				//if (!grammarCheck.check(hostIntervals, hostNbrIds, nodeTypesVariation))
@@ -1169,7 +1180,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 					variatioHistograms.pop_back();
 					continue;
 				//}
-
 			}
 			if (requireSupport && !grammarCheck.checkSupport(variation, hostIntervals, hostNbrIds, nodeTypesVariation))
 			{
@@ -1194,6 +1204,9 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			}
 			///////////////////////////////////////////////////////////////////////////////////
 			++numVariations;
+
+			if (numTriesThisSize++ < 2u)
+				--subgraphSampleSize;
 
 			if (writeVariationGraphs || writeVariations)
 			{

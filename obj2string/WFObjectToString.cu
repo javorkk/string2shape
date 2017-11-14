@@ -12,6 +12,7 @@
 #include "VariationGenerator.h"
 #include "Wiggle.h"
 #include "WFObjUtils.h"
+#include "RNG.h"
 
 
 #ifdef __cplusplus
@@ -243,11 +244,13 @@ extern "C" {
 		const unsigned int aConst2 = 22;
 		for (unsigned int tId = 0u; tId < 500u; ++tId)
 		{
-			KISSRandomNumberGenerator genRand(
-				3643u + aConst1 + aConst2 * aConst2,
-				aConst1,
-				331801u + aConst2 * aConst1,
-				10499029u);
+			//KISSRandomNumberGenerator genRand(
+			//	3643u + aConst1 + aConst2 * aConst2,
+			//	aConst1,
+			//	331801u + aConst2 * aConst1,
+			//	10499029u);
+
+			XorShift32Plus genRand(aConst1 + aConst2, aConst2 * aConst2 * aConst1);
 
 			bool between0000_0125 = false;
 			bool between0125_0025 = false;

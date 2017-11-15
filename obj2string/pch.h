@@ -38,6 +38,7 @@
 #   define FORCE_INLINE __forceinline
 #else
 #   define FORCE_INLINE inline
+#   include <libgen.h>
 #endif
 
 //////////////////////////////////////////////////////////////////////////

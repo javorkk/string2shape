@@ -8,3 +8,9 @@ ADD_CUSTOM_COMMAND(
     POST_BUILD
     COMMAND python ${SETUP_PY} build_ext -L. -lobj2string
 )
+
+ADD_CUSTOM_COMMAND(
+    TARGET obj2string
+    POST_BUILD
+    COMMAND python ${SETUP_PY} install --user
+)

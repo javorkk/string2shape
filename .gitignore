@@ -15,3 +15,11 @@ tests/collision_graph.mtl
 tests/collision_graph.obj
 build/
 data/
+TilingAutoencoder.includes
+TilingAutoencoder.files
+TilingAutoencoder.creator
+TilingAutoencoder.config
+TilingAutoencoder-Debug.includes
+TilingAutoencoder-Debug.files
+TilingAutoencoder-Debug.creator
+TilingAutoencoder-Debug.config

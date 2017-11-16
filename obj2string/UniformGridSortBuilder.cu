@@ -19,6 +19,8 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
+//#define _DEBUG_OUTPUT
+
 #include "DebugUtils.h"
 
 #include "Timer.h"
@@ -336,15 +338,15 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	thrust::fill(dev_ptr_uint, dev_ptr_uint + 2 * oGrid.res[0] * oGrid.res[1] * oGrid.res[2], 0u);
 
 	//compute vertex index buffer for the triangles
-	thrust::host_vector<uint3> host_indices(aGeometry.faces.size());
-	for (size_t i = 0; i < aGeometry.faces.size(); i++)
+    thrust::host_vector<uint3> host_indices(aGeometry.getNumFaces());
+    for (size_t i = 0; i < aGeometry.getNumFaces(); i++)
 	{
 		host_indices[i].x = (unsigned int)aGeometry.faces[i].vert1;
 		host_indices[i].y = (unsigned int)aGeometry.faces[i].vert2;
 		host_indices[i].z = (unsigned int)aGeometry.faces[i].vert3;
 	}
 	//copy the vertex index buffer to the device
-	thrust::device_vector<uint3> device_indices(aGeometry.faces.size());
+    thrust::device_vector<uint3> device_indices(aGeometry.getNumFaces());
 	thrust::copy(host_indices.begin(), host_indices.end(), device_indices.begin());
 
 	//copy the vertex buffer to the device
@@ -375,9 +377,9 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 
 	thrust::exclusive_scan(fragment_counts.begin(), fragment_counts.end(), fragment_counts.begin());
 
-//#ifdef _DEBUG
-//	outputDeviceVector("Scanned  counts: ", fragment_counts);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    outputDeviceVector("Scanned  counts: ", fragment_counts);
+#endif
 
 
 	size_t num_fragments = fragment_counts[device_indices.size()];
@@ -409,10 +411,11 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 	//sort the pairs
 	thrust::sort_by_key(fragment_keys.begin(), fragment_keys.end(), oGrid.primitives);
 	
-//#ifdef _DEBUG
-//	outputDeviceVector("sorted keys: ", fragment_keys);
-//	outputDeviceVector("sorted vals: ", oGrid.primitives);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    outputDeviceVector("sorted keys: ", fragment_keys);
+    thrust::device_vector<uint> primRefs(oGrid.primitives, oGrid.primitives + num_fragments);
+    outputDeviceVector("sorted vals: ", primRefs);
+#endif
 
 	//initilize the grid cells
 	CellExtractor extract_ranges(
@@ -429,14 +432,14 @@ __host__ UniformGrid UniformGridSortBuilder::build(WFObject & aGeometry, const i
 		thrust::make_zip_iterator(thrust::make_tuple(fragment_keys.end() - 1, fragment_keys.end(), last_pair)),
 		extract_ranges);
 
-//#ifdef _DEBUG
-//	thrust::device_vector<unsigned int> cells_x(oGrid.cells.size());
-//	thrust::device_vector<unsigned int> cells_y(oGrid.cells.size());
-//	thrust::transform(oGrid.cells.begin(), oGrid.cells.end(), cells_x.begin(), uint2_get_x());
-//	thrust::transform(oGrid.cells.begin(), oGrid.cells.end(), cells_y.begin(), uint2_get_y());
-//	outputDeviceVector("Grid cells x: ", cells_x);
-//	outputDeviceVector("Grid cells y: ", cells_y);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    thrust::device_vector<unsigned int> cells_x(oGrid.res[0] * oGrid.res[1] * oGrid.res[2]);
+    thrust::device_vector<unsigned int> cells_y(oGrid.res[0] * oGrid.res[1] * oGrid.res[2]);
+    thrust::transform(oGrid.cells, oGrid.cells + oGrid.res[0] * oGrid.res[1] * oGrid.res[2], cells_x.begin(), uint2_get_x());
+    thrust::transform(oGrid.cells, oGrid.cells + oGrid.res[0] * oGrid.res[1] * oGrid.res[2], cells_y.begin(), uint2_get_y());
+    outputDeviceVector("Grid cells x: ", cells_x);
+    outputDeviceVector("Grid cells y: ", cells_y);
+#endif
 
 	totalTime = timer.get();
 	timer.cleanup();

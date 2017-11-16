@@ -13,10 +13,13 @@ include_directories(
 )
 
 set(CUDA_HOST_COMPILER "/usr/bin/g++-4.9")
+set(CMAKE_C_COMPILER "/usr/bin/gcc-4.9")
+set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.9")
 
-list(APPEND CMAKE_CXX_FLAGS -fPIC)
 
-list(APPEND CUDA_NVCC_FLAGS -std=c++11 -gencode=arch=compute_50,code=\"sm_50,compute_50\")
+list(APPEND CMAKE_CXX_FLAGS "-fPIC -std=c++11")
+
+list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_50,code=\"sm_50,compute_50\"")
 
 
 add_subdirectory (obj2string)

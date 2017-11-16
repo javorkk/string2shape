@@ -271,13 +271,14 @@ void WFObject::read(const char* aFileName)
         std::cerr << "Unknown file extension \"" << fileExtension << "\".\n";
     }
 
-    if (fileName.find_last_of("/\\") == std::string::npos)
+    size_t found = fileName.find_last_of("/\\");
+    if (found == std::string::npos)
     {
-        name = fileName.substr(0, fileName.size() - 5);
+        this->name = fileName;
     }
     else
     {
-        name = fileName.substr(fileName.find_last_of("/\\") + 1, fileName.size() - fileName.find_last_of("/\\") - 5);
+        this->name = fileName.substr(found+1);
     }
 }
 

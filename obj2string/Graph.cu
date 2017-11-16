@@ -298,11 +298,11 @@ __host__ void Graph::fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aA
 		thrust::make_zip_iterator(thrust::make_tuple(aAdjacencyMatrix.end(), matrixPrefix.end(), last)),
 		writeEdges);
 
-//#ifdef _DEBUG
-//	outputDeviceVector("Edge X: ", adjacencyKeys);
-//	outputDeviceVector("Edge Y: ", adjacencyVals);
-//	outputDeviceVector("Extracted intervals: ", intervals);
-//#endif
+#ifdef _DEBUG_DEBUG_OUTPUT
+    outputDeviceVector("Edge X: ", adjacencyKeys);
+    outputDeviceVector("Edge Y: ", adjacencyVals);
+    outputDeviceVector("Extracted intervals: ", intervals);
+#endif
 }
 
 __host__ void Graph::toAdjacencyMatrix(thrust::device_vector<unsigned int>& oAdjacencyMatrix, size_t & oStride)
@@ -348,9 +348,9 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 		if (superNodeIds[oStride] != 0)
 		{
 			thrust::for_each(firstNode, lastNode, updateSuperNodes);
-//#ifdef _DEBUG
-//			outputDeviceVector("supernode ids: ", superNodeIds);
-//#endif
+#ifdef _DEBUG_OUTPUT
+            outputDeviceVector("supernode ids: ", superNodeIds);
+#endif
 		}
 		else
 		{
@@ -395,11 +395,11 @@ __host__ void Graph::fromAdjacencyList(size_t aNumNodes)
 		thrust::make_zip_iterator(thrust::make_tuple(adjacencyKeys.end() - 1, adjacencyKeys.end(), last)),
 		extractIntervals);
 
-//#ifdef _DEBUG
-//	outputDeviceVector("Edge X: ", adjacencyKeys);
-//	outputDeviceVector("Edge Y: ", adjacencyVals);
-//	outputDeviceVector("Extracted intervals: ", intervals);
-//#endif
+#ifdef _DEBUG_DEBUG_OUTPUT
+    outputDeviceVector("Edge X: ", adjacencyKeys);
+    outputDeviceVector("Edge Y: ", adjacencyVals);
+    outputDeviceVector("Extracted intervals: ", intervals);
+#endif
 }
 
 // A recursive function that uses visited[] and parent to detect

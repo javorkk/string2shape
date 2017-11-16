@@ -694,9 +694,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 
 	UniformGrid grid = builder.build(aObj, (int)res.x, (int)res.y, (int)res.z);
 	
-//#ifdef _DEBUG
-//	builder.test(grid, aObj);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    builder.test(grid, aObj);
+#endif
 
 	//compute per-face object id
 	thrust::host_vector<unsigned int> objectIdPerFaceHost(aObj.faces.size());
@@ -716,9 +716,9 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	initTime = intermTimer.get();
 	intermTimer.start();
 
-//#ifdef _DEBUG
-//	outputDeviceVector("Obj id per face: ", objectIdPerFaceDevice);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    outputDeviceVector("Obj id per face: ", objectIdPerFaceDevice);
+#endif
 
 	//delete all grid cells that contain primitives from a single object
 	thrust::device_vector<uint2> trimmed_cells(grid.getNumCells());
@@ -730,27 +730,27 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	trimmTime = intermTimer.get();
 	intermTimer.start();
 
-//#ifdef _DEBUG
-//	thrust::device_vector<unsigned int> trimmed_cells_x(grid.cells.size());
-//	thrust::device_vector<unsigned int> trimmed_cells_y(grid.cells.size());
-//	thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells_x.begin(), uint2_get_x());
-//	thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells_y.begin(), uint2_get_y());
-//	auto begin_iterator_dbg = thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells_x.begin(), trimmed_cells_y.begin()));
-//	auto end_iterator_dbg = thrust::copy_if(
-//		begin_iterator_dbg,
-//		thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells_x.end(), trimmed_cells_y.end())),
-//		begin_iterator_dbg,
-//		nonEmptyCell());
-//	thrust::device_vector<unsigned int> non_empty_cells_x(end_iterator_dbg - begin_iterator_dbg);
-//	thrust::device_vector<unsigned int> non_empty_cells_y(end_iterator_dbg - begin_iterator_dbg);
-//	thrust::copy(
-//		begin_iterator_dbg,
-//		end_iterator_dbg,
-//		thrust::make_zip_iterator(thrust::make_tuple(non_empty_cells_x.begin(), non_empty_cells_y.begin()))
-//	);
-//	outputDeviceVector("Non-empty cells x: ", non_empty_cells_x);
-//	outputDeviceVector("Non-empty cells y: ", non_empty_cells_y);
-//#endif // _DEBUG
+#ifdef _DEBUG_OUTPUT
+    thrust::device_vector<unsigned int> trimmed_cells_x(grid.cells.size());
+    thrust::device_vector<unsigned int> trimmed_cells_y(grid.cells.size());
+    thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells_x.begin(), uint2_get_x());
+    thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), trimmed_cells_y.begin(), uint2_get_y());
+    auto begin_iterator_dbg = thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells_x.begin(), trimmed_cells_y.begin()));
+    auto end_iterator_dbg = thrust::copy_if(
+        begin_iterator_dbg,
+        thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells_x.end(), trimmed_cells_y.end())),
+        begin_iterator_dbg,
+        nonEmptyCell());
+    thrust::device_vector<unsigned int> non_empty_cells_x(end_iterator_dbg - begin_iterator_dbg);
+    thrust::device_vector<unsigned int> non_empty_cells_y(end_iterator_dbg - begin_iterator_dbg);
+    thrust::copy(
+        begin_iterator_dbg,
+        end_iterator_dbg,
+        thrust::make_zip_iterator(thrust::make_tuple(non_empty_cells_x.begin(), non_empty_cells_y.begin()))
+    );
+    outputDeviceVector("Non-empty cells x: ", non_empty_cells_x);
+    outputDeviceVector("Non-empty cells y: ", non_empty_cells_y);
+#endif // _DEBUG_OUTPUT
 
 #define SINGLE_KERNEL_COLLISION
 #ifdef  SINGLE_KERNEL_COLLISION //faster than multi-kernel approach
@@ -815,15 +815,15 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	CollisionCounter countCollisions(objectIdPerFaceDevice.data(), grid.primitives.data());
 	thrust::transform(trimmed_cells.begin(), trimmed_cells.end(), collision_counts.begin(), countCollisions);
 
-//#ifdef _DEBUG
-//	outputDeviceVector("Collision counts: ", collision_counts);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    outputDeviceVector("Collision counts: ", collision_counts);
+#endif
 
 	thrust::exclusive_scan(collision_counts.begin(), collision_counts.end(), collision_counts.begin());
 
-//#ifdef _DEBUG
-//	outputDeviceVector("Scanned counts  : ", collision_counts);
-//#endif
+#ifdef _DEBUG_OUTPUT
+    outputDeviceVector("Scanned counts  : ", collision_counts);
+#endif
 
 	//allocate storage for obj-obj collisions
 	unsigned int numCollisions = collision_counts[collision_counts.size() - 1];
@@ -843,7 +843,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 		thrust::make_zip_iterator(thrust::make_tuple(trimmed_cells.end(), collision_counts.end() - 1)),
 		writeCollisions);
 
-#ifdef _DEBUG
+#ifdef _DEBUG_OUTPUT
 	outputDeviceVector("Collision keys: ", collision_keys);
 	outputDeviceVector("Collision vals: ", collision_vals);
 #endif
@@ -857,7 +857,7 @@ Graph CollisionDetector::computeCollisionGraph(WFObject & aObj, float aRelativeT
 	thrust::sort_by_key(collision_vals.begin(), collision_vals.end(), collision_keys.begin());
 	thrust::stable_sort_by_key(collision_keys.begin(), collision_keys.end(), collision_vals.begin());
 
-#ifdef _DEBUG
+#ifdef _DEBUG_OUTPUT
 	outputDeviceVector("Sorted keys: ", collision_keys);
 	outputDeviceVector("Sorted vals: ", collision_vals);
 #endif

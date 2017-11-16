@@ -11,6 +11,8 @@
 #include <iostream>
 #include <iomanip>
 
+//#define _DEBUG_OUTPUT
+
 template <typename T>
 void outputDeviceVector(
 	const char* aPrefix1,

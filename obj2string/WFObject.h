@@ -53,7 +53,7 @@ public:
             indexOfRefraction(1.f),
             isRefractive(false) //non-transparent
         {
-			name = "þ no name";
+            name = "Z";//"þ no name";
 		}
         Material(const std::string& _name) :
             diffuseCoeff(C0),

@@ -21,7 +21,7 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 	if (numNodes != aObj.objects.size())
 		std::cerr << "Collision graph error! Expected " << aObj.objects.size() << " nodes, got " << numNodes << ".\n";
 
-#ifdef _DEBUG
+#ifdef _DEBUG_OUTPUT
 	outputDeviceVector("adjacency matrix: ", adjMatrixDevice);
 #endif
 
@@ -172,7 +172,7 @@ __host__ void CollisionGraphExporter::exportSubGraph(const char * aFilePath, WFO
 	if (aNodeFlags.size() != aObj.objects.size())
 		std::cerr << "Collision sub-graph error! Expected " << aNodeFlags.size() << " node flags, got " << numNodes << ".\n";
 
-#ifdef _DEBUG
+#ifdef _DEBUG_OUTPUT
 	outputDeviceVector("adjacency matrix: ", adjMatrixDevice);
 #endif
 

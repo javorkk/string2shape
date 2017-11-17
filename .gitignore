@@ -19,7 +19,12 @@ TilingAutoencoder.includes
 TilingAutoencoder.files
 TilingAutoencoder.creator
 TilingAutoencoder.config
+TilingAutoencoder.creator.user
 TilingAutoencoder-Debug.includes
 TilingAutoencoder-Debug.files
 TilingAutoencoder-Debug.creator
 TilingAutoencoder-Debug.config
+TilingAutoencoder-Debug.creator.user
+build-debug/
+build-release/
+.vscode/

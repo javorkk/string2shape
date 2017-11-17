@@ -6,7 +6,7 @@ set(SETUP_PY "${CMAKE_CURRENT_SOURCE_DIR}/setup.py")
 ADD_CUSTOM_COMMAND(
     TARGET obj2string
     POST_BUILD
-    COMMAND python ${SETUP_PY} build_ext -L. -lobj2string
+    COMMAND python ${SETUP_PY} build_ext --user -L. -lobj2string
 )
 
 ADD_CUSTOM_COMMAND(

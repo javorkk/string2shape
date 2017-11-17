@@ -168,6 +168,8 @@
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py install
+python setup.py install
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
@@ -197,6 +199,8 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py install
+python setup.py install
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
@@ -231,6 +235,8 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py install
+python setup.py install
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>
@@ -264,6 +270,8 @@ copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_t
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 echo python setup.py build_ext -l$(OutDir)obj2string
 python setup.py build_ext -l$(OutDir)obj2string
+echo python setup.py install
+python setup.py install
 echo copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"
 copy "$(ProjectDir)\build\lib.win-amd64-2.7\obj_tools.pyd" "$(SolutionDir)\obj_tools.pyd"</Command>
     </PostBuildEvent>

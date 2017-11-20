@@ -32,12 +32,12 @@ int main()
 
 	if (rng_test_result != 0)
 	{
-		std::cerr << "Random number generator test failed!\n";
+		std::cerr << "Random number generator test failed!" << std::endl;
 		return rng_test_result;
 	}
 	else
 	{
-		std::cerr << "Random number generator test passed.\n";
+		std::cerr << "Random number generator test passed." << std::endl;
 	}
 
 	UniformGridSortBuildTest uniformGridTest;
@@ -45,13 +45,12 @@ int main()
 	
 	if (ugrid_test_result != 0)
 	{
-		std::cerr << "Uniform grid construction test failed!\n";
+		std::cerr << "Uniform grid construction test failed!" << std::endl;
 		return ugrid_test_result;
 	}
 	else
 	{
-		std::cerr << "Uniform grid construction test passed.\n";
-
+		std::cerr << "Uniform grid construction test passed." << std::endl;
 	}
 	
 	GraphTest graphTest;
@@ -60,30 +59,30 @@ int main()
 	
 	if (graph_test_result != 0)
 	{
-		std::cerr << "Graph construction test failed!\n";
+		std::cerr << "Graph construction test failed!" << std::endl;
 		return graph_test_result;
 	}
 	else
 	{
-		std::cerr << "Graph construction test passed.\n";
+		std::cerr << "Graph construction test passed." << std::endl;
 	}
 	
 	CollisionTest collTest;
 	int coll_test_result = collTest.testAll("../scenes/castle/castle.obj");
 	if (coll_test_result != 0)
 	{
-		std::cerr << "Collision detection test failed!\n";
+		std::cerr << "Collision detection test failed!" << std::endl;
 		return coll_test_result;
 	}
 	else
 	{
-		std::cerr << "Collision detection test passed. \n";
+		std::cerr << "Collision detection test passed" << std::endl;
 	}
 	
 	std::cerr << "---------------------------------------------------------------------\n";
 	const char* obj2strTestFile = "../scenes/church/church.obj";
 	std::cerr << obj2strTestFile << " converted to \n"
-		<< WFObjectToString(obj2strTestFile) << "\n";
+		<< WFObjectToString(obj2strTestFile) << std::endl;
 
 
     const char* variationFile1 = "../scenes/test_church/c19.obj";
@@ -101,12 +100,12 @@ int main()
 	int var_test_result = variationTest.testAll(variationFile1, variationFile2);
 	if (var_test_result != 0)
 	{
-		std::cerr << "Shape variation test failed!\n";
+		std::cerr << "Shape variation test failed!" << std::endl;
 		return var_test_result;
 	}
 	else
 	{
-		std::cerr << "Shape variation test passed. \n";
+		std::cerr << "Shape variation test passed."<< std::endl;
 	}
 
 
@@ -137,21 +136,21 @@ int main()
 	int wiggle_test_result = wiggleTest.testAll(wiggleFile1, wiggleFile2, wiggleFile3, wiggleOutFile);
 	if (wiggle_test_result != 0)
 	{
-		std::cerr << "Wiggle test failed!\n";
+		std::cerr << "Wiggle test failed!" << std::endl;
 		if (wiggle_test_result == 1)
 		{
-			std::cerr << "Invalid repair target - does not conform grammar.\n";
+			std::cerr << "Invalid repair target - does not conform grammar." << std::endl;
 		}
 		else if (wiggle_test_result == 2)
 		{
-			std::cerr << "Object repair attempt failed.\n";
+			std::cerr << "Object repair attempt failed." << std::endl;
 		}
 		return wiggle_test_result;
 	}
 	else
 	{
 		std::cerr << "Object repair attempt succeeded.\n";
-		std::cerr << "Wrote " << wiggleOutFile << "\n";
+		std::cerr << "Wrote " << wiggleOutFile << std::endl;
 	}
 
 

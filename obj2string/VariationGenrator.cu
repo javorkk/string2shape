@@ -879,7 +879,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		subgraphSampleSize <= (unsigned int) 3u * aGraph1.numNodes() / 4u;
 		subgraphSampleSize++)
 	{
-		std::cout << "Mixing " << shortName1 << " and " << shortName2 << " subgraph size : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u <<"\r";
+		std::cout << "Mixing " << shortName1 << " and " << shortName2 << " subgraph size : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u << std::flush <<"\r";
 
 		if (subgraphSampleSize < 3)
 			continue;

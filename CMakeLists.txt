@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2)
 project(TilingGrammarAutoencoder)
-
 
 find_package(CUDA REQUIRED)
 find_package(PythonInterp 2.7 REQUIRED )
@@ -21,8 +20,12 @@ list(APPEND CMAKE_CXX_FLAGS "-fPIC -std=c++11")
 
 list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_50,code=\"sm_50,compute_50\"")
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    message( STATUS "--------------------------------------------------------------------")
+    message( STATUS "Setting CMAKE_INSTALL_PREFIX to:   $ENV{HOME}/.local")
+    message( STATUS "--------------------------------------------------------------------")
+    set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.local" CACHE PATH "install path" FORCE)
+endif()
 
 add_subdirectory (obj2string)
 add_subdirectory (tests)
-
-

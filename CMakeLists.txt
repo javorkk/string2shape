@@ -17,13 +17,23 @@ set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.9")
 
 
 list(APPEND CMAKE_CXX_FLAGS "-fPIC -std=c++11")
+#GeForce GTX 970
+list(APPEND CUDA_NVCC_FLAGS "-arch=sm_52")
+#Tesla P100
+#list(APPEND CUDA_NVCC_FLAGS "-arch=sm_60")
+#GeForce GTX 1070
+#list(APPEND CUDA_NVCC_FLAGS "-arch=sm_61")
 
-list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_50,code=\"sm_50,compute_50\"")
+if(NOT WIN32)
+  string(ASCII 27 Esc)
+  set(ColourReset "${Esc}[m")
+  set(ColourBold  "${Esc}[1m")
+  set(Yellow      "${Esc}[33m")
+  set(BoldYellow  "${Esc}[1;33m")
+endif(NOT WIN32)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    message( STATUS "--------------------------------------------------------------------")
-    message( STATUS "Setting CMAKE_INSTALL_PREFIX to:   $ENV{HOME}/.local")
-    message( STATUS "--------------------------------------------------------------------")
+    message( STATUS "${BoldYellow}Setting CMAKE_INSTALL_PREFIX to:   $ENV{HOME}/.local${ColourReset}")
     set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.local" CACHE PATH "install path" FORCE)
 endif()
 

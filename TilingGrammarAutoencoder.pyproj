@@ -6,7 +6,7 @@
     <ProjectGuid>ec291c1b-22f6-480f-bd4c-4220175c567f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>augment_dataset.py</StartupFile>
-    <SearchPath>$(SolutionDir)\bin\Releasex64</SearchPath>
+    <SearchPath>..\..\..\..\..\bin\Releasex64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>TilingGrammarAutoencoder</Name>
@@ -14,11 +14,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
-    <InterpreterVersion>2.7</InterpreterVersion>
     <CommandLineArguments>data\church_cycles\encoded_cycles.h5 data\church_cycles\model_400k.h5  data\church_cycles\grammar.h5 --target decoder_lerp --sample 10</CommandLineArguments>
-    <InterpreterId>{0e816e7a-66b2-432d-8592-8f6768fa93be}</InterpreterId>
-    <InterpreterVersion>2.7</InterpreterVersion>
     <CommandLineArguments>scenes\church\test data\church_test\data.h5 data\church_test\grammar.h5 --num_iterations=3</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -77,16 +73,10 @@
     <Folder Include="neuralnets\" />
     <Folder Include="obj2string\" />
   </ItemGroup>
-  <ItemGroup>
-    <InterpreterReference Include="{0e816e7a-66b2-432d-8592-8f6768fa93be}\2.7" />
-    <InterpreterReference Include="{bd9fa0a3-ff54-49a1-b82b-58cc04bb4ddd}\2.7" />
-  </ItemGroup>
+  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
-    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
-  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
-  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
        Visual Studio and specify your pre- and post-build commands in
        the BeforeBuild and AfterBuild targets below. -->
@@ -95,4 +85,5 @@
   </Target>
   <Target Name="AfterBuild">
   </Target>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

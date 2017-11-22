@@ -18,11 +18,13 @@ set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.9")
 
 list(APPEND CMAKE_CXX_FLAGS "-fPIC -std=c++11")
 #GeForce GTX 970
-list(APPEND CUDA_NVCC_FLAGS "-arch=sm_52")
+list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_52,code=sm_52")
 #Tesla P100
-#list(APPEND CUDA_NVCC_FLAGS "-arch=sm_60")
-#GeForce GTX 1070
-#list(APPEND CUDA_NVCC_FLAGS "-arch=sm_61")
+list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_60,code=sm_60")
+#GeForce GTX 1070                 
+list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_61,code=sm_61")
+#GeForce GTX 760               
+list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30")
 
 if(NOT WIN32)
   string(ASCII 27 Esc)

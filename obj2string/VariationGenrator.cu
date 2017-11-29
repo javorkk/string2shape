@@ -478,8 +478,8 @@ public:
 		//	success = randomMatchingOperator(aId, offset / 2u);
 		//if(!success)
 		//	randomMatchingOperator(aId, offset / 4u);
-		if(!success)
-			randomMatchingOperator(aId, 0u);
+		//if(!success)
+		//	randomMatchingOperator(aId, 0u);
 
 	}
 
@@ -884,8 +884,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 		if (subgraphSampleSize < 3)
 			continue;
 
-		unsigned int numTriesThisSize = 0u;
-
 		thrust::device_vector<unsigned int> subgraphNodeIds1(numSubgraphSamples * subgraphSampleSize);
 		thrust::device_vector<unsigned int> subgraphBorderFlags1(numSubgraphSamples * subgraphSampleSize);
 
@@ -1204,9 +1202,6 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			}
 			///////////////////////////////////////////////////////////////////////////////////
 			++numVariations;
-
-			if (numTriesThisSize++ < 2u)
-				--subgraphSampleSize;
 
 			if (writeVariationGraphs || writeVariations)
 			{

@@ -56,6 +56,29 @@ def fix_variations(folder_name, exclude_file_list, inputA, inputB):
                         base_path, extension = os.path.splitext(file_path)
                         os.remove(base_path + ".mtl")
 
+def remove_duplicates(tile_grammar, folder_name, inputA, inputB, word_list = []):
+
+    current_words = []
+    for old_str in word_list:
+        current_words.append(old_str)
+
+    for item_name in os.listdir(folder_name):
+        subfolfer_name = os.path.join(folder_name, item_name)
+        if os.path.isdir(subfolfer_name):
+            remove_duplicates(subfolfer_name, word_list)
+        file_path = folder_name + "\\" + item_name
+        if  file_path != inputA and file_path != inputB and not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
+            current_str = obj_tools.obj2string(file_path)
+            current_words.append(current_str)
+            base_path, extension = os.path.splitext(file_path)
+            os.remove(base_path + "_coll_graph.obj")            
+            os.remove(base_path + "_coll_graph.mtl")
+            for i in range(len(current_words) - 1):
+                if tile_grammar.similar_words(current_words[i], current_str):
+                    os.remove(file_path)                   
+                    os.remove(base_path + ".mtl")
+                    current_words.pop()
+                    break
 
 def main():
     args = get_arguments()
@@ -90,7 +113,9 @@ def main():
         if args.fix_variations:
             print("fixing variations...")
             fix_variations(args.in_folder, current_file_list,  inputA, inputB)
-        print("Iteration " + str(i) +" # of strings: " + str(len(smiles_strings)))
+        print("removing duplicates...")
+        remove_duplicates(tile_grammar, args.in_folder, inputA, inputB, initial_smiles_strings)
+        print("Iteration " + str(i) + " # of strings: " + str(len(smiles_strings)))
 
     loaded_grammar = grammar.TilingGrammar([])
     loaded_grammar.load(args.out_grammarpath)

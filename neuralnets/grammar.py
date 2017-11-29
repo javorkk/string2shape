@@ -230,6 +230,17 @@ class TilingGrammar():
         #    print("Error at char id: " + str(dummy_id) + " " + word)
         return result
 
+    def similar_words(self, str1, str2):
+        for i in range(len(self.DIGITS)):
+            if(str1.count(self.DIGITS[i]) != str2.count(self.DIGITS[i])):
+                return False #different number of cycles
+        for i in range(1, len(self.charset)):
+            if(str1.count(self.charset[i]) != str2.count(self.charset[i])):
+                return False #different node type histogram
+        #equal number of nodes of each type
+        #equal number of graph edges
+        return True
+
     def max_degree(self):
         #return max([pair[1] for pair in self.neighbor_counts])
         return reduce(lambda x, y: max(x, y[1]), self.neighbor_counts, 0)

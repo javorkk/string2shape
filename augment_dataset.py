@@ -66,7 +66,7 @@ def remove_duplicates(tile_grammar, folder_name, inputA, inputB, word_list = [])
         subfolfer_name = os.path.join(folder_name, item_name)
         if os.path.isdir(subfolfer_name):
             remove_duplicates(subfolfer_name, word_list)
-        file_path = folder_name + "\\" + item_name
+        file_path = folder_name + "/" + item_name
         if  file_path != inputA and file_path != inputB and not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
             current_str = obj_tools.obj2string(file_path)
             current_words.append(current_str)

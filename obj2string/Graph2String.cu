@@ -6,6 +6,8 @@
 #include <thrust/host_vector.h>
 #include <thrust/reduce.h>
 
+#include <deque>
+
 __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	unsigned int nodeId,
 	thrust::host_vector<unsigned int>& visited,
@@ -295,6 +297,36 @@ __host__ bool GrammarCheck::check(
 		if (mNeighborTypeCounts.find(pair) == mNeighborTypeCounts.end())
 			return false;
 	}
+
+	//check for diconnected components
+	size_t numNodes = aIntervals.size() - 1;
+	thrust::host_vector<unsigned int> visited(numNodes, 0u);
+
+	std::deque<unsigned int> frontier;
+	frontier.push_back(0);
+	visited[0] = 1u;
+	size_t visitedCount = 1u;
+	while (!frontier.empty())
+	{
+		const unsigned int nodeId = frontier.front();
+		frontier.pop_front();
+
+		for (unsigned int nbrId = aIntervals[nodeId]; nbrId < aIntervals[nodeId + 1]; ++nbrId)
+		{
+			const unsigned int nodeId = aNbrIds[nbrId];
+			if (visited[nodeId] == 0u)
+			{
+				frontier.push_back(nodeId);
+				visited[nodeId] = 1u;
+				++visitedCount;
+			}
+		}
+	}
+
+	if (visitedCount < numNodes)
+		return false; // disconnected components
+
+
 	return true;
 }
 

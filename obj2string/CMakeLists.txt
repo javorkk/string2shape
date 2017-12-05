@@ -12,7 +12,7 @@ add_custom_command(
 add_custom_command(
     TARGET obj2string
     POST_BUILD
-    COMMAND python ${SETUP_PY} install --user
+    COMMAND python ${SETUP_PY} install --user --force
 )
 
 if(NOT WIN32)

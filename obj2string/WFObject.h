@@ -53,7 +53,9 @@ public:
             indexOfRefraction(1.f),
             isRefractive(false) //non-transparent
         {
-            name = "Z";//"þ no name";
+			//Start with the lexicographically largest character for sorting
+            name = static_cast<char>(255u);
+			name.append(" no name");
 		}
         Material(const std::string& _name) :
             diffuseCoeff(C0),

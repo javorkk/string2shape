@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+VisualStudioVersion = 15.0.27130.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "TilingGrammarAutoencoder", "TilingGrammarAutoencoder.pyproj", "{EC291C1B-22F6-480F-BD4C-4220175C567F}"
 EndProject
@@ -15,49 +15,33 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug|ARM = Debug|ARM
 		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
-		Release|ARM = Release|ARM
 		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Debug|ARM.ActiveCfg = Debug|Any CPU
 		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Release|ARM.ActiveCfg = Release|Any CPU
-		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Release|x64.ActiveCfg = Release|Any CPU
-		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Release|x86.ActiveCfg = Release|Any CPU
+		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC291C1B-22F6-480F-BD4C-4220175C567F}.Release|x64.ActiveCfg = Debug|Any CPU
 		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|Any CPU.ActiveCfg = Release|x64
 		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|Any CPU.Build.0 = Release|x64
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|ARM.ActiveCfg = Debug|Win32
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|x64.ActiveCfg = Debug|x64
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|x64.Build.0 = Debug|x64
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|x86.ActiveCfg = Debug|Win32
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|x86.Build.0 = Debug|Win32
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|Any CPU.ActiveCfg = Release|Win32
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|ARM.ActiveCfg = Release|Win32
+		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|Any CPU.Deploy.0 = Release|x64
+		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|x64.ActiveCfg = Release|x64
+		{A336A103-1289-4884-AA7F-365DC6EC559E}.Debug|x64.Build.0 = Release|x64
+		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|Any CPU.ActiveCfg = Release|x64
+		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|Any CPU.Build.0 = Release|x64
+		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|Any CPU.Deploy.0 = Release|x64
 		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|x64.ActiveCfg = Release|x64
 		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|x64.Build.0 = Release|x64
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|x86.ActiveCfg = Release|Win32
-		{A336A103-1289-4884-AA7F-365DC6EC559E}.Release|x86.Build.0 = Release|Win32
 		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|Any CPU.ActiveCfg = Release|x64
 		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|Any CPU.Build.0 = Release|x64
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|ARM.ActiveCfg = Debug|Win32
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|x64.ActiveCfg = Debug|x64
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|x64.Build.0 = Debug|x64
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|x86.ActiveCfg = Debug|Win32
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|x86.Build.0 = Debug|Win32
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|Any CPU.ActiveCfg = Release|Win32
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|ARM.ActiveCfg = Release|Win32
+		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|x64.ActiveCfg = Release|x64
+		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Debug|x64.Build.0 = Release|x64
+		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|Any CPU.ActiveCfg = Release|x64
+		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|Any CPU.Build.0 = Release|x64
 		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|x64.ActiveCfg = Release|x64
 		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|x64.Build.0 = Release|x64
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|x86.ActiveCfg = Release|Win32
-		{3EDA02B5-6FEC-4D8B-B07F-FE94DCBD6091}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

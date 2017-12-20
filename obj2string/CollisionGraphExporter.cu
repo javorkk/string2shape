@@ -79,6 +79,13 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 		output.writeVertex(objCenters[objId].x, objCenters[objId].y, objCenters[objId].z);
 	}
 
+	for (size_t matId = 0u; matId < aObj.getNumMaterials(); ++matId)
+	{
+		WFObject::Material mat = aObj.materials[matId];
+
+		output.writeMaterial(mat.name.c_str(), mat.diffuseCoeff.x, mat.diffuseCoeff.y, mat.diffuseCoeff.z);
+	}
+
 	//cubes (graph vertices)
 	auto sizeIt = objSizes.begin();
 	for (int objId = 0; objId < objCenters.size(); ++objId, ++sizeIt)
@@ -92,13 +99,11 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 		output.writeVertex(objCenters[objId].x - *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z + *sizeIt); //011
 		output.writeVertex(objCenters[objId].x + *sizeIt, objCenters[objId].y + *sizeIt, objCenters[objId].z + *sizeIt); //111
 		
-		output.writeObjectHeader(objId);
-
 		int faceId = (aObj.objects.begin() + objId)->x;
-		WFObject::Material mat = aObj.materials[aObj.faces[faceId].material];
-
-		output.writeDiffuseMaterial(objId, mat.diffuseCoeff.x * (float)M_PI, mat.diffuseCoeff.y * (float)M_PI, mat.diffuseCoeff.z * (float)M_PI);
 		int offset = (int)objCenters.size() + objId * 8;
+		
+		size_t matId = aObj.getFace(faceId).material;
+		output.writeObjectHeader(objId, aObj.getMaterial(matId).name.c_str());
 
 		//xy quads
 		output.writeTriangleIndices(offset + 0, offset + 3, offset + 1);
@@ -123,8 +128,8 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 
 
 	//spanning tree edges
-	output.writeObjectHeader((int)objCenters.size());
-	output.writeDiffuseMaterial((int)objCenters.size(), 0.6f, 0.6f, 0.6f);
+	output.writeObjectHeader((int)aObj.getNumMaterials());
+	output.writeDiffuseMaterial((int)aObj.getNumMaterials(), 0.6f, 0.6f, 0.6f);
 
 	thrust::host_vector<int> edgesA(aGraph.adjacencyKeys);
 	thrust::host_vector<int> edgesB(aGraph.adjacencyVals);
@@ -140,8 +145,8 @@ void CollisionGraphExporter::exportCollisionGraph(const char * aFilePath, WFObje
 	}
 
 	//removed cycle edges
-	output.writeObjectHeader((int)objCenters.size() + 1);
-	output.writeDiffuseMaterial((int)objCenters.size() + 1, 0.6f, 0.7f, 0.0f);
+	output.writeObjectHeader((int)aObj.getNumMaterials() + 1);
+	output.writeDiffuseMaterial((int)aObj.getNumMaterials() + 1, 0.6f, 0.7f, 0.0f);
 	for (int edgeId = 0; edgeId < edgesA.size(); ++edgeId)
 	{
 		if (edgesA[edgeId] > edgesB[edgeId])

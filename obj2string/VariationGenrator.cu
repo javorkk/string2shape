@@ -58,6 +58,9 @@ public:
 	thrust::device_ptr<unsigned int> adjIntervals;
 	thrust::device_ptr<unsigned int> neighborIds;
 
+	thrust::device_ptr<float3> positions;
+	thrust::device_ptr<float>  nodeSizes;
+
 	thrust::device_ptr<unsigned int> outNodeIds;
 	thrust::device_ptr<unsigned int> outBorderNodeFlags;
 
@@ -68,6 +71,8 @@ public:
 		unsigned int aNumSamples,
 		thrust::device_ptr<unsigned int> aIntervals,
 		thrust::device_ptr<unsigned int> aNeighborIds,
+		thrust::device_ptr<float3> aPositions,
+		thrust::device_ptr<float>  aNodeSizes,
 		thrust::device_ptr<unsigned int> outIds,
 		thrust::device_ptr<unsigned int> outFlags
 		) : 
@@ -78,6 +83,8 @@ public:
 		subgraphsPerSeedNode(aNumSamples / aGraphSize + 1u),
 		adjIntervals(aIntervals),
 		neighborIds(aNeighborIds),
+		positions(aPositions),
+		nodeSizes(aNodeSizes),
 		outNodeIds(outIds),
 		outBorderNodeFlags(outFlags)
 	{}
@@ -125,6 +132,19 @@ public:
 						}
 					}
 
+					//if (!alreadyIncluded && adjIntervals[nodeId + 1u] - adjIntervals[nodeId] > 1u)
+					//{
+					//	//deterministically discard the neighbor if located above
+					//	const float3 posNode = positions[nodeId];
+					//	const float zNode = posNode.z;
+					//	const float3 posNbr = positions[neighborId];
+					//	const float zNbr = posNbr.z;
+					//	if (zNode + 0.05f * nodeSizes[nodeId] < zNbr /*- 0.25f * nodeSizes[neighborId]*/)
+					//	{
+					//		alreadyIncluded = true;
+					//	}
+					//}
+
 					//if (!alreadyIncluded && subgraphsPerSeedNode > 0u)
 					//{
 					//	//deterministically discard the neighbor
@@ -137,7 +157,7 @@ public:
 					//	++globalNbrCount;
 					//}
 
-					if (!alreadyIncluded && neighborCount > 0u)
+					if (!alreadyIncluded &&  neighborCount > 0u)
 					{
 						//randomly discard the neighbor node
 						//alreadyIncluded = genRand() < 0.5f;
@@ -145,6 +165,15 @@ public:
 						const float alpha = numOtherNeighbors > 0.5f ? 1.f / numOtherNeighbors : 1.5f;
 						alreadyIncluded = genRand() > alpha;
 
+						//randomly discard the neighbor if located above
+						const float3 posNode = positions[nodeId];
+						const float zNode = posNode.z;
+						const float3 posNbr = positions[neighborId];
+						const float zNbr = posNbr.z;
+						if (!alreadyIncluded && zNode + 0.15f * nodeSizes[nodeId] < zNbr /*- 0.25f * nodeSizes[neighborId]*/)
+						{
+							alreadyIncluded = genRand() > alpha;
+						}
 					}
 
 					if (!alreadyIncluded && neighborCount + currentSize < subgraphSize) //add to subgraph
@@ -478,8 +507,8 @@ public:
 		//	success = randomMatchingOperator(aId, offset / 2u);
 		//if(!success)
 		//	randomMatchingOperator(aId, offset / 4u);
-		//if(!success)
-		//	randomMatchingOperator(aId, 0u);
+		if(!success)
+			randomMatchingOperator(aId, 0u);
 
 	}
 
@@ -771,12 +800,12 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	thrust::host_vector<float3> objCenters1;
 	thrust::host_vector<float> objSizes1;
 
-	ObjectCenterExporter()(aObj1, objCenters1, objSizes1, 0.3333f);
+	ObjectCenterExporter()(aObj1, objCenters1, objSizes1);
 
 	thrust::host_vector<float3> objCenters2;
 	thrust::host_vector<float> objSizes2;
 
-	ObjectCenterExporter()(aObj2, objCenters2, objSizes2, 0.3333f);
+	ObjectCenterExporter()(aObj2, objCenters2, objSizes2);
 
 	thrust::device_vector<float3> centersDevice1(objCenters1);
 	thrust::device_vector<float> pairwiseDistMatrix1(objCenters1.size() * objCenters1.size());
@@ -812,7 +841,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj1, minBound, maxBound);
 	const float boundsDiagonal = len(maxBound - minBound);
-	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.15f);
+	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.05f);
 	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 
@@ -897,6 +926,8 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			numSubgraphSamples,
 			aGraph1.intervals.data(),
 			aGraph1.adjacencyVals.data(),
+			centersDevice1.data(),
+			objSizes1Device.data(),
 			subgraphNodeIds1.data(),
 			subgraphBorderFlags1.data());
 

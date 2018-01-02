@@ -42,4 +42,9 @@ EXPORT extern int testRandomNumberGenerator(void);
 }
 #endif
 
+#include <vector>
+
+EXPORT extern std::vector<float> WFObjectToGraph(const char * aFilename);
+
+
 #endif //WFOBJECTTOSTRING_H_E4391BD7_542A_47E4_8CC6_351328F4805B

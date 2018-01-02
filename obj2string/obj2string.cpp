@@ -1,6 +1,40 @@
 ﻿#include "pch.h"
 #include "WFObjectToString.h"
 
+static PyObject * obj2graph_wrapper(PyObject * self, PyObject * args)
+{
+	const char * input;
+
+	// parse arguments
+	if (!PyArg_ParseTuple(args, "s", &input)) {
+		return NULL;
+	}
+
+	// run the actual function
+	std::vector<float> data = WFObjectToGraph(input);
+
+	PyObject* listObj = PyList_New(data.size());
+
+	if (!listObj) return NULL;
+
+	for (unsigned int i = 0; i < data.size(); i++)
+	{
+
+		PyObject *num = PyFloat_FromDouble((double)data[i]);
+
+		if (!num)
+		{
+			Py_DECREF(listObj);
+			return NULL;
+		}
+
+		PyList_SET_ITEM(listObj, i, num);
+
+	}
+
+	return listObj;
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -124,6 +158,7 @@ static PyMethodDef OBJ2StringMethods[] = {
 	{ "obj2strings", obj2strings_wrapper, METH_VARARGS, "Converts a .obj file into multiple SMILES-type strings separated with new lines." },
 	{ "create_variations", create_variations_wrapper, METH_VARARGS, "Creates random variations out of a pair of .obj files and writes them in the same folder. Returns the SMILES-type strings representing the variations." },
 	{ "fix_variation", fix_variation_wrapper, METH_VARARGS, "Given a pair of example .obj files, attempts to repair a random variations. If successful, the repaired object is written to a file." },
+	{ "obj2graph", obj2graph_wrapper, METH_VARARGS, "Converts a .obj file into a part graph with relative translation and rotations for each connected pair of nodes." },
 	{ NULL, NULL, 0, NULL }
 };
 

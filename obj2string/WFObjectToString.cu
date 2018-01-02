@@ -11,6 +11,7 @@
 #include "Graph2String.h"
 #include "VariationGenerator.h"
 #include "Wiggle.h"
+#include "PartOrientationUtils.h"
 #include "WFObjUtils.h"
 #include "RNG.h"
 
@@ -330,3 +331,17 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+std::vector<float> WFObjectToGraph(const char * aFilename)
+{
+	WFObject obj;
+	obj.read(aFilename);
+
+	CollisionDetector detector;
+	Graph graph = detector.computeCollisionGraph(obj, 0.0f);
+
+	PartOrientationEstimator orientationEstimator;
+	orientationEstimator.init(obj, graph);
+
+	return orientationEstimator.getEdgesAndOrientations();
+}

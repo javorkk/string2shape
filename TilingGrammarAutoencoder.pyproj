@@ -32,6 +32,9 @@
     <Compile Include="create_artificial_dataset.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="graph_utils_test.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="str_to_file.py" />
     <Compile Include="create_obj_dataset.py">
       <SubType>Code</SubType>

@@ -343,5 +343,5 @@ std::vector<float> WFObjectToGraph(const char * aFilename)
 	PartOrientationEstimator orientationEstimator;
 	orientationEstimator.init(obj, graph);
 
-	return orientationEstimator.getEdgesAndOrientations();
+	return orientationEstimator.getEdgesTypesAndOrientations();
 }

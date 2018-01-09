@@ -151,3 +151,27 @@ __host__ std::vector<float> PartOrientationEstimator::getEdgesAndOrientations()
 	}
 	return result;
 }
+
+__host__ std::vector<float> PartOrientationEstimator::getEdgesTypesAndOrientations()
+{
+	std::vector<float> result(mNeighborIdKeys.size() * 11u);
+	for (size_t i = 0u; i < mNeighborIdKeys.size(); ++i)
+	{
+		result[11u * i + 0u] = (float)mNeighborIdKeys[i] + 0.1f;
+		result[11u * i + 1u] = (float)mNeighborIdVals[i] + 0.1f;
+
+		result[11u * i + 2u] = (float)mNeighborTypeKeys[i] + 0.1f;
+		result[11u * i + 3u] = (float)mNeighborTypeVals[i] + 0.1f;
+
+
+		result[11u * i + 4u] = mRelativeTranslation[i].x;
+		result[11u * i + 5u] = mRelativeTranslation[i].y;
+		result[11u * i + 6u] = mRelativeTranslation[i].z;
+
+		result[11u * i + 7u] = mRelativeRotation[i].x;
+		result[11u * i + 8u] = mRelativeRotation[i].y;
+		result[11u * i + 9u] = mRelativeRotation[i].z;
+		result[11u * i +10u] = mRelativeRotation[i].w;
+	}
+	return result;
+}

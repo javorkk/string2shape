@@ -122,8 +122,8 @@
     <PostBuildEvent>
       <Command>echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python setup.py build_ext -L$(OutDir)
-python setup.py build_ext -L$(OutDir)
+echo python setup.py build_ext --compiler=msvc -L$(OutDir)
+python setup.py build_ext --compiler=msvc  -L$(OutDir)
 echo python setup.py install --user
 python setup.py install --user</Command>
     </PostBuildEvent>
@@ -156,8 +156,8 @@ python setup.py install --user</Command>
     <PostBuildEvent>
       <Command>echo copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
 copy "$(OutDir)obj2string.dll" "$(SolutionDir)"
-echo python setup.py build_ext -L$(OutDir)
-python setup.py build_ext -L$(OutDir)
+echo python setup.py build_ext --compiler=msvc -L$(OutDir)
+python setup.py build_ext --compiler=msvc  -L$(OutDir)
 echo python setup.py install --user
 python setup.py install --user</Command>
     </PostBuildEvent>

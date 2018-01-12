@@ -163,7 +163,7 @@ def categorize_edges(file_list, grammar):
             plt.plot(current_translations[my_members, 0], current_translations[my_members, 1], col + '.')
             plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=14)
         plt.title('Estimated number of clusters: %d' % n_clusters)
-        plt.savefig('plot_' + str(node_type_pair[0]) + '_' + str(node_type_pair[1]) + '.pdf', bbox_inches='tight')
+        plt.savefig('plot_' + grammar.charset[node_type_pair[0]] + '_' + grammar.charset[node_type_pair[1]] + '.pdf', bbox_inches='tight')
 
         # #############################################################################
         # Compute DBSCAN
@@ -198,11 +198,10 @@ def categorize_edges(file_list, grammar):
 
         #plt.title('Estimated number of clusters: %d' % n_clusters)
         #plt.show()
-        #plt.savefig('plot_' + str(node_type_pair[0]) + '_' + str(node_type_pair[1]) + '.pdf', bbox_inches='tight')
+        #plt.savefig('plot_' + grammar.charset[node_type_pair[0]] + '_' + grammar.charset[node_type_pair[1]] + '.pdf', bbox_inches='tight')
 
-        print("node types:")
-        print(node_type_pair)
-        print("num clusters: " + str(n_clusters))
+
+        print("node types: [" + grammar.charset[node_type_pair[0]] + ", " + grammar.charset[node_type_pair[1]] + "] num clusters : " + str(n_clusters))
 
     return out_cluster_centers, node_unique_types    
 

@@ -45,8 +45,9 @@ class ShapeGraph():
 
 
 def get_arguments():
-    parser = argparse.ArgumentParser(description="SMILES string to Wavefront .obj conversion by file search.")
+    parser = argparse.ArgumentParser(description="Shape graph configuration estimation from .obj file collections.")
     parser.add_argument("in_folder", type=str, help="The folder containing the input .obj files.")
+    parser.add_argument("-o", "--out_plot", type=str,  help="Where to save the edge configuration plot.")
     return parser.parse_args()
 
 def process_folder(folder_name, file_list = []):
@@ -60,7 +61,7 @@ def process_folder(folder_name, file_list = []):
 ###################################################
 # Estimate edge types (categories) via clustering #
 ###################################################
-def categorize_edges(file_list, grammar):
+def categorize_edges(file_list, grammar, out_plot):
     all_node_types = np.empty(dtype=int, shape=(0, 2))
     all_node_ids = np.empty(dtype=int, shape=(0, 2))
     all_relative_translations = np.empty(dtype=float, shape=(0, 3))
@@ -78,7 +79,7 @@ def categorize_edges(file_list, grammar):
 
     node_unique_types = (np.unique(all_node_types, axis = 0)).tolist()
     
-    fig = plt.figure(figsize=(8.27,11.7 * (1.0 + len(node_unique_types) / 8.0)) ) #A4 page per 8 subplots
+    fig = plt.figure(figsize=(8.27,11.7 * math.ceil( len(node_unique_types) / 2.0 ) / 3.0) ) #A4 page per 8 subplots
     fig.clf()
 
     out_cluster_centers = []
@@ -110,7 +111,7 @@ def categorize_edges(file_list, grammar):
         #max_extent = np.max(current_translations, axis = 0)
         #min_extent = np.min(current_translations, axis = 0)
         #bbox_diagonal_length = math.sqrt(np.dot(max_extent - min_extent, max_extent - min_extent))
-        #bandwidth = max(bbox_diagonal_length * 0.35, 0.01)
+        #bandwidth = max(bbox_diagonal_length * 0.15, 0.01)
         
         #bandwidth =  0.5 * current_node_size
 
@@ -233,8 +234,9 @@ def categorize_edges(file_list, grammar):
 
 
         print("node types: [" + grammar.charset[node_type_pair[0]] + ", " + grammar.charset[node_type_pair[1]] + "] num clusters : " + str(n_clusters))
-        
-    plt.savefig('edge_configuration_plot.pdf', bbox_inches='tight')
+    
+    if(out_plot != ""):    
+        plt.savefig(out_plot, bbox_inches='tight')
 
     return out_cluster_centers, node_unique_types    
 
@@ -253,7 +255,12 @@ def main():
     initial_smiles_strings.append(str(obj_tools.obj2string(inputB)))
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
 
-    cluster_centers, node_types = categorize_edges(file_list[:100], tile_grammar)
+    out_filename = ""
+    if(args.out_plot):
+        out_filename = args.out_plot
+    
+    cluster_centers, node_types = categorize_edges(file_list[:100], tile_grammar, out_filename)
+        
     
     #print("cluster centers:")
     #print(cluster_centers)

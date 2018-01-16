@@ -97,6 +97,14 @@ __host__ void PartOrientationEstimator::init(WFObject & aObj, Graph & aGraph)
 	mRelativeRotation = thrust::host_vector<quaternion4f>(relativeRotation);
 	mAbsoluteRotation = thrust::host_vector<quaternion4f>(absoluteRotation);
 
+	thrust::host_vector<float3> objCenters;
+	thrust::host_vector<float> objSizes;
+	ObjectCenterExporter()(aObj, objCenters, objSizes);
+
+	mSizes = thrust::host_vector<float>(mNeighborIdKeys.size(), 0.f);
+	for (size_t i = 0; i < mSizes.size(); ++i)
+		mSizes[i] = objSizes[mNeighborIdVals[i]];
+
 #ifdef _DEBUG
 	outputHostVector("translations: ", mRelativeTranslation);
 	outputHostVector("rotations: ", mRelativeRotation);
@@ -154,24 +162,27 @@ __host__ std::vector<float> PartOrientationEstimator::getEdgesAndOrientations()
 
 __host__ std::vector<float> PartOrientationEstimator::getEdgesTypesAndOrientations()
 {
-	std::vector<float> result(mNeighborIdKeys.size() * 11u);
+	std::vector<float> result(mNeighborIdKeys.size() * 12u);
 	for (size_t i = 0u; i < mNeighborIdKeys.size(); ++i)
 	{
-		result[11u * i + 0u] = (float)mNeighborIdKeys[i] + 0.1f;
-		result[11u * i + 1u] = (float)mNeighborIdVals[i] + 0.1f;
+		result[12u * i +  0u] = (float)mNeighborIdKeys[i] + 0.1f;
+		result[12u * i +  1u] = (float)mNeighborIdVals[i] + 0.1f;
 
-		result[11u * i + 2u] = (float)mNeighborTypeKeys[i] + 0.1f;
-		result[11u * i + 3u] = (float)mNeighborTypeVals[i] + 0.1f;
+		result[12u * i +  2u] = (float)mNeighborTypeKeys[i] + 0.1f;
+		result[12u * i +  3u] = (float)mNeighborTypeVals[i] + 0.1f;
 
 
-		result[11u * i + 4u] = mRelativeTranslation[i].x;
-		result[11u * i + 5u] = mRelativeTranslation[i].y;
-		result[11u * i + 6u] = mRelativeTranslation[i].z;
+		result[12u * i +  4u] = mRelativeTranslation[i].x;
+		result[12u * i +  5u] = mRelativeTranslation[i].y;
+		result[12u * i +  6u] = mRelativeTranslation[i].z;
 
-		result[11u * i + 7u] = mRelativeRotation[i].x;
-		result[11u * i + 8u] = mRelativeRotation[i].y;
-		result[11u * i + 9u] = mRelativeRotation[i].z;
-		result[11u * i +10u] = mRelativeRotation[i].w;
+		result[12u * i +  7u] = mRelativeRotation[i].x;
+		result[12u * i +  8u] = mRelativeRotation[i].y;
+		result[12u * i +  9u] = mRelativeRotation[i].z;
+		result[12u * i + 10u] = mRelativeRotation[i].w;
+
+		result[12u * i + 11u] = mSizes[i];
+
 	}
 	return result;
 }

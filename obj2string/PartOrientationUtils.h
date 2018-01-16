@@ -99,13 +99,13 @@ public:
 			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
 			const float3 delta = vec - vtx0;
 			const float distSQR = dot(delta, delta);
-			if (distSQR > diameter && distSQR - diameter > 0.001f * diameter)
+			if (distSQR > diameter && distSQR - diameter > 0.0001f * diameter)
 			{
 				vtx1 = vec;
 				diameter = distSQR;
 				count = 1.f;
 			}
-			else if (fabsf(diameter - distSQR) < 0.001f * diameter)
+			else if (fabsf(diameter - distSQR) < 0.0001f * diameter)
 			{
 				vtx1 += vec;
 				count += 1.f;
@@ -113,6 +113,7 @@ public:
 		}
 		if (count > 1.f)
 			vtx1 /= count;
+
 		const float3 dir0 = ~(vtx1 - vtx0);
 		//Find the vertex furthest away from the diameter
 		float3 vtx2 = vtx0;
@@ -124,19 +125,14 @@ public:
 			const float3 delta = cross(dir0, vec - vtx0);
 			const float distSQR = dot(delta, delta);
 			const float distCenterSQR = dot(vec - center, vec - center);
-			if (distSQR >= dist2 && distSQR - dist2 > 0.01f * dist2)
+			if (distSQR >= dist2 && distSQR - dist2 > 0.0001f * dist2)
 			{
 				vtx2 = vec;
 				dist2 = distSQR;
 				count = 1.f;
 			}
-			else if (fabsf(dist2 - distSQR) < 0.01f * dist2)
-			{
-				vtx2 += vec;
-				count += 1.f;
-			}
 		}
-		if (count > 1.f)
+		if (count > 1.5f)
 			vtx2 /= count;
 
 		//vtx0 = vertexBuffer[vtxRange.x + 0];
@@ -289,6 +285,8 @@ class PartOrientationEstimator
 	thrust::host_vector<quaternion4f> mRelativeRotation;
 	//Rotates the canonical coordinates into b's
 	thrust::host_vector<quaternion4f> mAbsoluteRotation;
+	//Part sizes
+	thrust::host_vector<float> mSizes;
 
 public:
 

@@ -65,7 +65,7 @@ def categorize_edges(file_list, grammar, out_plot):
     all_node_types = np.empty(dtype=int, shape=(0, 2))
     all_node_ids = np.empty(dtype=int, shape=(0, 2))
     all_relative_translations = np.empty(dtype=float, shape=(0, 3))
-    all_sizes = np.empty(dtype=float,  shape=(1))
+    all_sizes = np.empty(dtype=float,  shape=(0, 1))
 
     
     for file_name in file_list:
@@ -96,12 +96,12 @@ def categorize_edges(file_list, grammar, out_plot):
         # #############################################################################
         # Cluster using KMeans and max node degree as number of clusters
         
-        n_clusters = max([pair[1] for pair in grammar.neighbor_counts if pair[0] == grammar.charset[node_type_pair[0]]])
+        #n_clusters = max([pair[1] for pair in grammar.neighbor_counts if pair[0] == grammar.charset[node_type_pair[0]]])
 
-        kmeans = KMeans(init='k-means++', n_clusters=n_clusters, n_init=10)
-        kmeans.fit(current_translations)
-        labels = kmeans.labels_
-        cluster_centers = kmeans.cluster_centers_          
+        #kmeans = KMeans(init='k-means++', n_clusters=n_clusters, n_init=10)
+        #kmeans.fit(current_translations)
+        #labels = kmeans.labels_
+        #cluster_centers = kmeans.cluster_centers_          
 
         # #############################################################################
         # Compute clustering with MeanShift
@@ -113,14 +113,14 @@ def categorize_edges(file_list, grammar, out_plot):
         #bbox_diagonal_length = math.sqrt(np.dot(max_extent - min_extent, max_extent - min_extent))
         #bandwidth = max(bbox_diagonal_length * 0.15, 0.01)
         
-        #bandwidth =  0.5 * current_node_size
+        bandwidth = 0.2 * current_node_size
 
-        #ms = MeanShift(bandwidth = bandwidth, bin_seeding = True)
-        #ms.fit(current_translations)
-        #labels = ms.labels_
-        #cluster_centers = ms.cluster_centers_        
-        #labels_unique = np.unique(labels)
-        #n_clusters = len(labels_unique)
+        ms = MeanShift(bandwidth = bandwidth, bin_seeding = True)
+        ms.fit(current_translations)
+        labels = ms.labels_
+        cluster_centers = ms.cluster_centers_        
+        labels_unique = np.unique(labels)
+        n_clusters = len(labels_unique)
 
         # #############################################################################
         # Compute Affinity Propagation

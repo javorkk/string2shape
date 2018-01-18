@@ -162,30 +162,31 @@ __host__ std::vector<float> PartOrientationEstimator::getEdgesAndOrientations()
 
 __host__ std::vector<float> PartOrientationEstimator::getEdgesTypesAndOrientations()
 {
-	std::vector<float> result(mNeighborIdKeys.size() * 15u);
+	std::vector<float> result(mNeighborIdKeys.size() * 16u);
 	for (size_t i = 0u; i < mNeighborIdKeys.size(); ++i)
 	{
-		result[15u * i +  0u] = (float)mNeighborIdKeys[i] + 0.1f;
-		result[15u * i +  1u] = (float)mNeighborIdVals[i] + 0.1f;
+		result[16u * i +  0u] = (float)mNeighborIdKeys[i] + 0.1f;
+		result[16u * i +  1u] = (float)mNeighborIdVals[i] + 0.1f;
 
-		result[15u * i +  2u] = (float)mNeighborTypeKeys[i] + 0.1f;
-		result[15u * i +  3u] = (float)mNeighborTypeVals[i] + 0.1f;
+		result[16u * i +  2u] = (float)mNeighborTypeKeys[i] + 0.1f;
+		result[16u * i +  3u] = (float)mNeighborTypeVals[i] + 0.1f;
 
 
-		result[15u * i +  4u] = mRelativeTranslation[i].x;
-		result[15u * i +  5u] = mRelativeTranslation[i].y;
-		result[15u * i +  6u] = mRelativeTranslation[i].z;
+		result[16u * i +  4u] = mRelativeTranslation[i].x;
+		result[16u * i +  5u] = mRelativeTranslation[i].y;
+		result[16u * i +  6u] = mRelativeTranslation[i].z;
 
-		result[15u * i +  7u] = mRelativeRotation[i].x;
-		result[15u * i +  8u] = mRelativeRotation[i].y;
-		result[15u * i +  9u] = mRelativeRotation[i].z;
-		result[15u * i + 10u] = mRelativeRotation[i].w;
+		result[16u * i +  7u] = mRelativeRotation[i].x;
+		result[16u * i +  8u] = mRelativeRotation[i].y;
+		result[16u * i +  9u] = mRelativeRotation[i].z;
+		result[16u * i + 10u] = mRelativeRotation[i].w;
 
-		result[15u * i + 11u] = mSizes[i];
+		result[16u * i + 11u] = mSizes[i];
 
-		result[15u * i + 12u] = mAbsoluteRotation[i].x;
-		result[15u * i + 13u] = mAbsoluteRotation[i].y;
-		result[15u * i + 14u] = mAbsoluteRotation[i].z;
+		result[16u * i + 12u] = mAbsoluteRotation[i].x;
+		result[16u * i + 13u] = mAbsoluteRotation[i].y;
+		result[16u * i + 14u] = mAbsoluteRotation[i].z;
+		result[16u * i + 15u] = mAbsoluteRotation[i].w;
 
 	}
 	return result;

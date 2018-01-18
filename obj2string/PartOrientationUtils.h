@@ -283,7 +283,7 @@ class PartOrientationEstimator
 	thrust::host_vector<float3> mRelativeTranslation;
 	//Rotates a's local coordinate frame into b's
 	thrust::host_vector<quaternion4f> mRelativeRotation;
-	//Rotates the canonical coordinates into b's
+	//Rotates the canonical coordinates into a's
 	thrust::host_vector<quaternion4f> mAbsoluteRotation;
 	//Part sizes
 	thrust::host_vector<float> mSizes;

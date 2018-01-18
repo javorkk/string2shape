@@ -162,26 +162,30 @@ __host__ std::vector<float> PartOrientationEstimator::getEdgesAndOrientations()
 
 __host__ std::vector<float> PartOrientationEstimator::getEdgesTypesAndOrientations()
 {
-	std::vector<float> result(mNeighborIdKeys.size() * 12u);
+	std::vector<float> result(mNeighborIdKeys.size() * 15u);
 	for (size_t i = 0u; i < mNeighborIdKeys.size(); ++i)
 	{
-		result[12u * i +  0u] = (float)mNeighborIdKeys[i] + 0.1f;
-		result[12u * i +  1u] = (float)mNeighborIdVals[i] + 0.1f;
+		result[15u * i +  0u] = (float)mNeighborIdKeys[i] + 0.1f;
+		result[15u * i +  1u] = (float)mNeighborIdVals[i] + 0.1f;
 
-		result[12u * i +  2u] = (float)mNeighborTypeKeys[i] + 0.1f;
-		result[12u * i +  3u] = (float)mNeighborTypeVals[i] + 0.1f;
+		result[15u * i +  2u] = (float)mNeighborTypeKeys[i] + 0.1f;
+		result[15u * i +  3u] = (float)mNeighborTypeVals[i] + 0.1f;
 
 
-		result[12u * i +  4u] = mRelativeTranslation[i].x;
-		result[12u * i +  5u] = mRelativeTranslation[i].y;
-		result[12u * i +  6u] = mRelativeTranslation[i].z;
+		result[15u * i +  4u] = mRelativeTranslation[i].x;
+		result[15u * i +  5u] = mRelativeTranslation[i].y;
+		result[15u * i +  6u] = mRelativeTranslation[i].z;
 
-		result[12u * i +  7u] = mRelativeRotation[i].x;
-		result[12u * i +  8u] = mRelativeRotation[i].y;
-		result[12u * i +  9u] = mRelativeRotation[i].z;
-		result[12u * i + 10u] = mRelativeRotation[i].w;
+		result[15u * i +  7u] = mRelativeRotation[i].x;
+		result[15u * i +  8u] = mRelativeRotation[i].y;
+		result[15u * i +  9u] = mRelativeRotation[i].z;
+		result[15u * i + 10u] = mRelativeRotation[i].w;
 
-		result[12u * i + 11u] = mSizes[i];
+		result[15u * i + 11u] = mSizes[i];
+
+		result[15u * i + 12u] = mAbsoluteRotation[i].x;
+		result[15u * i + 13u] = mAbsoluteRotation[i].y;
+		result[15u * i + 14u] = mAbsoluteRotation[i].z;
 
 	}
 	return result;

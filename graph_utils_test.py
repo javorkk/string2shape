@@ -24,12 +24,13 @@ from itertools import cycle
 class ShapeGraph():
    
     def __init__(self, input_list):
-        self.node_ids = np.array( [input_list[0::12], input_list[1::12]]).astype(int).T
-        self.node_types = np.array( [input_list[2::12], input_list[3::12]] ).astype(int).T
+        self.node_ids = np.array( [input_list[0::15], input_list[1::15]]).astype(int).T
+        self.node_types = np.array( [input_list[2::15], input_list[3::15]] ).astype(int).T
         self.node_unique_types = (np.unique(self.node_types, axis = 0)).tolist()
-        self.relative_translations = np.array([input_list[4::12], input_list[5::12], input_list[6::12]]).T
-        self.relative_rotations = np.array([input_list[7::12], input_list[8::12], input_list[9::12], input_list[10::12]]).T
-        self.sizes = np.array(input_list[11::12])
+        self.relative_translations = np.array([input_list[4::15], input_list[5::15], input_list[6::15]]).T
+        self.relative_rotations = np.array([input_list[7::15], input_list[8::15], input_list[9::15], input_list[10::15]]).T
+        self.sizes = np.array(input_list[11::15])
+        self.abs_rotations = np.array([input_list[12::15], input_list[13::15], input_list[14::15]]).T
 
         #print("node ids:")
         #print(self.node_ids)

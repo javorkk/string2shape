@@ -16,10 +16,14 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	thrust::host_vector<unsigned int>& adjacencyValsHost,
 	thrust::host_vector<Graph::EdgeType>& adjacencyMatrixType,
 	thrust::host_vector<unsigned int>& cycleIds,
-	thrust::host_vector<unsigned int>& nodeTypeIds)
+	thrust::host_vector<unsigned int>& nodeTypeIds,
+	std::vector<unsigned int>& oNodeIds)
 {
 	const unsigned int numNodes = (unsigned int)intervalsHost.size() - 1;
 	visited[nodeId] = 1u;
+	
+	oNodeIds.push_back(nodeId);
+
 	std::string result = mAlphabet[nodeTypeIds[nodeId]];
 	std::string cycleLables;
 	std::string lastSubtree;
@@ -56,7 +60,8 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 				adjacencyValsHost,
 				adjacencyMatrixType,
 				cycleIds,
-				nodeTypeIds
+				nodeTypeIds,
+				oNodeIds
 			);
 
 			if (!lastSubtree.empty())
@@ -76,7 +81,10 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	return result;
 }
 
-__host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::host_vector<unsigned int>& aNodeTypes)
+__host__ std::string GraphToStringConverter::toString(
+	Graph & aGraph,
+	thrust::host_vector<unsigned int>& aNodeTypes,
+	std::vector<unsigned int>& oNodeIds)
 {
 	size_t numNodes;
 	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
@@ -101,7 +109,9 @@ __host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::ho
 	thrust::host_vector<unsigned int> visited(numNodes, 0u);
 	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph.adjacencyVals);
-
+	
+	oNodeIds.clear();
+	
 	std::string result = depthFirstTraverse(
 		0u,
 		visited,
@@ -110,7 +120,8 @@ __host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::ho
 		adjacencyValsHost,
 		adjMatrixHost,
 		cycleIds,
-		aNodeTypes);
+		aNodeTypes,
+		oNodeIds);
 
 	result.append("\n");
 	for (unsigned int startId = 1; startId < numNodes; ++startId)
@@ -124,28 +135,32 @@ __host__ std::string GraphToStringConverter::toString(Graph & aGraph, thrust::ho
 			adjacencyValsHost,
 			adjMatrixHost,
 			cycleIds,
-			aNodeTypes));
+			aNodeTypes,
+			oNodeIds));
 		result.append("\n");
 	}
 	return result;
 }
 
-__host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
+__host__ std::pair< std::string, std::vector<unsigned int> > 
+GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
 {
+	std::vector<unsigned int> nodeIds;
+
 	if (aObj.objects.size() != aGraph.numNodes())
 	{
 		std::cerr
 			<< "Number of objects " << aObj.objects.size()
 			<< " and graph nodes " << aGraph.numNodes()
 			<< " do not match\n";
-		return std::string("");
+		return std::make_pair(std::string(""), nodeIds);
 	}
 
 	if (aObj.materials.size() > mAlphabet.size())
 	{
 		std::cerr << "Too many object types " << aObj.materials.size() << "\n";
 		std::cerr << "Current maximum number is " << mAlphabet.size() << "\n";
-		return std::string("");
+		return std::make_pair(std::string(""), nodeIds);
 	}
 
 	thrust::host_vector<unsigned int> nodeTypes(aGraph.numNodes(), (unsigned int)aObj.materials.size());
@@ -155,8 +170,8 @@ __host__ std::string GraphToStringConverter::operator()(WFObject & aObj, Graph &
 		size_t materialId = aObj.faces[faceId].material;
 		nodeTypes[nodeId] = (unsigned int)materialId;
 	}
-
-	return toString(aGraph, nodeTypes);
+	std::string result = toString(aGraph, nodeTypes, nodeIds);
+	return std::make_pair(result, nodeIds);
 }
 
 __host__ void GrammarCheck::init(

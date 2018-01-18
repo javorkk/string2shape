@@ -1262,7 +1262,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 			exportTime = intermTimer.get();
 			intermTimer.start();
 
-			std::string variationStrings = convertToStr(variation, variationGraph);
+			std::string variationStrings = convertToStr(variation, variationGraph).first;
 			if (!multiString)
 				variationStrings = variationStrings.substr(0u, variationStrings.find_first_of("\n"));
 			result.append(variationStrings);

@@ -89,9 +89,16 @@ public:
 		thrust::host_vector<unsigned int>& adjacencyValsHost,
 		thrust::host_vector<Graph::EdgeType>& adjacencyMatrixType,
 		thrust::host_vector<unsigned int>& cycleIds,
-		thrust::host_vector<unsigned int>& nodeTypeIds);
-	__host__ std::string toString(Graph& aGraph, thrust::host_vector<unsigned int>& aNodeTypes);
-	__host__ std::string operator()(WFObject& aObj, Graph& aGraph);
+		thrust::host_vector<unsigned int>& nodeTypeIds,
+		std::vector<unsigned int>& oNodeIds);
+	
+	__host__ std::string toString(
+		Graph& aGraph,
+		thrust::host_vector<unsigned int>& aNodeTypes,
+		std::vector<unsigned int>& oNodeIds);
+
+	__host__ std::pair< std::string, std::vector<unsigned int> > 
+		operator()(WFObject& aObj, Graph& aGraph);
 };
 
 class GrammarCheck

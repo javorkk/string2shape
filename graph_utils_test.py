@@ -261,7 +261,23 @@ def main():
     
     cluster_centers, node_types = categorize_edges(file_list[:100], tile_grammar, out_filename)
         
+    str_node_ids = str(obj_tools.obj2strings_ids(inputA))
+    str_node_ids_list = str_node_ids.split("\n")
+    smiles_strings = str_node_ids_list[:len(str_node_ids_list) / 2]
+    node_ids_list = str_node_ids_list[len(str_node_ids_list) / 2:]
     
+    print("node id list:")
+    print(str_node_ids_list)
+
+    node_ids = []
+    for node_list in node_ids_list:
+        node_ids.append([int(i) for i in node_list.split(" ")])
+
+    print("smiles strings: ")
+    print(smiles_strings)
+    print("node ids:")
+    print(node_ids)
+
     #print("cluster centers:")
     #print(cluster_centers)
 

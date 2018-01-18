@@ -21,7 +21,7 @@ extern "C" {
 
 EXPORT extern char * WFObjectToString(const char * aFilename);
 
-EXPORT extern char * WFObjectToStrings(const char * aFilename);
+EXPORT extern char * WFObjectToStrings(const char * aFilename, bool aAppendNodeIds = false);
 
 EXPORT extern char * WFObjectRandomVariations(const char * aFilename1, const char* aFilename2);
 
@@ -45,6 +45,5 @@ EXPORT extern int testRandomNumberGenerator(void);
 #include <vector>
 
 EXPORT extern std::vector<float> WFObjectToGraph(const char * aFilename);
-
 
 #endif //WFOBJECTTOSTRING_H_E4391BD7_542A_47E4_8CC6_351328F4805B

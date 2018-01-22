@@ -62,7 +62,7 @@ def process_folder(folder_name, file_list = []):
 ###################################################
 # Estimate edge types (categories) via clustering #
 ###################################################
-def categorize_edges(file_list, grammar, out_plot):
+def categorize_edges(file_list, grammar, out_plot = None):
     all_node_types = np.empty(dtype=int, shape=(0, 2))
     all_node_ids = np.empty(dtype=int, shape=(0, 2))
     all_relative_translations = np.empty(dtype=float, shape=(0, 3))
@@ -168,35 +168,36 @@ def categorize_edges(file_list, grammar, out_plot):
 
             n_clusters = n_clusters - len(cluster_merge_candidates)  
 
+        out_cluster_centers.append(cluster_centers)
         # #############################################################################
         # Plot Result
-        out_cluster_centers.append(cluster_centers)
 
-        colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
+        if(out_plot != None): 
+            colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
 
-        subplot_id = 1 + node_unique_types.index(node_type_pair)
-        ax = fig.add_subplot((1 + len(node_unique_types)) / 2, 2, subplot_id, projection='3d')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        xyz_max = np.amax(current_translations)
-        xyz_min = np.amin(current_translations)
-        ax.set_xlim([xyz_min,xyz_max])
-        ax.set_ylim([xyz_min,xyz_max])
-        ax.set_zlim([xyz_min,xyz_max])
+            subplot_id = 1 + node_unique_types.index(node_type_pair)
+            ax = fig.add_subplot((1 + len(node_unique_types)) / 2, 2, subplot_id, projection='3d')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('z')
+            xyz_max = np.amax(current_translations)
+            xyz_min = np.amin(current_translations)
+            ax.set_xlim([xyz_min,xyz_max])
+            ax.set_ylim([xyz_min,xyz_max])
+            ax.set_zlim([xyz_min,xyz_max])
 
-        ax.set_title('edge type [' + grammar.charset[node_type_pair[0]] + ', ' + grammar.charset[node_type_pair[1]] + '] clusters: %d' % n_clusters)
-        for k, col in zip(range(n_clusters), colors):
-            my_members = labels == k
-            cluster_center = cluster_centers[k]
-            ax.scatter(current_translations[my_members, 0], current_translations[my_members, 1], current_translations[my_members, 2], c = col, marker = '.')
-            ax.scatter(cluster_center[0], cluster_center[1], cluster_center[2], c = col, marker = 'o')
+            ax.set_title('edge type [' + grammar.charset[node_type_pair[0]] + ', ' + grammar.charset[node_type_pair[1]] + '] clusters: %d' % n_clusters)
+            for k, col in zip(range(n_clusters), colors):
+                my_members = labels == k
+                cluster_center = cluster_centers[k]
+                ax.scatter(current_translations[my_members, 0], current_translations[my_members, 1], current_translations[my_members, 2], c = col, marker = '.')
+                ax.scatter(cluster_center[0], cluster_center[1], cluster_center[2], c = col, marker = 'o')
 
-        #for k, col in zip(range(n_clusters), colors):
-        #    my_members = labels == k
-        #    cluster_center = cluster_centers[k]
-        #    plt.plot(current_translations[my_members, 0], current_translations[my_members, 2], col + '.')
-        #    plt.plot(cluster_center[0], cluster_center[2], 'o', markerfacecolor=col, markeredgecolor='k', markersize=14)
+            #for k, col in zip(range(n_clusters), colors):
+            #    my_members = labels == k
+            #    cluster_center = cluster_centers[k]
+            #    plt.plot(current_translations[my_members, 0], current_translations[my_members, 2], col + '.')
+            #    plt.plot(cluster_center[0], cluster_center[2], 'o', markerfacecolor=col, markeredgecolor='k', markersize=14)
 
         # #############################################################################
         # Compute DBSCAN
@@ -236,11 +237,101 @@ def categorize_edges(file_list, grammar, out_plot):
 
         print("node types: [" + grammar.charset[node_type_pair[0]] + ", " + grammar.charset[node_type_pair[1]] + "] num clusters : " + str(n_clusters))
     
-    if(out_plot != ""):    
+    if(out_plot != None):    
         plt.savefig(out_plot, bbox_inches='tight')
 
     return out_cluster_centers, node_unique_types    
 
+def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, grammar):
+    dummy_node_id = len(node_ids)
+
+    num_nodes = 0
+    padded_node_ids = []
+    for char_id in range(len(word)):
+        if word[char_id] in grammar.charset:
+            padded_node_ids.append(node_ids[num_nodes])
+            num_nodes += 1
+        else:
+            padded_node_ids.append(dummy_node_id)
+    
+    edge_list = [[dummy_node_id, dummy_node_id]]
+    node_id_stack = []
+    cycle_vals = []
+    cycle_ids = []
+    last_char = word[0]
+    last_node_id = padded_node_ids[0]
+    for char_id in range(1,len(word)):
+        if word[char_id] in grammar.charset:
+            if last_char in grammar.charset:
+                edge_list.append([padded_node_ids[char_id], last_node_id])
+            elif last_char != grammar.BRANCH_END:
+                edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])
+            elif last_char == grammar.BRANCH_END:
+                #last subtree of parent node, pop the stack top
+                edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])
+                node_id_stack.pop()
+                
+            last_node_id = padded_node_ids[char_id]
+            last_char = word[char_id] 
+        elif word[char_id] == grammar.BRANCH_START and last_char != grammar.BRANCH_END:
+            edge_list.append([dummy_node_id, dummy_node_id])
+            node_id_stack.append(last_node_id)
+            last_char = word[char_id]
+        elif word[char_id] == grammar.BRANCH_START and last_char == grammar.BRANCH_END: #do nothing
+            edge_list.append([dummy_node_id, dummy_node_id])
+            last_char = word[char_id]
+        elif word[char_id] == grammar.BRANCH_END:
+            edge_list.append([dummy_node_id, dummy_node_id])
+            last_char = word[char_id]
+        elif grammar.DIGITS.find(word[char_id]) != -1:
+            last_digit_id = char_id
+            while(last_digit_id < len(word) and grammar.DIGITS.find(word[last_digit_id]) != -1):
+                last_digit_id += 1
+            cycle_edge_id = int(word[char_id: last_digit_id])
+            if(cycle_edge_id in cycle_ids):
+                neighbor_node_id = cycle_vals[cycle_ids.index(cycle_edge_id)]
+                last_digit_id = char_id
+                while(last_digit_id < len(word) and grammar.DIGITS.find(word[last_digit_id]) != -1):
+                    last_digit_id += 1
+                    edge_list.append([neighbor_node_id, last_node_id])
+            else:
+                cycle_ids.append(cycle_edge_id)
+                cycle_vals.append(last_node_id)
+                last_digit_id = char_id
+                while(last_digit_id < len(word) and grammar.DIGITS.find(word[last_digit_id]) != -1):
+                    last_digit_id += 1
+                    edge_list.append([dummy_node_id, dummy_node_id])
+            char_id = last_digit_id
+            last_char = word[char_id]
+        elif word[char_id] == grammar.NUM_DELIMITER:
+            edge_list.append([dummy_node_id, dummy_node_id])
+            last_char = word[char_id]
+
+    num_categories = 0;
+    categories_prefix = [0];
+    for clusters in cluster_centers:
+        num_categories += clusters.shape[0]
+        categories_prefix.append(num_categories)
+    
+    edge_categories = []
+    for node_id_pair in edge_list:
+        if node_id_pair == [dummy_node_id, dummy_node_id]:
+            edge_categories.append(num_categories)
+        else:
+            edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
+            type_id_pair = graph.node_types[edge_index]
+            cluster_set_id = graph.node_unique_types.index(type_id_pair.reshape(2).tolist())
+            relative_translation = graph.relative_translations[edge_index]
+            closest_cluster_center_id = num_categories
+            dist = float("inf")
+            for i in range(cluster_centers[cluster_set_id].shape[0]):
+                current_dist = np.linalg.norm(cluster_centers[cluster_set_id][i] - relative_translation)
+                if current_dist < dist:
+                    dist = current_dist
+                    closest_cluster_center_id = i
+            edge_categories.append(closest_cluster_center_id + categories_prefix[cluster_set_id])          
+
+    return edge_categories
 
 def main():
     args = get_arguments()
@@ -255,29 +346,31 @@ def main():
     initial_smiles_strings.append(str(obj_tools.obj2string(inputA)))
     initial_smiles_strings.append(str(obj_tools.obj2string(inputB)))
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)
-
-    out_filename = ""
-    if(args.out_plot):
-        out_filename = args.out_plot
-    
-    cluster_centers, node_types = categorize_edges(file_list[:100], tile_grammar, out_filename)
+  
+    cluster_centers, node_types = categorize_edges(file_list[:100], tile_grammar, args.out_plot)
         
     str_node_ids = str(obj_tools.obj2strings_ids(inputA))
     str_node_ids_list = str_node_ids.split("\n")
     smiles_strings = str_node_ids_list[:len(str_node_ids_list) / 2]
     node_ids_list = str_node_ids_list[len(str_node_ids_list) / 2:]
     
-    print("node id list:")
-    print(str_node_ids_list)
-
     node_ids = []
     for node_list in node_ids_list:
         node_ids.append([int(i) for i in node_list.split(" ")])
 
-    print("smiles strings: ")
-    print(smiles_strings)
-    print("node ids:")
-    print(node_ids)
+    graph_edges = ShapeGraph(obj_tools.obj2graph(inputA))
+
+    edge_categories = smiles_to_edge_categories(smiles_strings[0], node_ids[0], cluster_centers, graph_edges,  tile_grammar)
+    
+    print("smiles string:")
+    print(smiles_strings[0])
+    print("edge categories:")
+    print(edge_categories)
+
+    #print("smiles strings: ")
+    #print(smiles_strings)
+    #print("node ids:")
+    #print(node_ids)
 
     #print("cluster centers:")
     #print(cluster_centers)

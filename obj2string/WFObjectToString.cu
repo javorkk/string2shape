@@ -58,6 +58,8 @@ extern "C" {
 		CollisionGraphExporter exporter;
 		exporter.exportCollisionGraph(aFilename, obj, graph);
 
+		if (!graph.isConnected())
+			return "";
 
 		GraphToStringConverter converter;
 		std::pair< std::string, std::vector<unsigned int> > strings_nodeIds = converter(obj, graph);

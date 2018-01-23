@@ -12,6 +12,8 @@
 #include "DebugUtils.h"
 #include "Timer.h"
 
+#include <deque>
+
 struct isEdge
 { 
 	__host__ __device__ unsigned int operator()(const unsigned int& x) const
@@ -554,6 +556,43 @@ __host__ int Graph::testSpanningTreeConstruction()
 	std::cerr << "Computed graph spanning tree in " << totalTreeTime << "ms\n";
 
 	return 0;	
+}
+
+__host__ bool Graph::isConnected()
+{
+	thrust::host_vector<unsigned int> intervalsHost(intervals);
+	thrust::host_vector<unsigned int> neighborIdsHost(adjacencyVals);
+	//check for diconnected components
+	size_t numNodes = intervalsHost.size() - 1;
+	thrust::host_vector<unsigned int> visited(numNodes, 0u);
+
+
+	std::deque<unsigned int> frontier;
+	frontier.push_back(0);
+	visited[0] = 1u;
+	size_t visitedCount = 1u;
+	while (!frontier.empty())
+	{
+		const unsigned int nodeId = frontier.front();
+		frontier.pop_front();
+
+		for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
+		{
+			const unsigned int nodeId = neighborIdsHost[nbrId];
+			if (visited[nodeId] == 0u)
+			{
+				frontier.push_back(nodeId);
+				visited[nodeId] = 1u;
+				++visitedCount;
+			}
+		}
+	}
+
+	if (visitedCount < numNodes)
+		return false; // disconnected components
+
+
+	return true;
 }
 
 

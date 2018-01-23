@@ -25,7 +25,7 @@ def process_folder(folder_name, file_list = []):
     for item_name in os.listdir(folder_name):
         subfolfer_name = os.path.join(folder_name, item_name)
         if os.path.isdir(subfolfer_name):
-            process_folder(subfolfer_name, word_list)
+            process_folder(subfolfer_name, file_list)
         if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
             file_list.append(folder_name + "/" + item_name)       
 
@@ -37,8 +37,9 @@ def augment_folder(file_list=[], word_list=[]):
         current_str = obj_tools.create_variations(item_name_1, item_name_2)
         current_words = current_str.split("\n")                
         for w in current_words:
-            if(len(str(w)) <= MAX_WORD_LENGTH and len(str(w)) > 0):
-                word_list.append(str(w))
+            word_list.append(str(w))
+            #if(len(str(w)) <= MAX_WORD_LENGTH and len(str(w)) > 0):
+                #word_list.append(str(w))
 
 def fix_variations(folder_name, exclude_file_list, inputA, inputB):
     for item_name in os.listdir(folder_name):
@@ -123,9 +124,10 @@ def main():
     valid_strings = []
     for w in smiles_strings:
         if(loaded_grammar.check_word(w) == True):
-            valid_strings.append(w)      
+            if len(str(w)) <= MAX_WORD_LENGTH and len(str(w)) > 0 :
+                valid_strings.append(w)      
 
-    print("# valid items: " + str(len(valid_strings)))
+    print("# valid strings: " + str(len(valid_strings)))
     df = pandas.DataFrame({args.smiles_column : valid_strings})
     df.to_hdf(args.out_filepath, "table", format = "table", data_columns = True)
 

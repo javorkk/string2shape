@@ -20,10 +20,11 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	std::vector<unsigned int>& oNodeIds)
 {
 	const unsigned int numNodes = (unsigned int)intervalsHost.size() - 1;
+	if(visited[nodeId] == 0u)
+		oNodeIds.push_back(nodeId);
+
 	visited[nodeId] = 1u;
 	
-	oNodeIds.push_back(nodeId);
-
 	std::string result = mAlphabet[nodeTypeIds[nodeId]];
 	std::string cycleLables;
 	std::string lastSubtree;
@@ -126,7 +127,7 @@ __host__ std::string GraphToStringConverter::toString(
 	result.append("\n");
 	for (unsigned int startId = 1; startId < numNodes; ++startId)
 	{
-		visited = std::vector<unsigned int>(numNodes, 0u);
+		visited = thrust::host_vector<unsigned int>(numNodes, 0u);
 		result.append(depthFirstTraverse(
 			startId,
 			visited,

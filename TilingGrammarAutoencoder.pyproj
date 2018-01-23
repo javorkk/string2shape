@@ -35,6 +35,9 @@
     <Compile Include="graph_utils_test.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="neuralnets\shape_graph.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="str_to_file.py" />
     <Compile Include="create_obj_dataset.py">
       <SubType>Code</SubType>

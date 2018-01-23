@@ -248,6 +248,9 @@ def categorize_edges(file_list, grammar, out_plot = None):
 
     return out_cluster_centers, node_unique_types    
 
+###################################################
+# Compute a category sequence for a SMILES string #
+###################################################
 def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, grammar):
     dummy_node_id = len(node_ids)
 
@@ -269,6 +272,8 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, grammar):
     for char_id in range(1,len(word)):
         if word[char_id] in grammar.charset:
             if last_char in grammar.charset:
+                edge_list.append([padded_node_ids[char_id], last_node_id])
+            elif grammar.DIGITS.find(last_char) != -1:
                 edge_list.append([padded_node_ids[char_id], last_node_id])
             elif last_char != grammar.BRANCH_END:
                 edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])

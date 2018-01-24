@@ -74,6 +74,9 @@
     <Compile Include="train_graph.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="train_seq2seq.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="neuralnets\" />

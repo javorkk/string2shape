@@ -14,7 +14,7 @@ from keras.utils import visualize_util
 import matplotlib.pyplot as plt
 
 NUM_EPOCHS = 1
-BATCH_SIZE = 600
+BATCH_SIZE = 200
 LATENT_DIM = 292
 
 def get_arguments():

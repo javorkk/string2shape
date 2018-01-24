@@ -55,13 +55,15 @@ def main():
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)  
     tile_grammar.store(args.out_grammarpath)
 
-    cluster_centers, node_types = shape_graph.categorize_edges(file_list[:10], tile_grammar, args.edge_types_plot)
+    cluster_centers, node_types = shape_graph.categorize_edges(file_list[:100], tile_grammar, args.edge_types_plot)
 
     smiles_strings = []
     edge_categories = []
 
     for file_name in file_list:
         str_node_ids = str(obj_tools.obj2strings_ids(file_name))
+        if str_node_ids == '':
+            continue
         str_node_ids_list = str_node_ids.split("\n")
         current_strings = str_node_ids_list[:len(str_node_ids_list) / 2]
         node_ids_list = str_node_ids_list[len(str_node_ids_list) / 2:]

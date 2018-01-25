@@ -81,7 +81,7 @@ public:
 
 	}
 	
-	__host__ std::string depthFirstTraverse(
+	__host__ std::pair< std::string, std::string > depthFirstTraverse(
 		unsigned int v,
 		thrust::host_vector<unsigned int>& visited,
 		unsigned int parent,
@@ -89,15 +89,13 @@ public:
 		thrust::host_vector<unsigned int>& adjacencyValsHost,
 		thrust::host_vector<Graph::EdgeType>& adjacencyMatrixType,
 		thrust::host_vector<unsigned int>& cycleIds,
-		thrust::host_vector<unsigned int>& nodeTypeIds,
-		std::vector<unsigned int>& oNodeIds);
+		thrust::host_vector<unsigned int>& nodeTypeIds);
 	
-	__host__ std::string toString(
+	__host__ std::pair< std::string, std::string > toString(
 		Graph& aGraph,
-		thrust::host_vector<unsigned int>& aNodeTypes,
-		std::vector<unsigned int>& oNodeIds);
+		thrust::host_vector<unsigned int>& aNodeTypes);
 
-	__host__ std::pair< std::string, std::vector<unsigned int> > 
+	__host__ std::pair< std::string, std::string >
 		operator()(WFObject& aObj, Graph& aGraph);
 };
 

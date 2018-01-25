@@ -331,6 +331,14 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, grammar):
         else:
             edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
             type_id_pair = graph.node_types[edge_index]
+            if type_id_pair.shape[0] == 0 :
+                #work around missing edges in graph.node_ids
+                node_a_index = np.where((np.array(node_id_pair) == graph.node_ids)[0] == 1)[0]
+                node_a_type = graph.node_types[node_a_index][0]
+                node_b_index =  np.where((np.array(node_id_pair) == graph.node_ids)[1] == 1)[0]
+                node_b_type = graph.node_types[node_a_index][1]
+                type_id_pair = np.array([node_a_type, node_b_type])
+
             cluster_set_id = graph.node_unique_types.index(type_id_pair.reshape(2).tolist())
             relative_translation = graph.relative_translations[edge_index]
             closest_cluster_center_id = num_categories

@@ -16,7 +16,7 @@ def get_arguments():
     parser.add_argument("out_grammarpath", type=str, help="The tiling grammar export path in HDF5 format.")
     parser.add_argument("--smiles_column", type=str, default = SMILES_COL_NAME, help="Name of the column that contains the SMILES strings. Default: %s" % SMILES_COL_NAME)
     parser.add_argument("--categories_column", type=str, default = CATEGORIES_COL_NAME, help="Name of the column that contains edge categories. Default: %s" % CATEGORIES_COL_NAME)
-    parser.add_argument("--edge_types_plot", type=str,  help="Where to save the edge configuration plot.")
+    parser.add_argument("--plot", type=str,  help="Where to save the edge configuration plot.")
     return parser.parse_args()
 
 #def process_folder(folder_name, word_list = []):
@@ -55,7 +55,7 @@ def main():
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)  
     tile_grammar.store(args.out_grammarpath)
 
-    cluster_centers, node_types = shape_graph.categorize_edges(file_list[:100], tile_grammar, args.edge_types_plot)
+    cluster_centers, node_types = shape_graph.categorize_edges(file_list[:100], tile_grammar, args.plot)
 
     smiles_strings = []
     edge_categories = []

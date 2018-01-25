@@ -8,7 +8,7 @@
 
 #include <deque>
 
-__host__ std::string GraphToStringConverter::depthFirstTraverse(
+__host__ std::pair< std::string, std::string > GraphToStringConverter::depthFirstTraverse(
 	unsigned int nodeId,
 	thrust::host_vector<unsigned int>& visited,
 	unsigned int parentId,
@@ -16,19 +16,16 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 	thrust::host_vector<unsigned int>& adjacencyValsHost,
 	thrust::host_vector<Graph::EdgeType>& adjacencyMatrixType,
 	thrust::host_vector<unsigned int>& cycleIds,
-	thrust::host_vector<unsigned int>& nodeTypeIds,
-	std::vector<unsigned int>& oNodeIds)
+	thrust::host_vector<unsigned int>& nodeTypeIds)
 {
 	const unsigned int numNodes = (unsigned int)intervalsHost.size() - 1;
-	if(visited[nodeId] == 0u)
-		oNodeIds.push_back(nodeId);
 
 	visited[nodeId] = 1u;
 	
-	std::string result = mAlphabet[nodeTypeIds[nodeId]];
+	std::pair< std::string, std::string > result = std::make_pair(mAlphabet[nodeTypeIds[nodeId]], itoa(nodeId) + " ");
 	std::string cycleLables;
-	std::string lastSubtree;
-	std::string subtreeStrings;
+	std::pair< std::string, std::string > lastSubtree;
+	std::pair< std::string, std::string > subtreeStrings;
 
 	// Recur for all the vertices adjacent to this vertex
 	for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
@@ -53,7 +50,7 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 		// If an adjacent is not visited, then recur for that adjacent
 		if (visited[nbrNodeId] == 0)
 		{
-			std::string subtreeStr = depthFirstTraverse(
+			std::pair< std::string, std::string > subtreeStrPair = depthFirstTraverse(
 				nbrNodeId,
 				visited,
 				nodeId,
@@ -61,31 +58,34 @@ __host__ std::string GraphToStringConverter::depthFirstTraverse(
 				adjacencyValsHost,
 				adjacencyMatrixType,
 				cycleIds,
-				nodeTypeIds,
-				oNodeIds
+				nodeTypeIds
 			);
 
-			if (!lastSubtree.empty())
+			if (!lastSubtree.first.empty())
 			{
-				subtreeStrings.append(mBranchStart);
-				subtreeStrings.append(lastSubtree);
-				subtreeStrings.append(mBranchEnd);
+				subtreeStrings.first.append(mBranchStart);
+				subtreeStrings.first.append(lastSubtree.first);
+				subtreeStrings.first.append(mBranchEnd);
+
+				subtreeStrings.second.append(lastSubtree.second);
 			}
-			lastSubtree = subtreeStr;
+			lastSubtree = subtreeStrPair;
 		}
 	}
 
-	result.append(cycleLables);
-	result.append(subtreeStrings);
-	result.append(lastSubtree);
+	result.first.append(cycleLables);
+	result.first.append(subtreeStrings.first);
+	result.first.append(lastSubtree.first);
+
+	result.second.append(subtreeStrings.second);
+	result.second.append(lastSubtree.second);
 
 	return result;
 }
 
-__host__ std::string GraphToStringConverter::toString(
+__host__ std::pair< std::string, std::string > GraphToStringConverter::toString(
 	Graph & aGraph,
-	thrust::host_vector<unsigned int>& aNodeTypes,
-	std::vector<unsigned int>& oNodeIds)
+	thrust::host_vector<unsigned int>& aNodeTypes)
 {
 	size_t numNodes;
 	thrust::device_vector<Graph::EdgeType> adjMatrixDevice;
@@ -111,9 +111,7 @@ __host__ std::string GraphToStringConverter::toString(
 	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph.adjacencyVals);
 	
-	oNodeIds.clear();
-	
-	std::string result = depthFirstTraverse(
+	std::pair< std::string, std::string > result = depthFirstTraverse(
 		0u,
 		visited,
 		(unsigned int)-1,
@@ -121,14 +119,16 @@ __host__ std::string GraphToStringConverter::toString(
 		adjacencyValsHost,
 		adjMatrixHost,
 		cycleIds,
-		aNodeTypes,
-		oNodeIds);
+		aNodeTypes);
 
-	result.append("\n");
+	result.second.erase(result.second.find_last_of(" "), 1); //remove last whitespace
+	result.first.append("\n");
+	result.second.append("\n");
+
 	for (unsigned int startId = 1; startId < numNodes; ++startId)
 	{
 		visited = thrust::host_vector<unsigned int>(numNodes, 0u);
-		result.append(depthFirstTraverse(
+		std::pair< std::string, std::string > next = depthFirstTraverse(
 			startId,
 			visited,
 			(unsigned int)-1,
@@ -136,17 +136,20 @@ __host__ std::string GraphToStringConverter::toString(
 			adjacencyValsHost,
 			adjMatrixHost,
 			cycleIds,
-			aNodeTypes,
-			oNodeIds));
-		result.append("\n");
+			aNodeTypes);
+		result.first.append(next.first);
+		result.first.append("\n");
+
+		next.second.erase(next.second.find_last_of(" "), 1);//remove last whitespace
+		result.second.append(next.second);
+		result.second.append("\n");
 	}
 	return result;
 }
 
-__host__ std::pair< std::string, std::vector<unsigned int> > 
+__host__ std::pair< std::string, std::string >
 GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
 {
-	std::vector<unsigned int> nodeIds;
 
 	if (aObj.objects.size() != aGraph.numNodes())
 	{
@@ -154,14 +157,14 @@ GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
 			<< "Number of objects " << aObj.objects.size()
 			<< " and graph nodes " << aGraph.numNodes()
 			<< " do not match\n";
-		return std::make_pair(std::string(""), nodeIds);
+		return std::make_pair(std::string(""), std::string(""));
 	}
 
 	if (aObj.materials.size() > mAlphabet.size())
 	{
 		std::cerr << "Too many object types " << aObj.materials.size() << "\n";
 		std::cerr << "Current maximum number is " << mAlphabet.size() << "\n";
-		return std::make_pair(std::string(""), nodeIds);
+		return std::make_pair(std::string(""), std::string(""));
 	}
 
 	thrust::host_vector<unsigned int> nodeTypes(aGraph.numNodes(), (unsigned int)aObj.materials.size());
@@ -171,8 +174,8 @@ GraphToStringConverter::operator()(WFObject & aObj, Graph & aGraph)
 		size_t materialId = aObj.faces[faceId].material;
 		nodeTypes[nodeId] = (unsigned int)materialId;
 	}
-	std::string result = toString(aGraph, nodeTypes, nodeIds);
-	return std::make_pair(result, nodeIds);
+	return toString(aGraph, nodeTypes); 
+
 }
 
 __host__ void GrammarCheck::init(

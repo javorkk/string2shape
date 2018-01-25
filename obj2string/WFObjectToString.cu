@@ -62,21 +62,11 @@ extern "C" {
 			return "";
 
 		GraphToStringConverter converter;
-		std::pair< std::string, std::vector<unsigned int> > strings_nodeIds = converter(obj, graph);
+		std::pair< std::string, std::string > strings_nodeIds = converter(obj, graph);
 		std::string result = strings_nodeIds.first;
 
 		if (aAppendNodeIds)
-		{
-			for (size_t nodeId = 0; nodeId < strings_nodeIds.second.size(); ++nodeId)
-			{
-				result.append(itoa(strings_nodeIds.second[nodeId]));				
-				if (nodeId % graph.numNodes() == graph.numNodes() - 1)
-					result.append("\n");
-				else
-					result.append(" ");
-			}
-			result.erase(result.find_last_of("\n"), 2);
-		}
+			result.append(strings_nodeIds.second.substr(0u, strings_nodeIds.second.find_last_of("\n")));
 
 		if (outputString != NULL)
 			free(outputString);

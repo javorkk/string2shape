@@ -10,7 +10,7 @@ from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
     decode_smiles_from_indexes, load_dataset
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 
-from keras.utils import visualize_util
+from keras.utils import plot_model
 import matplotlib.pyplot as plt
 
 NUM_EPOCHS = 1
@@ -64,13 +64,13 @@ def main():
                                   min_lr = 0.0001)
 
     filename, ext = os.path.splitext(args.model) 
-    visualize_util.plot(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)
+    plot_model(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)
 
     history = model.autoencoder.fit(
         data_train,
         data_train,
         shuffle = True,
-        nb_epoch = args.epochs,
+        epochs = args.epochs,
         batch_size = args.batch_size,
         callbacks = [checkpointer, reduce_lr],
         validation_data = (data_test, data_test)

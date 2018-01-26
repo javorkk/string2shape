@@ -55,7 +55,7 @@ def load_categories_dataset(filename, split = True):
     h5f = h5py.File(filename, 'r')
     if split:
         data_train = h5f['data_train'][:]
-        categories_train = h5f[categories_train][:]
+        categories_train = h5f['categories_train'][:]
     else:
         data_train = None
         categories_train = None

@@ -97,8 +97,8 @@ class Seq2SeqAE():
     def create(self,
                input_charset,
                output_charset,
-               max_length = 120,
-               latent_dim = 292,
+               max_length=120,
+               latent_dim=292,
                weights_file = None):
 
         num_encoder_tokens = len(input_charset)
@@ -183,19 +183,19 @@ def main():
 
     model = Seq2SeqAE()
     if os.path.isfile(args.model):
-        model.load(charset, charset_cats, args.model, latent_dim = args.latent_dim)
+        model.load(charset, charset_cats, args.model, latent_dim=args.latent_dim)
     else:
-        model.create(charset, charset_cats, latent_dim = args.latent_dim)
+        model.create(charset, charset_cats, latent_dim=args.latent_dim)
 
-    checkpointer = ModelCheckpoint(filepath = args.model,
-                                   verbose = 1,
-                                   save_best_only = True)
+    checkpointer = ModelCheckpoint(filepath=args.model,
+                                   verbose=1,
+                                   save_best_only=True)
 
     model.autoencoder.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-              batch_size=args.batch_size,
-              epochs=args.epochs,
-              validation_split=0.2,
-              callbacks = [checkpointer])
+                          batch_size=args.batch_size,
+                          epochs=args.epochs,
+                          validation_split=0.2,
+                          callbacks=[checkpointer])
 
     # Save model
     model.autoencoder.save(args.model)

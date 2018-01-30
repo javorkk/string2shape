@@ -321,6 +321,7 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             num_nodes += 1
         else:
             padded_node_ids.append(dummy_node_id)
+    padded_node_ids.append(dummy_node_id) #ensure at least one occurence
 
     edge_list = smiles_to_edges(word, padded_node_ids, t_grammar)
 
@@ -339,11 +340,9 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             type_id_pair = graph.node_types[edge_index]
             if type_id_pair.shape[0] == 0:
                 #work around missing edges in graph.node_ids
-                node_a_index = np.where((np.array(node_id_pair) == graph.node_ids)[0] == 1)[0]
-                node_a_type = graph.node_types[node_a_index][0]
-                node_b_index = np.where((np.array(node_id_pair) == graph.node_ids)[1] == 1)[0]
-                node_b_type = graph.node_types[node_b_index][1]
-                type_id_pair = np.array([node_a_type, node_b_type])
+                char_a = word[padded_node_ids.index(node_id_pair[0])]
+                char_b = word[padded_node_ids.index(node_id_pair[1])]
+                type_id_pair = np.array([t_grammar.charset.index(char_a), t_grammar.charset.index(char_b)])
 
             cluster_set_id = graph.node_unique_types.index(type_id_pair.reshape(2).tolist())
             relative_translation = graph.relative_translations[edge_index]

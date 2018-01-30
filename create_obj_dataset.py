@@ -56,10 +56,18 @@ def main():
     initial_smiles_strings.append(str(obj_tools.obj2string(input_b)))
 
     tile_grammar = grammar.TilingGrammar(initial_smiles_strings)  
-    tile_grammar.store(args.out_grammarpath)
 
     cluster_centers, _ = shape_graph.categorize_edges(file_list[:100], tile_grammar, args.plot)
 
+    num_categories = 0
+    categories_prefix = [0]
+    for clusters in cluster_centers:
+        num_categories += clusters.shape[0]
+        categories_prefix.append(num_categories)
+    
+    tile_grammar.set_categories_prefix(categories_prefix)
+    tile_grammar.store(args.out_grammarpath)
+    
     smiles_strings = []
     edge_categories = []
 

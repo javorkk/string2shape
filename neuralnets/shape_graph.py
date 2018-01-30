@@ -250,18 +250,9 @@ def categorize_edges(file_list, t_grammar, out_plot = None):
 ###################################################
 # Compute a category sequence for a SMILES string #
 ###################################################
-def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar):
-    dummy_node_id = len(node_ids)
+def smiles_to_edges(word, padded_node_ids, t_grammar):
+    dummy_node_id = max(padded_node_ids)
 
-    num_nodes = 0
-    padded_node_ids = []
-    for char_id in range(len(word)):
-        if word[char_id] in t_grammar.charset:
-            padded_node_ids.append(node_ids[num_nodes])
-            num_nodes += 1
-        else:
-            padded_node_ids.append(dummy_node_id)
-   
     edge_list = [[dummy_node_id, dummy_node_id]]
     node_id_stack = []
     cycle_vals = []
@@ -317,6 +308,22 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             edge_list.append([dummy_node_id, dummy_node_id])
             last_char = word[char_id]
 
+    return edge_list
+
+def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar):
+    dummy_node_id = len(node_ids)
+
+    num_nodes = 0
+    padded_node_ids = []
+    for char_id, _ in enumerate(word):
+        if word[char_id] in t_grammar.charset:
+            padded_node_ids.append(node_ids[num_nodes])
+            num_nodes += 1
+        else:
+            padded_node_ids.append(dummy_node_id)
+
+    edge_list = smiles_to_edges(word, padded_node_ids, t_grammar)
+
     num_categories = 0
     categories_prefix = [0]
     for clusters in cluster_centers:
@@ -335,7 +342,7 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
                 node_a_index = np.where((np.array(node_id_pair) == graph.node_ids)[0] == 1)[0]
                 node_a_type = graph.node_types[node_a_index][0]
                 node_b_index = np.where((np.array(node_id_pair) == graph.node_ids)[1] == 1)[0]
-                node_b_type = graph.node_types[node_a_index][1]
+                node_b_type = graph.node_types[node_b_index][1]
                 type_id_pair = np.array([node_a_type, node_b_type])
 
             cluster_set_id = graph.node_unique_types.index(type_id_pair.reshape(2).tolist())
@@ -343,9 +350,9 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             closest_cluster_center_id = num_categories
             dist = float("inf")
             for i in range(cluster_centers[cluster_set_id].shape[0]):
-                current_dist = np.linalg.norm(cluster_centers[cluster_set_id][i] - relative_translation)
-                if current_dist < dist:
-                    dist = current_dist
+                current = np.linalg.norm(cluster_centers[cluster_set_id][i] - relative_translation)
+                if current < dist:
+                    dist = current
                     closest_cluster_center_id = i
             edge_categories.append(closest_cluster_center_id + categories_prefix[cluster_set_id])
 

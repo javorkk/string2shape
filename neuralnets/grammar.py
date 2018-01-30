@@ -14,6 +14,7 @@ class TilingGrammar():
         self.charset = [" "]
         self.neighbor_counts = []
         self.neighbor_types = []
+        self.categories_prefix = []
         
         if(len(word_set) <= 0):
             return
@@ -219,7 +220,7 @@ class TilingGrammar():
 
     def check_word(self, word):
         if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
-            return False;
+            return False
         for i in range(len(self.DIGITS)):
             if(word.count(self.DIGITS[i]) % 2 != 0):
                 return False
@@ -409,6 +410,12 @@ class TilingGrammar():
             result_str += (str(node_id) + ": " + node_types[node_id] + "  " + str(neighbors[node_id]) + "\n")
         return result_str
 
+    def set_categories_prefix(self, categories_prefix):
+        if len(categories_prefix) != len(self.neighbor_types) + 1:
+            print "Number of edge categories does not match number of edge types"
+        else:
+            self.categories_prefix = categories_prefix
+
     def load(self, filename):
         h5f = h5py.File(filename, "r")
         charset_array = h5f["charset"][:]
@@ -417,13 +424,17 @@ class TilingGrammar():
         self.neighbor_counts = [[pair[0], int(pair[1])] for pair in nbr_counts_array]
         nbr_type_array = h5f["neighbor_types"][:]
         self.neighbor_types = nbr_type_array.tolist()
+        categories_prefix_array = h5f["categories_prefix"][:]
+        self.categories_prefix = categories_prefix_array.tolist()
+
         h5f.close()
 
     def store(self, filename):
         h5f = h5py.File(filename, "w")
-        h5f.create_dataset("charset", data = self.charset)
-        h5f.create_dataset("neighbor_counts", data = self.neighbor_counts)
-        h5f.create_dataset("neighbor_types", data = self.neighbor_types)
+        h5f.create_dataset("charset", data=self.charset)
+        h5f.create_dataset("neighbor_counts", data=self.neighbor_counts)
+        h5f.create_dataset("neighbor_types", data=self.neighbor_types)
+        h5f.create_dataset("categories_prefix", data=self.categories_prefix)
         h5f.close()
 
 

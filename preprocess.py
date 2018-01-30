@@ -39,7 +39,7 @@ def main():
     keys = data[args.smiles_column].map(len) < MAX_WORD_LENGTH + 1
 
     if args.length <= len(keys):
-        data = data[keys].sample(n = args.length)
+        data = data[keys].sample(n=args.length)
     else:
         data = data[keys]
 
@@ -51,33 +51,33 @@ def main():
         max_category = max(max(edge_categories_lists))
 
         edge_categories = np.append(edge_categories, np.zeros((len(edge_categories_lists), MAX_WORD_LENGTH), dtype=int), axis = 0)
-        for i in range(len(edge_categories_lists)):
-            for j in range(len(edge_categories_lists[i])):
+        for i, _ in enumerate(edge_categories_lists):
+            for j, _ in enumerate(edge_categories_lists[i]):
                 #invert category index to make 0 <=> no category
                 edge_categories[i][j] = max_category - edge_categories_lists[i][j]    
-  
+
     if args.property_column:
         properties = data[args.property_column][keys]
 
     del data
 
-    train_idx, test_idx = map(np.array, train_test_split(structures.index, test_size = 0.20))
+    train_idx, test_idx = map(np.array, train_test_split(structures.index, test_size=0.20))
 
     charset = list(reduce(lambda x, y: set(y) | x, structures, set()))
     charset.sort()
 
     one_hot_encoded_fn = lambda row: map(lambda x: one_hot_array(x, len(charset)),
-                                                one_hot_index(row, charset))
+                                         one_hot_index(row, charset))
 
     charset_cats = list(reduce(lambda x, y: set(y) | x, edge_categories, set()))
     charset_cats.sort()
 
     one_hot_encoded_cats_fn = lambda row: map(lambda x: one_hot_array(x, len(charset_cats)),
-                                            one_hot_index(row, charset_cats))
+                                              one_hot_index(row, charset_cats))
 
     h5f = h5py.File(args.outfile, 'w')
-    h5f.create_dataset('charset', data = charset)
-    h5f.create_dataset('charset_cats', data = charset_cats)
+    h5f.create_dataset('charset', data=charset)
+    h5f.create_dataset('charset_cats', data=charset_cats)
 
     def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
                              chunk_size=200, apply_fn=None):
@@ -108,8 +108,8 @@ def main():
                              apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
 
     if args.property_column:
-        h5f.create_dataset('property_train', data = properties[train_idx])
-        h5f.create_dataset('property_test', data = properties[test_idx])
+        h5f.create_dataset('property_train', data=properties[train_idx])
+        h5f.create_dataset('property_test', data=properties[test_idx])
     h5f.close()
 
 if __name__ == '__main__':

@@ -88,6 +88,7 @@ def get_arguments():
 
 def decode_sequence(model,
                     input_seq,
+                    input_len,
                     output_charset,
                     max_length=120):
     num_decoder_tokens = len(output_charset)
@@ -99,12 +100,12 @@ def decode_sequence(model,
     # Generate empty target sequence of length 1.
     target_seq = np.zeros((1, 1, num_decoder_tokens))
     # Populate the first character of target sequence with the start character.
-    #target_seq[0, 0, target_token_index['\t']] = 1.
+    #target_seq[0, 0, max_category] = 1.
 
     # Sampling loop for a batch of sequences
     # (to simplify, here we assume a batch of size 1).
     stop_condition = False
-    decoded_sequence = [0]
+    decoded_sequence = []
     while not stop_condition:
         output_tokens, h, c = model.decoder.predict(
             [target_seq] + states_value)
@@ -116,8 +117,7 @@ def decode_sequence(model,
 
         # Exit condition: either hit max length
         # or find stop character.
-        if (sampled_category == 0 or
-            len(decoded_sequence) > max_length):
+        if len(decoded_sequence) >= input_len:
             stop_condition = True
 
         # Update the target sequence (of length 1).
@@ -131,15 +131,16 @@ def decode_sequence(model,
 
 def main():
     args = get_arguments()
-    data_train, categories_train, data_train, categories_train, charset, charset_cats = load_categories_dataset(args.data)
+    data_train, categories_train, data_test, categories_test, charset, charset_cats = load_categories_dataset(args.data)
 
     num_encoder_tokens = len(charset)
     num_decoder_tokens = len(charset_cats)
+    max_category = max(charset_cats)
 
-    print('Sample array shape: ', data_train.shape)
+    print('Sample data shape: ', data_train.shape)
+    print('Sample categories shape: ', categories_train.shape)
     print('Number of unique input tokens: ', num_encoder_tokens)
     print('Number of unique output tokens: ', num_decoder_tokens)
-    print('Max sequence length (input, output): ', (data_train.shape[1], categories_train.shape[1]))
 
     encoder_input_data = np.zeros(data_train.shape, dtype='float32')
     decoder_input_data = np.zeros(categories_train.shape, dtype='float32')
@@ -149,13 +150,13 @@ def main():
             for one_h_id in range(data_train.shape[2]):
                 if data_train[w_id][c_id][one_h_id] > 0:
                     encoder_input_data[w_id][c_id][one_h_id] = 1.
-            for one_h_id in range(categories_train.shape[2]):
-                if categories_train[w_id][c_id][one_h_id] > 0:
-                    decoder_input_data[w_id][c_id][one_h_id] = 1.
+            for one_h_id_c in range(categories_train.shape[2]):
+                if categories_train[w_id][c_id][one_h_id_c] > 0:
+                    decoder_input_data[w_id][c_id][one_h_id_c] = 1.
                     if c_id > 0:
                         # decoder_target_data will be ahead by one timestep
                         # and will not include the start character.
-                        decoder_target_data[w_id][c_id-1][one_h_id] = 1.
+                        decoder_target_data[w_id][c_id-1][one_h_id_c] = 1.
 
     model = Seq2SeqAE()
     if os.path.isfile(args.model):
@@ -194,17 +195,18 @@ def main():
     #test-decode a couple of train examples
     sample_ids = np.random.randint(0, len(data_train), 4)
     for word_id in sample_ids:
-        input_seq = encoder_input_data[word_id: word_id + 1]        
-        decoded_seq = decode_sequence(model, input_seq, charset_cats)
         print ('===============================')
-        print ('train string: ', decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset))
+        train_string = decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset)
+        print ('train string: ', train_string)
+        input_seq = encoder_input_data[word_id: word_id + 1]
+        decoded_seq = decode_sequence(model, input_seq, len(train_string), charset_cats)
         train_sequence = []
         for char_id in range(categories_train[word_id].shape[0]):
             token_index = np.argmax(categories_train[word_id][char_id, :])
-            train_category = num_decoder_tokens - charset_cats[token_index]
+            train_category = max_category - charset_cats[token_index]
             train_sequence.append(train_category)
 
-        print ('train categories   :', train_sequence)
+        print ('train categories   :', train_sequence[:len(train_string)])
         print ('decoded categories:', decoded_seq)
 
 if __name__ == '__main__':

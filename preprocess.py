@@ -10,6 +10,7 @@ MAX_NUM_ROWS = 500000
 SMILES_COL_NAME = 'structure'
 CATEGORIES_COL_NAME = "edge_categories"
 MAX_WORD_LENGTH = 120
+CHUNK_SIZE = 200
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Prepare data for training')
@@ -25,13 +26,13 @@ def get_arguments():
                         help="Name of the column that contains the property values to predict. Default: None")
     return parser.parse_args()
 
-def chunk_iterator(dataset, chunk_size=200):
-    chunk_indices = np.array_split(np.arange(len(dataset)),
-                                    len(dataset)/chunk_size)
-    for chunk_ixs in chunk_indices:
-        chunk = dataset[chunk_ixs]
-        yield (chunk_ixs, chunk)
-    raise StopIteration
+# def chunk_iterator(dataset, chunk_size=CHUNK_SIZE):
+#     chunk_indices = np.array_split(np.arange(len(dataset)),
+#                                     len(dataset)/chunk_size)
+#     for chunk_ixs in chunk_indices:
+#         chunk = dataset[chunk_ixs]
+#         yield (chunk_ixs, chunk)
+#     raise StopIteration
 
 def main():
     args = get_arguments()
@@ -79,33 +80,41 @@ def main():
     h5f.create_dataset('charset', data=charset)
     h5f.create_dataset('charset_cats', data=charset_cats)
 
-    def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
-                             chunk_size=200, apply_fn=None):
-        new_data = h5file.create_dataset(dataset_name, dataset_shape,
-                                         chunks=tuple([chunk_size]+list(dataset_shape[1:])))
-        for (chunk_ixs, chunk) in chunk_iterator(dataset):
-            if not apply_fn:
-                new_data[chunk_ixs, ...] = chunk
-            else:
-                new_data[chunk_ixs, ...] = apply_fn(chunk)
-
-    create_chunk_dataset(h5f, 'data_train', train_idx,
-                         (len(train_idx), MAX_WORD_LENGTH, len(charset)),
-                         apply_fn=lambda ch: np.array(map(one_hot_encoded_fn,
-                                                          structures[ch])))
-    create_chunk_dataset(h5f, 'data_test', test_idx,
-                         (len(test_idx), MAX_WORD_LENGTH, len(charset)),
-                         apply_fn=lambda ch: np.array(map(one_hot_encoded_fn,
-                                                          structures[ch])))
-
+    h5f.create_dataset("data_train", data=np.array(map(one_hot_encoded_fn, structures[train_idx])), chunks=(CHUNK_SIZE, 120, len(charset)))
+    h5f.create_dataset("data_test", data=np.array(map(one_hot_encoded_fn, structures[test_idx])), chunks=(CHUNK_SIZE, 120, len(charset)))
+    
     if edge_categories.shape[0] > 0:
-        create_chunk_dataset(h5f, 'categories_train', train_idx,
-                             (len(train_idx), MAX_WORD_LENGTH, len(charset_cats)),
-                             apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
+        h5f.create_dataset("categories_train", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[train_idx])), chunks=(CHUNK_SIZE, 120, len(charset_cats)))
+        h5f.create_dataset("categories_test", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[test_idx])), chunks=(CHUNK_SIZE, 120, len(charset_cats)))
+    
 
-        create_chunk_dataset(h5f, 'categories_test', test_idx,
-                             (len(test_idx), MAX_WORD_LENGTH, len(charset_cats)),
-                             apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
+    # def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
+    #                          chunk_size=CHUNK_SIZE, apply_fn=None):
+    #     new_data = h5file.create_dataset(dataset_name, dataset_shape,
+    #                                      chunks=tuple([chunk_size]+list(dataset_shape[1:])))
+    #     for (chunk_ixs, chunk) in chunk_iterator(dataset):
+    #         if not apply_fn:
+    #             new_data[chunk_ixs, ...] = chunk
+    #         else:
+    #             new_data[chunk_ixs, ...] = apply_fn(chunk)
+
+    # create_chunk_dataset(h5f, 'data_train', train_idx,
+    #                      (len(train_idx), MAX_WORD_LENGTH, len(charset)),
+    #                      apply_fn=lambda ch: np.array(map(one_hot_encoded_fn,
+    #                                                       structures[ch])))
+    # create_chunk_dataset(h5f, 'data_test', test_idx,
+    #                      (len(test_idx), MAX_WORD_LENGTH, len(charset)),
+    #                      apply_fn=lambda ch: np.array(map(one_hot_encoded_fn,
+    #                                                       structures[ch])))
+
+    # if edge_categories.shape[0] > 0:
+    #     create_chunk_dataset(h5f, 'categories_train', train_idx,
+    #                          (len(train_idx), MAX_WORD_LENGTH, len(charset_cats)),
+    #                          apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
+
+    #     create_chunk_dataset(h5f, 'categories_test', test_idx,
+    #                          (len(test_idx), MAX_WORD_LENGTH, len(charset_cats)),
+    #                          apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
 
     if args.property_column:
         h5f.create_dataset('property_train', data=properties[train_idx])

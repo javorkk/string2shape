@@ -65,7 +65,6 @@ class TilingGrammar():
             return char_id
         char = word[char_id]
 
-        charset_id = len(self.charset)
         if(char in self.charset ):
             charset_id = self.charset.index(char)
         else:
@@ -152,7 +151,6 @@ class TilingGrammar():
             return True, char_id, edges
         char = word[char_id]
 
-        charset_id = len(self.charset)
         if(char in self.charset ):
             charset_id = self.charset.index(char)
         else:
@@ -401,7 +399,6 @@ class TilingGrammar():
 
     def print_one_hot(self, vec):
         non_epty_node_ids = [node_id for node_id in range(vec.shape[0]) if np.amax(vec[node_id]) > EPS or np.amin(vec[node_id]) < -EPS ]
-        num_vecs = len(non_epty_node_ids)
 
         node_types, neighbors = self.one_hot_to_graph(vec)
 
@@ -414,7 +411,93 @@ class TilingGrammar():
         if len(categories_prefix) != len(self.neighbor_types) + 1:
             print "Number of edge categories does not match number of edge types"
         else:
-            self.categories_prefix = categories_prefix
+            for item in categories_prefix:
+                self.categories_prefix.append(item)
+    
+    def smiles_to_edges(self, word, padded_node_ids):
+        dummy_node_id = max(padded_node_ids)
+
+        edge_list = [[dummy_node_id, dummy_node_id]]
+        node_id_stack = []
+        cycle_vals = []
+        cycle_ids = []
+        last_char = word[0]
+        last_node_id = padded_node_ids[0]
+        for char_id in range(1,len(word)):
+            if word[char_id] in self.charset:
+                if last_char in self.charset:
+                    edge_list.append([padded_node_ids[char_id], last_node_id])
+                elif self.DIGITS.find(last_char) != -1:
+                    edge_list.append([padded_node_ids[char_id], last_node_id])
+                elif last_char != self.BRANCH_END:
+                    edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])
+                elif last_char == self.BRANCH_END:
+                    #last subtree of parent node, pop the stack top
+                    edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])
+                    node_id_stack.pop()
+
+                last_node_id = padded_node_ids[char_id]
+                last_char = word[char_id]
+            elif word[char_id] == self.BRANCH_START and last_char != self.BRANCH_END:
+                edge_list.append([dummy_node_id, dummy_node_id])
+                node_id_stack.append(last_node_id)
+                last_char = word[char_id]
+            elif word[char_id] == self.BRANCH_START and last_char == self.BRANCH_END: #do nothing
+                edge_list.append([dummy_node_id, dummy_node_id])
+                last_char = word[char_id]
+            elif word[char_id] == self.BRANCH_END:
+                edge_list.append([dummy_node_id, dummy_node_id])
+                last_char = word[char_id]
+            elif self.DIGITS.find(word[char_id]) != -1:
+                last_digit_id = char_id
+                while last_digit_id < len(word) and self.DIGITS.find(word[last_digit_id]) != -1:
+                    last_digit_id += 1
+                cycle_edge_id = int(word[char_id: last_digit_id])
+                if cycle_edge_id in cycle_ids:
+                    neighbor_node_id = cycle_vals[cycle_ids.index(cycle_edge_id)]
+                    last_digit_id = char_id
+                    while last_digit_id < len(word) and self.DIGITS.find(word[last_digit_id]) != -1:
+                        last_digit_id += 1
+                        edge_list.append([neighbor_node_id, last_node_id])
+                else:
+                    cycle_ids.append(cycle_edge_id)
+                    cycle_vals.append(last_node_id)
+                    last_digit_id = char_id
+                    while last_digit_id < len(word) and self.DIGITS.find(word[last_digit_id]) != -1:
+                        last_digit_id += 1
+                        edge_list.append([dummy_node_id, dummy_node_id])
+                char_id = last_digit_id - 1
+                last_char = word[char_id]
+            elif word[char_id] == self.NUM_DELIMITER:
+                edge_list.append([dummy_node_id, dummy_node_id])
+                last_char = word[char_id]
+
+        return edge_list
+
+    def smiles_to_categories_bounds(self, word):
+        dummy_type = str(unichr(127))
+        padded_node_types = []
+        for i, char in enumerate(word):
+            if char in self.charset:
+                padded_node_types.append(char)
+            else:
+                padded_node_types.append(dummy_type) #dummy node need max id
+        padded_node_types.append(dummy_type)#ensure at least one occurence
+
+        node_types_list = self.smiles_to_edges(word, padded_node_types)
+        bounds_list = []
+
+        if  not self.categories_prefix:
+            return bounds_list
+
+        num_categories = self.categories_prefix[-1]
+        for type_pair in node_types_list:
+            if type_pair == [dummy_type, dummy_type]:
+                bounds_list.append([num_categories, num_categories])
+            else:
+                type_id = self.neighbor_types.index(type_pair)
+                bounds_list.append([self.categories_prefix[type_id], self.categories_prefix[type_id + 1]])
+        return bounds_list
 
     def load(self, filename):
         h5f = h5py.File(filename, "r")

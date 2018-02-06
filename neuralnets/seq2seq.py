@@ -57,7 +57,7 @@ class Seq2SeqAE():
             self.encoder.load_weights(weights_file, by_name = True)
             self.decoder.load_weights(weights_file, by_name = True)
 
-        self.autoencoder.compile(optimizer='rmsprop', loss='categorical_crossentropy')
+        self.autoencoder.compile(optimizer='Adam', loss='categorical_crossentropy')
 
     def save(self, filename):
         self.autoencoder.save_weights(filename)

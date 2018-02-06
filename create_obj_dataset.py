@@ -67,7 +67,7 @@ def main():
     
     tile_grammar.set_categories_prefix(categories_prefix)
     tile_grammar.store(args.out_grammarpath)
-    
+
     smiles_strings = []
     edge_categories = []
 
@@ -96,7 +96,7 @@ def main():
                     categories_str += str(cat) + " "
                 edge_categories.append(categories_str[:-1])
 
-    print "# items: " + str(len(smiles_strings))
+    print("# items: " + str(len(smiles_strings)))
 
     df = pandas.DataFrame({args.smiles_column : smiles_strings, args.categories_column : edge_categories})
     df.to_hdf(args.out_filepath, "table", format="table", data_columns=True)

@@ -250,66 +250,6 @@ def categorize_edges(file_list, t_grammar, out_plot = None):
 ###################################################
 # Compute a category sequence for a SMILES string #
 ###################################################
-def smiles_to_edges(word, padded_node_ids, t_grammar):
-    dummy_node_id = max(padded_node_ids)
-
-    edge_list = [[dummy_node_id, dummy_node_id]]
-    node_id_stack = []
-    cycle_vals = []
-    cycle_ids = []
-    last_char = word[0]
-    last_node_id = padded_node_ids[0]
-    for char_id in range(1,len(word)):
-        if word[char_id] in t_grammar.charset:
-            if last_char in t_grammar.charset:
-                edge_list.append([padded_node_ids[char_id], last_node_id])
-            elif t_grammar.DIGITS.find(last_char) != -1:
-                edge_list.append([padded_node_ids[char_id], last_node_id])
-            elif last_char != t_grammar.BRANCH_END:
-                edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])
-            elif last_char == t_grammar.BRANCH_END:
-                #last subtree of parent node, pop the stack top
-                edge_list.append([padded_node_ids[char_id], node_id_stack[len(node_id_stack) - 1]])
-                node_id_stack.pop()
-
-            last_node_id = padded_node_ids[char_id]
-            last_char = word[char_id]
-        elif word[char_id] == t_grammar.BRANCH_START and last_char != t_grammar.BRANCH_END:
-            edge_list.append([dummy_node_id, dummy_node_id])
-            node_id_stack.append(last_node_id)
-            last_char = word[char_id]
-        elif word[char_id] == t_grammar.BRANCH_START and last_char == t_grammar.BRANCH_END: #do nothing
-            edge_list.append([dummy_node_id, dummy_node_id])
-            last_char = word[char_id]
-        elif word[char_id] == t_grammar.BRANCH_END:
-            edge_list.append([dummy_node_id, dummy_node_id])
-            last_char = word[char_id]
-        elif t_grammar.DIGITS.find(word[char_id]) != -1:
-            last_digit_id = char_id
-            while last_digit_id < len(word) and t_grammar.DIGITS.find(word[last_digit_id]) != -1:
-                last_digit_id += 1
-            cycle_edge_id = int(word[char_id: last_digit_id])
-            if cycle_edge_id in cycle_ids:
-                neighbor_node_id = cycle_vals[cycle_ids.index(cycle_edge_id)]
-                last_digit_id = char_id
-                while last_digit_id < len(word) and t_grammar.DIGITS.find(word[last_digit_id]) != -1:
-                    last_digit_id += 1
-                    edge_list.append([neighbor_node_id, last_node_id])
-            else:
-                cycle_ids.append(cycle_edge_id)
-                cycle_vals.append(last_node_id)
-                last_digit_id = char_id
-                while last_digit_id < len(word) and t_grammar.DIGITS.find(word[last_digit_id]) != -1:
-                    last_digit_id += 1
-                    edge_list.append([dummy_node_id, dummy_node_id])
-            char_id = last_digit_id - 1
-            last_char = word[char_id]
-        elif word[char_id] == t_grammar.NUM_DELIMITER:
-            edge_list.append([dummy_node_id, dummy_node_id])
-            last_char = word[char_id]
-
-    return edge_list
-
 def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar):
     dummy_node_id = len(node_ids)
 
@@ -323,7 +263,7 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             padded_node_ids.append(dummy_node_id)
     padded_node_ids.append(dummy_node_id) #ensure at least one occurence
 
-    edge_list = smiles_to_edges(word, padded_node_ids, t_grammar)
+    edge_list = t_grammar.smiles_to_edges(word, padded_node_ids)
 
     num_categories = 0
     categories_prefix = [0]

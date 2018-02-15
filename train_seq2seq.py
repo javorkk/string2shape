@@ -90,6 +90,7 @@ def get_arguments():
 
 def decode_sequence(model,
                     input_seq,
+                    input_mask,
                     input_len,
                     output_charset,
                     bounds=None,
@@ -98,10 +99,14 @@ def decode_sequence(model,
     max_category = max(output_charset)
 
     # Encode the input as state vectors.
-    states_value = model.encoder.predict(input_seq)
+    #states_value = model.encoder.predict(input_seq)
+    print("input_seq shape: ", input_seq.shape, " input_mask shape ", input_mask.shape)
+    states_value = model.encoder.predict([input_seq, input_mask])#mask
 
     # Generate empty target sequence of length 1.
     target_seq = np.zeros((1, 1, num_decoder_tokens))
+    target_mask = np.zeros((1, 1, num_decoder_tokens))#mask
+
     # Populate the first character of target sequence with the start character.
     #target_seq[0, 0, max_category] = 1.
     target_min_bound = np.zeros(input_len)
@@ -116,21 +121,28 @@ def decode_sequence(model,
     stop_condition = False
     decoded_sequence = []
     while not stop_condition:
-        output_tokens, h, c = model.decoder.predict(
-            [target_seq] + states_value)
-
-        # Sample a token
+        #Update the target mask
         char_id = len(decoded_sequence)
+        for t_id in range(num_decoder_tokens):
+            if input_mask[0][char_id][t_id] > 0.:
+                target_mask[0][0][t_id] = 1.
+            else:
+                target_mask[0][0][t_id] = 0.
+
+        output_tokens, h, c = model.decoder.predict(
+            [target_seq, target_mask] + states_value)
+
         min_bound = target_min_bound[char_id]
         max_bound = target_max_bound[char_id]
-        if bounds != None:
-            min_bound = max_category - target_max_bound[char_id] + 1
-            max_bound = max_category - target_min_bound[char_id] + 1
-
+        # if bounds != None:
+        #     min_bound = max_category - target_max_bound[char_id] + 1
+        #     max_bound = max_category - target_min_bound[char_id] + 1
+        
+        # Sample a token
         sampled_token_index = num_decoder_tokens - 1
         if min_bound < max_bound or max_bound == -1:
             sampled_token_index = min_bound + np.argmax(output_tokens[0, -1, min_bound:max_bound])
-            sampled_category = max_category - output_charset[sampled_token_index]
+            sampled_category = output_charset[sampled_token_index]
             decoded_sequence.append(sampled_category)
         else:
             decoded_sequence.append(max_category)
@@ -155,11 +167,11 @@ def main():
     tile_grammar = TilingGrammar([])
     tile_grammar.load(args.grammar)
 
-    data_train, categories_train, data_test, categories_test, charset, charset_cats = load_categories_dataset(args.data)
+    data_train, categories_train, masks_train, data_test, categories_test, masks_test, charset, charset_cats = load_categories_dataset(args.data)
 
     num_encoder_tokens = len(charset)
     num_decoder_tokens = len(charset_cats)
-    max_category = max(charset_cats)
+    #max_category = max(charset_cats)
 
     print('Sample data shape: ', data_train.shape)
     print('Sample categories shape: ', categories_train.shape)
@@ -168,6 +180,7 @@ def main():
 
     encoder_input_data = np.zeros(data_train.shape, dtype='float32')
     decoder_input_data = np.zeros(categories_train.shape, dtype='float32')
+    decoder_input_masks = np.zeros(categories_train.shape, dtype='float32')
     decoder_target_data = np.zeros(categories_train.shape, dtype='float32')
     for w_id in range(data_train.shape[0]):
         for c_id in range(data_train.shape[1]):
@@ -181,6 +194,19 @@ def main():
                         # decoder_target_data will be ahead by one timestep
                         # and will not include the start character.
                         decoder_target_data[w_id][c_id-1][one_h_id_c] = 1.
+                if masks_train[w_id][c_id][one_h_id_c] > 0:
+                    decoder_input_masks[w_id][c_id][one_h_id_c] = 1.
+    
+    encoder_test_data =  np.zeros(data_test.shape, dtype='float32')
+    decoder_test_masks = np.zeros(categories_test.shape, dtype='float32')
+    for w_id in range(data_test.shape[0]):
+        for c_id in range(data_test.shape[1]):
+            for one_h_id in range(data_test.shape[2]):
+                if data_test[w_id][c_id][one_h_id] > 0:
+                    encoder_test_data[w_id][c_id][one_h_id] = 1.
+            for one_h_id_c in range(categories_test.shape[2]):
+                if masks_test[w_id][c_id][one_h_id_c] > 0:
+                    decoder_test_masks[w_id][c_id][one_h_id_c] = 1.
 
     model = Seq2SeqAE()
     if os.path.isfile(args.model):
@@ -200,7 +226,7 @@ def main():
     filename, ext = os.path.splitext(args.model)
     plot_model(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)
 
-    history = model.autoencoder.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+    history = model.autoencoder.fit([encoder_input_data, decoder_input_data, decoder_input_masks], decoder_target_data,
                           batch_size=args.batch_size,
                           epochs=args.epochs,
                           validation_split=0.2,
@@ -223,12 +249,13 @@ def main():
         train_string = decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset)
         print ('train string: ', train_string)
         input_seq = encoder_input_data[word_id: word_id + 1]
+        input_mask = decoder_input_masks[word_id: word_id + 1]
         category_bounds = tile_grammar.smiles_to_categories_bounds(train_string)
-        decoded_seq = decode_sequence(model, input_seq, len(train_string), charset_cats, category_bounds)
+        decoded_seq = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
         train_sequence = []
         for char_id in range(categories_train[word_id].shape[0]):
             token_index = np.argmax(categories_train[word_id][char_id, :])
-            train_category = max_category - charset_cats[token_index]
+            train_category = charset_cats[token_index]
             train_sequence.append(train_category)
 
         print ('train categories   :', train_sequence[:len(train_string)])
@@ -242,13 +269,14 @@ def main():
         print ('===============================')
         test_string = decode_smiles_from_indexes(map(from_one_hot_array, data_test[word_id]), charset)
         print ('test string: ', test_string)
-        input_seq = encoder_input_data[word_id: word_id + 1]
+        input_seq = encoder_test_data[word_id: word_id + 1]
+        input_mask = decoder_test_masks[word_id: word_id + 1]
         category_bounds = tile_grammar.smiles_to_categories_bounds(test_string)
-        decoded_seq = decode_sequence(model, input_seq, len(test_string), charset_cats, category_bounds)
+        decoded_seq = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
         test_sequence = []
         for char_id in range(categories_test[word_id].shape[0]):
             token_index = np.argmax(categories_test[word_id][char_id, :])
-            test_category = max_category - charset_cats[token_index]
+            test_category = charset_cats[token_index]
             test_sequence.append(test_category)
 
         print ('test categories   :', test_sequence[:len(test_string)])

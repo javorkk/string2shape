@@ -7,8 +7,10 @@ from neuralnets.utils import one_hot_array, one_hot_index
 from sklearn.model_selection import train_test_split
 
 MAX_NUM_ROWS = 500000
-SMILES_COL_NAME = 'structure'
+SMILES_COL_NAME = "structure"
 CATEGORIES_COL_NAME = "edge_categories"
+MIN_BOUND_COL_NAME = "min_category"
+MAX_BOUND_COL_NAME = "max_category"
 MAX_WORD_LENGTH = 120
 CHUNK_SIZE = 200
 
@@ -46,16 +48,33 @@ def main():
 
     structures = data[args.smiles_column].map(lambda x: list(x.ljust(MAX_WORD_LENGTH)))
 
+    charset = list(reduce(lambda x, y: set(y) | x, structures, set()))
+    charset.sort()
+
     edge_categories = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH))
     if args.categories_column in data.keys():
         edge_categories_lists = data[args.categories_column].map(lambda x: [int(c) for c in x.split(" ") ])
         max_category = max(max(edge_categories_lists))
 
-        edge_categories = np.append(edge_categories, np.zeros((len(edge_categories_lists), MAX_WORD_LENGTH), dtype=int), axis = 0)
+        edge_categories = np.append(edge_categories, np.full((len(edge_categories_lists), MAX_WORD_LENGTH), max_category, dtype=int), axis = 0)
         for i, _ in enumerate(edge_categories_lists):
             for j, _ in enumerate(edge_categories_lists[i]):
-                #invert category index to make 0 <=> no category
-                edge_categories[i][j] = max_category - edge_categories_lists[i][j]    
+                edge_categories[i][j] = edge_categories_lists[i][j]
+
+    charset_cats = list(reduce(lambda x, y: set(y) | x, edge_categories, set()))
+    charset_cats.sort()
+
+    edge_categories_masks = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH, len(charset_cats)))
+    if MIN_BOUND_COL_NAME in data.keys() and MAX_BOUND_COL_NAME in data.keys():
+        edge_categories_min = data[MIN_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
+        edge_categories_max = data[MAX_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
+
+        edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(edge_categories_lists), MAX_WORD_LENGTH, len(charset_cats)), dtype=int), axis = 0)
+        for i, _ in enumerate(edge_categories_min):
+            for j, _ in enumerate(edge_categories_min[i]):
+                for k in range(edge_categories_min[i][j], edge_categories_max[i][j]):
+                    edge_categories_masks[i][j][k] = 1
+
 
     if args.property_column:
         properties = data[args.property_column][keys]
@@ -64,14 +83,8 @@ def main():
 
     train_idx, test_idx = map(np.array, train_test_split(structures.index, test_size=0.20))
 
-    charset = list(reduce(lambda x, y: set(y) | x, structures, set()))
-    charset.sort()
-
     one_hot_encoded_fn = lambda row: map(lambda x: one_hot_array(x, len(charset)),
                                          one_hot_index(row, charset))
-
-    charset_cats = list(reduce(lambda x, y: set(y) | x, edge_categories, set()))
-    charset_cats.sort()
 
     one_hot_encoded_cats_fn = lambda row: map(lambda x: one_hot_array(x, len(charset_cats)),
                                               one_hot_index(row, charset_cats))
@@ -86,7 +99,10 @@ def main():
     if edge_categories.shape[0] > 0:
         h5f.create_dataset("categories_train", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[train_idx])), chunks=(CHUNK_SIZE, 120, len(charset_cats)))
         h5f.create_dataset("categories_test", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[test_idx])), chunks=(CHUNK_SIZE, 120, len(charset_cats)))
-    
+
+    if edge_categories_masks.shape[0] > 0:
+        h5f.create_dataset("masks_train", data=edge_categories_masks[train_idx], chunks=(CHUNK_SIZE, 120, len(charset_cats)))
+        h5f.create_dataset("masks_test", data=edge_categories_masks[test_idx], chunks=(CHUNK_SIZE, 120, len(charset_cats)))
 
     # def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
     #                          chunk_size=CHUNK_SIZE, apply_fn=None):

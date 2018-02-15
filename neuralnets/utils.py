@@ -55,16 +55,19 @@ def load_categories_dataset(filename, split = True):
     if split:
         data_train = h5f['data_train'][:]
         categories_train = h5f['categories_train'][:]
+        masks_train = h5f['masks_train'][:]
     else:
         data_train = None
         categories_train = None
 
     data_test = h5f['data_test'][:]
     categories_test = h5f['categories_test'][:]
+    masks_test =  h5f['masks_test'][:]
     charset =  h5f['charset'][:]
     charset_cats = h5f['charset_cats'][:]
+
     h5f.close()
     if split:
-        return (data_train, categories_train, data_test, categories_test, charset, charset_cats)
+        return (data_train, categories_train, masks_train, data_test, categories_test, masks_test, charset, charset_cats)
     else:
-        return (data_test, categories_test, charset, charset_cats)
+        return (data_test, categories_test, masks_test, charset, charset_cats)

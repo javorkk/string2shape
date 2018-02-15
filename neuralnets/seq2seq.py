@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense
+from keras.layers import Input, LSTM, Dense, Multiply
 
 class Seq2SeqAE():
 
@@ -17,7 +17,7 @@ class Seq2SeqAE():
         num_decoder_tokens = len(output_charset)
 
         # Define an input sequence and process it.
-        encoder_inputs = Input(shape=(None, num_encoder_tokens))
+        encoder_inputs = Input(shape=(None, num_encoder_tokens), name='enc_input')
         encoder_lstm = LSTM(latent_dim, return_state=True, name='enc_lstm')
         encoder_outputs, state_h, state_c = encoder_lstm(encoder_inputs)
         # We discard `encoder_outputs` and only keep the states.
@@ -31,26 +31,39 @@ class Seq2SeqAE():
         decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True, name='dec_lstm')
         decoder_outputs, state_h, state_c = decoder_lstm(decoder_inputs,
                                                 initial_state=encoder_states)
-        decoder_dense = Dense(num_decoder_tokens, activation='softmax', name='dec_dense')
-        decoder_outputs = decoder_dense(decoder_outputs)
+        # decoder_dense = Dense(num_decoder_tokens, activation='softmax', name='dec_dense')
+        # decoder_outputs = decoder_dense(decoder_outputs)
+        decoder_linear = Dense(num_decoder_tokens, activation=None, name='dec_linear')#masks
+        decoder_intermediate = decoder_linear(decoder_outputs)#masks
+        decoder_masks = Input(shape=(None, num_decoder_tokens), name='dec_masks')#masks
+        decoder_masked = Multiply(name='dec_masking')([decoder_intermediate, decoder_masks])#masks
+        decoder_dense = Dense(num_decoder_tokens, activation='softmax', name='dec_dense')#masks
+        decoder_outputs = decoder_dense(decoder_masked)#masks
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        self.autoencoder = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+        #self.autoencoder = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+        self.autoencoder = Model([encoder_inputs, decoder_inputs, decoder_masks], decoder_outputs)#masks
 
         # Define sampling models
-        self.encoder = Model(encoder_inputs, encoder_states)
+        self.encoder = Model([encoder_inputs, decoder_masks], encoder_states)
 
         decoder_state_input_h = Input(shape=(latent_dim,), name='dec_input_h')
         decoder_state_input_c = Input(shape=(latent_dim,), name='dec_input_c')
+        #decoder_masks_input = Input(shape=(None, num_decoder_tokens), name='dec_input_m')#masks
         decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
         decoder_outputs, state_h, state_c = decoder_lstm(
             decoder_inputs, initial_state=decoder_states_inputs)
         decoder_states = [state_h, state_c]
-        decoder_outputs = decoder_dense(decoder_outputs)
-        self.decoder = Model(
-            [decoder_inputs] + decoder_states_inputs,
-            [decoder_outputs] + decoder_states)
+        # decoder_outputs = decoder_dense(decoder_outputs)
+        # self.decoder = Model(
+        #     [decoder_inputs] + decoder_states_inputs,
+        #     [decoder_outputs] + decoder_states)
+        decoder_intermediate = decoder_linear(decoder_outputs)#masks
+        decoder_masked = Multiply(name='dec_masking')([decoder_intermediate, decoder_masks])#masks
+        decoder_outputs = decoder_dense(decoder_masked)#masks
+        self.decoder = Model([decoder_inputs, decoder_masks] + decoder_states_inputs,#masks
+            [decoder_outputs] + decoder_states)#masks
 
         if weights_file:
             self.autoencoder.load_weights(weights_file)

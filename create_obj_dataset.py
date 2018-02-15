@@ -7,6 +7,8 @@ import neuralnets.shape_graph as shape_graph
 
 SMILES_COL_NAME = "structure"
 CATEGORIES_COL_NAME = "edge_categories"
+MIN_BOUND_COL_NAME = "min_category"
+MAX_BOUND_COL_NAME = "max_category"
 MAX_WORD_LENGTH = 120
 
 def get_arguments():
@@ -70,6 +72,8 @@ def main():
 
     smiles_strings = []
     edge_categories = []
+    edge_cat_min = []
+    edge_cat_max = []
 
     for file_name in file_list:
         str_node_ids = str(obj_tools.obj2strings_ids(file_name))
@@ -96,9 +100,23 @@ def main():
                     categories_str += str(cat) + " "
                 edge_categories.append(categories_str[:-1])
 
+                category_bounds = tile_grammar.smiles_to_categories_bounds(word)
+                min_bound_str = ""
+                max_bound_str = ""
+                for bounds in category_bounds:
+                    min_bound_str += str(bounds[0]) + " "
+                    max_bound_str += str(bounds[1]) + " "
+                edge_cat_min.append(min_bound_str[:-1])
+                edge_cat_max.append(max_bound_str[:-1])
+
+
     print("# items: " + str(len(smiles_strings)))
 
-    df = pandas.DataFrame({args.smiles_column : smiles_strings, args.categories_column : edge_categories})
+    df = pandas.DataFrame({args.smiles_column       : smiles_strings,
+                           args.categories_column   : edge_categories,
+                           MIN_BOUND_COL_NAME       : edge_cat_min, 
+                           MAX_BOUND_COL_NAME       : edge_cat_max
+                           })
     df.to_hdf(args.out_filepath, "table", format="table", data_columns=True)
 
 if __name__ == "__main__":

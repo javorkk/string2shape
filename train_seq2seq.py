@@ -69,7 +69,7 @@ import matplotlib.pyplot as plt
 
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
-LATENT_DIM = 32
+LATENT_DIM = 292
 WORD_LENGTH = 120
 
 def get_arguments():

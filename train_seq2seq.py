@@ -246,6 +246,7 @@ def main():
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
+    plt.ylim(ymin=0, ymax=2.0)
     plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
     #test-decode a couple of train examples

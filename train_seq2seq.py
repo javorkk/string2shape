@@ -172,9 +172,7 @@ def main():
     num_decoder_tokens = len(charset_cats)
     #max_category = max(charset_cats)
 
-    if categories_train.shape != masks_train.shape or
-        data_train.shape[0] != categories_train.shape[0] or 
-        data_train.shape[1] != categories_train.shape[1]:
+    if categories_train.shape != masks_train.shape or data_train.shape[0] != categories_train.shape[0] or data_train.shape[1] != categories_train.shape[1]:
         print('Incompatible input array dimensions')
         print('Sample categories shape: ', categories_train.shape)
         print('Sample masks shape: ', masks_train.shape)

@@ -493,7 +493,7 @@ class TilingGrammar():
         num_categories = self.categories_prefix[-1]
         for type_pair in node_types_list:
             if type_pair == [dummy_type, dummy_type]:
-                bounds_list.append([num_categories, num_categories])
+                bounds_list.append([num_categories, num_categories + 1])
             else:
                 type_id = self.neighbor_types.index(type_pair)
                 bounds_list.append([self.categories_prefix[type_id], self.categories_prefix[type_id + 1]])

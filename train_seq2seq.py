@@ -100,7 +100,6 @@ def decode_sequence(model,
 
     # Encode the input as state vectors.
     #states_value = model.encoder.predict(input_seq)
-    print("input_seq shape: ", input_seq.shape, " input_mask shape ", input_mask.shape)
     states_value = model.encoder.predict([input_seq, input_mask])#mask
 
     # Generate empty target sequence of length 1.
@@ -173,8 +172,14 @@ def main():
     num_decoder_tokens = len(charset_cats)
     #max_category = max(charset_cats)
 
-    print('Sample data shape: ', data_train.shape)
-    print('Sample categories shape: ', categories_train.shape)
+    if categories_train.shape != masks_train.shape or
+        data_train.shape[0] != categories_train.shape[0] or 
+        data_train.shape[1] != categories_train.shape[1]:
+        print('Incompatible input array dimensions')
+        print('Sample categories shape: ', categories_train.shape)
+        print('Sample masks shape: ', masks_train.shape)
+        print('Sample data shape: ', data_train.shape)
+
     print('Number of unique input tokens: ', num_encoder_tokens)
     print('Number of unique output tokens: ', num_decoder_tokens)
 
@@ -182,12 +187,13 @@ def main():
     decoder_input_data = np.zeros(categories_train.shape, dtype='float32')
     decoder_input_masks = np.zeros(categories_train.shape, dtype='float32')
     decoder_target_data = np.zeros(categories_train.shape, dtype='float32')
-    for w_id in range(data_train.shape[0]):
-        for c_id in range(data_train.shape[1]):
-            for one_h_id in range(data_train.shape[2]):
+    num_wrong_masks = 0
+    for w_id in range(encoder_input_data.shape[0]):
+        for c_id in range(encoder_input_data.shape[1]):
+            for one_h_id in range(encoder_input_data.shape[2]):
                 if data_train[w_id][c_id][one_h_id] > 0:
                     encoder_input_data[w_id][c_id][one_h_id] = 1.
-            for one_h_id_c in range(categories_train.shape[2]):
+            for one_h_id_c in range(decoder_input_data.shape[2]):
                 if categories_train[w_id][c_id][one_h_id_c] > 0:
                     decoder_input_data[w_id][c_id][one_h_id_c] = 1.
                     if c_id > 0:
@@ -196,7 +202,9 @@ def main():
                         decoder_target_data[w_id][c_id-1][one_h_id_c] = 1.
                 if masks_train[w_id][c_id][one_h_id_c] > 0:
                     decoder_input_masks[w_id][c_id][one_h_id_c] = 1.
-    
+    if num_wrong_masks > 0:
+        print('Found ' + str(num_wrong_masks) + ' wrong masks')
+
     encoder_test_data =  np.zeros(data_test.shape, dtype='float32')
     decoder_test_masks = np.zeros(categories_test.shape, dtype='float32')
     for w_id in range(data_test.shape[0]):

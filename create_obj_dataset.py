@@ -1,3 +1,4 @@
+from __future__ import print_function #pylint bug workaround
 import argparse
 import os
 import pandas
@@ -92,7 +93,7 @@ def main():
         for i, _ in enumerate(current_strings):
             word = current_strings[i]
             nodes = node_ids[i]
-            if tile_grammar.check_word(word) and len(str(word)) <= MAX_WORD_LENGTH and len(str(word)) > 0:
+            if tile_grammar.check_word(word) and len(str(word)) <= MAX_WORD_LENGTH and len(str(word)) > 0 and word not in smiles_strings:
                 smiles_strings.append(word)
                 current_categories = shape_graph.smiles_to_edge_categories(word, nodes, cluster_centers, graph_edges, tile_grammar)
                 categories_str = ""

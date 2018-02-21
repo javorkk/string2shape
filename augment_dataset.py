@@ -1,3 +1,4 @@
+from __future__ import print_function #pylint bug workaround
 import argparse
 import os
 import numpy as np
@@ -45,7 +46,7 @@ def fix_variations(folder_name, exclude_file_list, inputA, inputB):
     for item_name in os.listdir(folder_name):
         subfolfer_name = os.path.join(folder_name, item_name)
         if os.path.isdir(subfolfer_name):
-            process_folder(subfolfer_name, word_list)
+            fix_variations(subfolfer_name, exclude_file_list, inputA, inputB)
         if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
             file_path = folder_name + "/" + item_name
             if file_path != inputA and file_path != inputB and file_path not in exclude_file_list:
@@ -66,7 +67,7 @@ def remove_duplicates(tile_grammar, folder_name, inputA, inputB, word_list = [])
     for item_name in os.listdir(folder_name):
         subfolfer_name = os.path.join(folder_name, item_name)
         if os.path.isdir(subfolfer_name):
-            remove_duplicates(subfolfer_name, word_list)
+            remove_duplicates(tile_grammar, subfolfer_name, inputA, inputB, word_list)
         file_path = folder_name + "/" + item_name
         if  file_path != inputA and file_path != inputB and not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
             current_str = obj_tools.obj2string(file_path)

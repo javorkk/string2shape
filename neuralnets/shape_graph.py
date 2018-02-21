@@ -1,3 +1,4 @@
+from __future__ import print_function #pylint bug workaround
 import math
 import numpy as np
 import h5py
@@ -240,7 +241,7 @@ def categorize_edges(file_list, t_grammar, out_plot = None):
         #plt.savefig('plot_' + t_grammar.charset[node_type_pair[0]] + '_' + t_grammar.charset[node_type_pair[1]] + '.pdf', bbox_inches='tight')
 
 
-        print "node types: [" + t_grammar.charset[node_type_pair[0]] + ", " + t_grammar.charset[node_type_pair[1]] + "] num clusters : " + str(n_clusters)
+        print("node types: [" + t_grammar.charset[node_type_pair[0]] + ", " + t_grammar.charset[node_type_pair[1]] + "] num clusters : " + str(n_clusters))
 
     if out_plot != None:
         plt.savefig(out_plot, bbox_inches='tight')

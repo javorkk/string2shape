@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense, Multiply
+from keras.layers import Input, LSTM, Dense, Multiply, Activation
 
 class Seq2SeqAE():
 
@@ -38,8 +38,9 @@ class Seq2SeqAE():
         decoder_intermediate = decoder_linear(decoder_outputs)#masks
         decoder_masks = Input(shape=(None, num_decoder_tokens), name='dec_masks')#masks
         decoder_masked = Multiply(name='dec_masking')([decoder_intermediate, decoder_masks])#masks
-        decoder_dense = Dense(num_decoder_tokens, activation='softmax', name='dec_dense')#masks
-        decoder_outputs = decoder_dense(decoder_masked)#masks
+        #decoder_dense = Dense(num_decoder_tokens, activation='softmax', name='dec_dense')#masks
+        decoder_softmax = Activation('softmax', name='dec_out')#masks
+        decoder_outputs = decoder_softmax(decoder_masked)#masks
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
@@ -62,7 +63,7 @@ class Seq2SeqAE():
         #     [decoder_outputs] + decoder_states)
         decoder_intermediate = decoder_linear(decoder_outputs)#masks
         decoder_masked = Multiply(name='dec_masking')([decoder_intermediate, decoder_masks])#masks
-        decoder_outputs = decoder_dense(decoder_masked)#masks
+        decoder_outputs = decoder_softmax(decoder_masked)#masks
         self.decoder = Model([decoder_inputs, decoder_masks] + decoder_states_inputs,#masks
             [decoder_outputs] + decoder_states)#masks
 
@@ -71,7 +72,7 @@ class Seq2SeqAE():
             self.encoder.load_weights(weights_file, by_name = True)
             self.decoder.load_weights(weights_file, by_name = True)
 
-        self.autoencoder.compile(optimizer='Adam', loss='categorical_crossentropy')
+        self.autoencoder.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     def save(self, filename):
         self.autoencoder.save_weights(filename)

@@ -108,13 +108,14 @@ def decode_sequence(model,
 
     # Populate the first character of target sequence with the start character.
     #target_seq[0, 0, max_category] = 1.
-    target_min_bound = np.zeros(input_len)
-    target_max_bound = np.full(input_len, -1)
+    target_min_bound = np.full(input_len, 0, dtype=int)
+    target_max_bound = np.full(input_len, -1, dtype=int)
 
     if bounds != None:
         target_min_bound = np.array([pair[0] for pair in bounds]) 
         target_max_bound = np.array([pair[1] for pair in bounds]) 
 
+    #print('input mask', input_mask)
     # Sampling loop for a batch of sequences
     # (to simplify, here we assume a batch of size 1).
     stop_condition = False
@@ -122,25 +123,25 @@ def decode_sequence(model,
     while not stop_condition:
         #Update the target mask
         char_id = len(decoded_sequence)
-        for t_id in range(num_decoder_tokens):
-            if input_mask[0][char_id][t_id] > 0.:
-                target_mask[0][0][t_id] = 1.
-            else:
-                target_mask[0][0][t_id] = 0.
+        target_mask[0][0] = input_mask[0][char_id]
+        #print('target mask', target_mask[0][0])
 
-        output_tokens, h, c = model.decoder.predict(
-            [target_seq, target_mask] + states_value)
+        output_tokens, h, c = model.decoder.predict([target_seq, target_mask] + states_value)
 
         min_bound = target_min_bound[char_id]
-        max_bound = target_max_bound[char_id]
+        max_bound = target_max_bound[char_id]        
         # if bounds != None:
         #     min_bound = max_category - target_max_bound[char_id] + 1
         #     max_bound = max_category - target_min_bound[char_id] + 1
-        
+
         # Sample a token
         sampled_token_index = num_decoder_tokens - 1
-        if min_bound < max_bound or max_bound == -1:
+        if min_bound < max_bound:
             sampled_token_index = min_bound + np.argmax(output_tokens[0, -1, min_bound:max_bound])
+            sampled_category = output_charset[sampled_token_index]
+            decoded_sequence.append(sampled_category)
+        elif min_bound == 0 and max_bound == -1:
+            sampled_token_index = np.argmax(output_tokens[0, -1, :])
             sampled_category = output_charset[sampled_token_index]
             decoded_sequence.append(sampled_category)
         else:
@@ -185,7 +186,7 @@ def main():
     decoder_input_data = np.zeros(categories_train.shape, dtype='float32')
     decoder_input_masks = np.zeros(categories_train.shape, dtype='float32')
     decoder_target_data = np.zeros(categories_train.shape, dtype='float32')
-    num_wrong_masks = 0
+
     for w_id in range(encoder_input_data.shape[0]):
         for c_id in range(encoder_input_data.shape[1]):
             for one_h_id in range(encoder_input_data.shape[2]):
@@ -200,8 +201,6 @@ def main():
                         decoder_target_data[w_id][c_id-1][one_h_id_c] = 1.
                 if masks_train[w_id][c_id][one_h_id_c] > 0:
                     decoder_input_masks[w_id][c_id][one_h_id_c] = 1.
-    if num_wrong_masks > 0:
-        print('Found ' + str(num_wrong_masks) + ' wrong masks')
 
     encoder_test_data =  np.zeros(data_test.shape, dtype='float32')
     decoder_test_masks = np.zeros(categories_test.shape, dtype='float32')
@@ -220,34 +219,37 @@ def main():
     else:
         model.create(charset, charset_cats, latent_dim=args.latent_dim)
 
-    checkpointer = ModelCheckpoint(filepath=args.model,
-                                   verbose=1,
-                                   save_best_only=True)
+    if args.epochs > 0:
+        checkpointer = ModelCheckpoint(filepath=args.model,
+                                    verbose=1,
+                                    save_best_only=True)
 
-    reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
-                                    factor = 0.2,
-                                    patience = 3,
-                                    min_lr = 0.0001)
+        reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
+                                        factor = 0.2,
+                                        patience = 3,
+                                        min_lr = 0.0001)
 
-    filename, ext = os.path.splitext(args.model)
-    plot_model(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)
+        filename, ext = os.path.splitext(args.model)
+        plot_model(model.autoencoder, to_file=filename + '_autoencoder_nn.pdf', show_shapes=True)
+        plot_model(model.decoder, to_file=filename + '_decoder_nn.pdf', show_shapes=True)
 
-    history = model.autoencoder.fit([encoder_input_data, decoder_input_data, decoder_input_masks], decoder_target_data,
-                          batch_size=args.batch_size,
-                          epochs=args.epochs,
-                          validation_split=0.2,
-                          callbacks=[checkpointer, reduce_lr])
 
-    # Save model
-    model.autoencoder.save(args.model)
+        history = model.autoencoder.fit([encoder_input_data, decoder_input_data, decoder_input_masks], decoder_target_data,
+                            batch_size=args.batch_size,
+                            epochs=args.epochs,
+                            validation_split=0.2,
+                            callbacks=[checkpointer, reduce_lr])
 
-    # summarize history for loss
-    plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.ylim(ymin=0, ymax=2.0)
-    plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
+        # Save model
+        model.autoencoder.save(args.model)
+
+        # summarize history for loss
+        plt.plot(history.history['val_loss'])
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.ylim(ymin=0, ymax=2.0)
+        plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
     #test-decode a couple of train examples
     sample_ids = np.random.randint(0, len(data_train), 4)
@@ -255,18 +257,23 @@ def main():
         print ('===============================')
         train_string = decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset)
         print ('train string: ', train_string)
-        input_seq = encoder_input_data[word_id: word_id + 1]
-        input_mask = decoder_input_masks[word_id: word_id + 1]
-        category_bounds = tile_grammar.smiles_to_categories_bounds(train_string)
-        decoded_seq = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
+
         train_sequence = []
         for char_id in range(categories_train[word_id].shape[0]):
             token_index = np.argmax(categories_train[word_id][char_id, :])
             train_category = charset_cats[token_index]
             train_sequence.append(train_category)
 
-        print ('train categories   :', train_sequence[:len(train_string)])
-        print ('decoded categories:', decoded_seq)
+        input_seq = encoder_input_data[word_id: word_id + 1]
+        input_mask = decoder_input_masks[word_id: word_id + 1]
+        category_bounds = tile_grammar.smiles_to_categories_bounds(train_string)
+        decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
+        #print ('decoded categories (w/ bounds):', decoded_seq_1)
+
+        decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats)
+        #print ('decoded categories (no bounds):', decoded_seq_2)
+
+        print ('[train, decoded, decoded] categories :', zip(train_sequence[:len(train_string)], decoded_seq_1, decoded_seq_2))
         # print ('categories bounds:', tile_grammar.smiles_to_categories_bounds(train_string))
 
 
@@ -276,18 +283,24 @@ def main():
         print ('===============================')
         test_string = decode_smiles_from_indexes(map(from_one_hot_array, data_test[word_id]), charset)
         print ('test string: ', test_string)
-        input_seq = encoder_test_data[word_id: word_id + 1]
-        input_mask = decoder_test_masks[word_id: word_id + 1]
-        category_bounds = tile_grammar.smiles_to_categories_bounds(test_string)
-        decoded_seq = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
+
         test_sequence = []
         for char_id in range(categories_test[word_id].shape[0]):
             token_index = np.argmax(categories_test[word_id][char_id, :])
             test_category = charset_cats[token_index]
             test_sequence.append(test_category)
+        #print ('test categories               :', test_sequence[:len(test_string)])
 
-        print ('test categories   :', test_sequence[:len(test_string)])
-        print ('decoded categories:', decoded_seq)
+        input_seq = encoder_test_data[word_id: word_id + 1]
+        input_mask = decoder_test_masks[word_id: word_id + 1]
+        category_bounds = tile_grammar.smiles_to_categories_bounds(test_string)
+        decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
+        #print ('decoded categories (w/ bounds):', decoded_seq_1)
+
+        decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats)
+        #print ('decoded categories (no bounds):', decoded_seq_2)
+        
+        print ('[train, decoded, decoded] categories :', zip(test_sequence[:len(test_string)], decoded_seq_1, decoded_seq_2))
         # print ('categories bounds:', tile_grammar.smiles_to_categories_bounds(test_string))
 
 

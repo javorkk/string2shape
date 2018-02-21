@@ -1,3 +1,4 @@
+from __future__ import print_function #pylint bug workaround
 import h5py
 import numpy as np
 
@@ -409,7 +410,7 @@ class TilingGrammar():
 
     def set_categories_prefix(self, categories_prefix):
         if len(categories_prefix) != len(self.neighbor_types) + 1:
-            print "Number of edge categories does not match number of edge types"
+            print("Number of edge categories does not match number of edge types")
         else:
             for item in categories_prefix:
                 self.categories_prefix.append(item)

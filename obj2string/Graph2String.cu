@@ -27,10 +27,15 @@ __host__ std::pair< std::string, std::string > GraphToStringConverter::depthFirs
 	std::pair< std::string, std::string > lastSubtree;
 	std::pair< std::string, std::string > subtreeStrings;
 
+	std::vector<unsigned int> permutedIds(adjacencyValsHost.begin() + intervalsHost[nodeId], adjacencyValsHost.begin() + intervalsHost[nodeId + 1]);
+
+	std::shuffle(permutedIds.begin(), permutedIds.end(), mRNG);
+
 	// Recur for all the vertices adjacent to this vertex
 	for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
 	{
-		unsigned int nbrNodeId = adjacencyValsHost[nbrId];
+		//unsigned int nbrNodeId = adjacencyValsHost[nbrId];
+		unsigned int nbrNodeId = permutedIds[nbrId - intervalsHost[nodeId]];
 		if (nbrNodeId == parentId)
 			continue;
 		if (adjacencyMatrixType[nbrNodeId + numNodes * nodeId] == Graph::EdgeType::CYCLE)

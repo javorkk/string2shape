@@ -82,7 +82,7 @@ int main()
 	std::cerr << "---------------------------------------------------------------------\n";
 	const char* obj2strTestFile = "../scenes/church/church.obj";
 	std::cerr << obj2strTestFile << " converted to \n"
-		<< WFObjectToString(obj2strTestFile) << std::endl;
+		<< WFObjectToStrings(obj2strTestFile) << std::endl;
 
 
     const char* variationFile1 = "../scenes/test_church/c19.obj";

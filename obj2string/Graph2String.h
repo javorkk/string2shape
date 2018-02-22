@@ -10,11 +10,15 @@
 #include <set>
 #include <string>
 
+
 #include "WFObject.h"
 #include "Graph.h"
 
 class GraphToStringConverter
 {
+	unsigned int seed;
+	std::default_random_engine mRNG;
+
 	std::vector<std::string> mAlphabet;
 	std::string mBranchStart;
 	std::string mBranchEnd;
@@ -22,6 +26,8 @@ class GraphToStringConverter
 public:
 	__host__  GraphToStringConverter()
 	{
+		seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
+		mRNG = std::default_random_engine(seed);
 		mBranchStart = std::string("(");
 		mBranchEnd = std::string(")");
 		mNumberSeparator = std::string("%");

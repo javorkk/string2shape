@@ -63,6 +63,14 @@ extern "C" {
 
 		GraphToStringConverter converter;
 		std::pair< std::string, std::string > strings_nodeIds = converter(obj, graph);
+
+		for (size_t i = 0; i < 10; ++i)
+		{
+			std::pair< std::string, std::string > new_sample = converter(obj, graph);
+			strings_nodeIds.first.append(new_sample.first);
+			strings_nodeIds.second.append(new_sample.second);
+		}
+
 		std::string result = strings_nodeIds.first;
 
 		if (aAppendNodeIds)

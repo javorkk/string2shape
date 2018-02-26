@@ -172,7 +172,7 @@ def decode_entire_sequence(model,
     decoded_sequence = []
     while len(decoded_sequence) < input_len:
         char_id = len(decoded_sequence)
-        sampled_token_index = np.argmax(output_sequence[char_id, :])
+        sampled_token_index = np.argmax(output_sequence[0, char_id, :])
         sampled_category = output_charset[sampled_token_index]
         decoded_sequence.append(sampled_category)
 

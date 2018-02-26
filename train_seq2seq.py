@@ -58,7 +58,7 @@ import argparse
 import os
 import numpy as np
 
-from neuralnets.seq2seq import Seq2SeqAE
+from neuralnets.seq2seq import Seq2SeqAE, Seq2SeqRNN
 from neuralnets.grammar import TilingGrammar
 from neuralnets.utils import load_categories_dataset, decode_smiles_from_indexes, from_one_hot_array
 
@@ -161,6 +161,23 @@ def decode_sequence(model,
 
     return decoded_sequence
 
+def decode_entire_sequence(model,
+                    input_seq,
+                    input_mask,
+                    input_len,
+                    output_charset):
+
+    output_sequence = model.rnn.predict([input_seq, input_mask])
+
+    decoded_sequence = []
+    while len(decoded_sequence) < input_len:
+        char_id = len(decoded_sequence)
+        sampled_token_index = np.argmax(output_sequence[char_id, :])
+        sampled_category = output_charset[sampled_token_index]
+        decoded_sequence.append(sampled_category)
+
+    return decoded_sequence
+
 def main():
     args = get_arguments()
 
@@ -213,7 +230,98 @@ def main():
                 if masks_test[w_id][c_id][one_h_id_c] > 0:
                     decoder_test_masks[w_id][c_id][one_h_id_c] = 1.
 
-    model = Seq2SeqAE()
+    # model = Seq2SeqAE()
+    # if os.path.isfile(args.model):
+    #     model.load(charset, charset_cats, args.model, latent_dim=args.latent_dim)
+    # else:
+    #     model.create(charset, charset_cats, latent_dim=args.latent_dim)
+
+    # if args.epochs > 0:
+    #     checkpointer = ModelCheckpoint(filepath=args.model,
+    #                                 verbose=1,
+    #                                 save_best_only=True)
+
+    #     reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
+    #                                     factor = 0.2,
+    #                                     patience = 3,
+    #                                     min_lr = 0.0001)
+
+    #     filename, ext = os.path.splitext(args.model)
+    #     plot_model(model.autoencoder, to_file=filename + '_autoencoder_nn.pdf', show_shapes=True)
+    #     plot_model(model.decoder, to_file=filename + '_decoder_nn.pdf', show_shapes=True)
+
+
+    #     history = model.autoencoder.fit([encoder_input_data, decoder_input_data, decoder_input_masks], decoder_target_data,
+    #                         batch_size=args.batch_size,
+    #                         epochs=args.epochs,
+    #                         validation_split=0.2,
+    #                         callbacks=[checkpointer, reduce_lr])
+
+    #     # Save model
+    #     model.autoencoder.save(args.model)
+
+    #     # summarize history for loss
+    #     plt.plot(history.history['val_loss'])
+    #     plt.title('model loss')
+    #     plt.ylabel('loss')
+    #     plt.xlabel('epoch')
+    #     plt.ylim(ymin=0, ymax=2.0)
+    #     plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
+
+    # #test-decode a couple of train examples
+    # sample_ids = np.random.randint(0, len(data_train), 4)
+    # for word_id in sample_ids:
+    #     print ('===============================')
+    #     train_string = decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset)
+    #     print ('train string: ', train_string)
+
+    #     train_sequence = []
+    #     for char_id in range(categories_train[word_id].shape[0]):
+    #         token_index = np.argmax(categories_train[word_id][char_id, :])
+    #         train_category = charset_cats[token_index]
+    #         train_sequence.append(train_category)
+
+    #     input_seq = encoder_input_data[word_id: word_id + 1]
+    #     input_mask = decoder_input_masks[word_id: word_id + 1]
+    #     category_bounds = tile_grammar.smiles_to_categories_bounds(train_string)
+    #     decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
+    #     #print ('decoded categories (w/ bounds):', decoded_seq_1)
+
+    #     decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats)
+    #     #print ('decoded categories (no bounds):', decoded_seq_2)
+
+    #     print ('[train, decoded, decoded] categories :', zip(train_sequence[:len(train_string)], decoded_seq_1, decoded_seq_2))
+    #     # print ('categories bounds:', tile_grammar.smiles_to_categories_bounds(train_string))
+
+
+    # #test-decode a couple of test examples
+    # sample_ids = np.random.randint(0, len(data_test), 8)
+    # for word_id in sample_ids:
+    #     print ('===============================')
+    #     test_string = decode_smiles_from_indexes(map(from_one_hot_array, data_test[word_id]), charset)
+    #     print ('test string: ', test_string)
+
+    #     test_sequence = []
+    #     for char_id in range(categories_test[word_id].shape[0]):
+    #         token_index = np.argmax(categories_test[word_id][char_id, :])
+    #         test_category = charset_cats[token_index]
+    #         test_sequence.append(test_category)
+    #     #print ('test categories               :', test_sequence[:len(test_string)])
+
+    #     input_seq = encoder_test_data[word_id: word_id + 1]
+    #     input_mask = decoder_test_masks[word_id: word_id + 1]
+    #     category_bounds = tile_grammar.smiles_to_categories_bounds(test_string)
+    #     decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
+    #     #print ('decoded categories (w/ bounds):', decoded_seq_1)
+
+    #     decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats)
+    #     #print ('decoded categories (no bounds):', decoded_seq_2)
+        
+    #     print ('[train, decoded, decoded] categories :', zip(test_sequence[:len(test_string)], decoded_seq_1, decoded_seq_2))
+    #     # print ('categories bounds:', tile_grammar.smiles_to_categories_bounds(test_string))
+
+
+    model = Seq2SeqRNN()
     if os.path.isfile(args.model):
         model.load(charset, charset_cats, args.model, latent_dim=args.latent_dim)
     else:
@@ -230,18 +338,17 @@ def main():
                                         min_lr = 0.0001)
 
         filename, ext = os.path.splitext(args.model)
-        plot_model(model.autoencoder, to_file=filename + '_autoencoder_nn.pdf', show_shapes=True)
-        plot_model(model.decoder, to_file=filename + '_decoder_nn.pdf', show_shapes=True)
+        plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
 
 
-        history = model.autoencoder.fit([encoder_input_data, decoder_input_data, decoder_input_masks], decoder_target_data,
+        history = model.rnn.fit([encoder_input_data, decoder_input_masks], decoder_input_data,
                             batch_size=args.batch_size,
                             epochs=args.epochs,
                             validation_split=0.2,
                             callbacks=[checkpointer, reduce_lr])
 
         # Save model
-        model.autoencoder.save(args.model)
+        model.rnn.save(args.model)
 
         # summarize history for loss
         plt.plot(history.history['val_loss'])
@@ -252,7 +359,7 @@ def main():
         plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
     #test-decode a couple of train examples
-    sample_ids = np.random.randint(0, len(data_train), 4)
+    sample_ids = np.random.randint(0, len(data_train), 2)
     for word_id in sample_ids:
         print ('===============================')
         train_string = decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset)
@@ -266,19 +373,13 @@ def main():
 
         input_seq = encoder_input_data[word_id: word_id + 1]
         input_mask = decoder_input_masks[word_id: word_id + 1]
-        category_bounds = tile_grammar.smiles_to_categories_bounds(train_string)
-        decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
-        #print ('decoded categories (w/ bounds):', decoded_seq_1)
+        decoded_seq_1 = decode_entire_sequence(model, input_seq, input_mask, len(train_string), charset_cats)
 
-        decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats)
-        #print ('decoded categories (no bounds):', decoded_seq_2)
-
-        print ('[train, decoded, decoded] categories :', zip(train_sequence[:len(train_string)], decoded_seq_1, decoded_seq_2))
-        # print ('categories bounds:', tile_grammar.smiles_to_categories_bounds(train_string))
+        print ('(train, decoded) categories :', zip(train_sequence, decoded_seq_1))
 
 
     #test-decode a couple of test examples
-    sample_ids = np.random.randint(0, len(data_test), 8)
+    sample_ids = np.random.randint(0, len(data_test), 2)
     for word_id in sample_ids:
         print ('===============================')
         test_string = decode_smiles_from_indexes(map(from_one_hot_array, data_test[word_id]), charset)
@@ -289,19 +390,13 @@ def main():
             token_index = np.argmax(categories_test[word_id][char_id, :])
             test_category = charset_cats[token_index]
             test_sequence.append(test_category)
-        #print ('test categories               :', test_sequence[:len(test_string)])
 
         input_seq = encoder_test_data[word_id: word_id + 1]
         input_mask = decoder_test_masks[word_id: word_id + 1]
-        category_bounds = tile_grammar.smiles_to_categories_bounds(test_string)
-        decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
-        #print ('decoded categories (w/ bounds):', decoded_seq_1)
-
-        decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats)
-        #print ('decoded categories (no bounds):', decoded_seq_2)
+        decoded_seq_1 = decode_entire_sequence(model, input_seq, input_mask, len(test_string), charset_cats)
         
-        print ('[train, decoded, decoded] categories :', zip(test_sequence[:len(test_string)], decoded_seq_1, decoded_seq_2))
-        # print ('categories bounds:', tile_grammar.smiles_to_categories_bounds(test_string))
+        print ('(train, decoded) categories :', zip(test_sequence, decoded_seq_1))
+
 
 
 if __name__ == '__main__':

@@ -116,3 +116,36 @@ class Seq2SeqRNN():
     
     def load(self, input_charset, output_charset, weights_file, latent_dim=292):
         self.create(input_charset, output_charset, weights_file=weights_file, latent_dim=latent_dim)
+
+class Seq2SeqNoMaskRNN():
+
+    rnn = None
+
+    def create(self,
+               input_charset,
+               output_charset,
+               max_length=120,
+               latent_dim=292,
+               weights_file = None):
+
+        num_encoder_tokens = len(input_charset)
+        num_decoder_tokens = len(output_charset)
+
+        inputs = Input(shape=(None, num_encoder_tokens), name='input')
+        lstm_0 = LSTM(latent_dim, return_sequences=True, name='lstm_0')(inputs)
+        lstm_1 = LSTM(latent_dim, return_sequences=True, name='lstm_1')(lstm_0)
+        lstm_2 = LSTM(latent_dim, return_sequences=True, name='lstm_2')(lstm_1)
+        outputs  = Dense(num_decoder_tokens, activation='softmax', name='dense')(lstm_2)
+
+        self.rnn = Model(inputs, outputs)
+
+        if weights_file:
+            self.rnn.load_weights(weights_file)
+
+        self.rnn.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    def save(self, filename):
+        self.rnn.save_weights(filename)
+    
+    def load(self, input_charset, output_charset, weights_file, latent_dim=292):
+        self.create(input_charset, output_charset, weights_file=weights_file, latent_dim=latent_dim)

@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'sans-serif'
-rcParams['font.sans-serif'] = ['Helvetica']
+rcParams['font.sans-serif'] = ['Verdana']
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D

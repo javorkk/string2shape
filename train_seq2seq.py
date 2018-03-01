@@ -68,7 +68,7 @@ from keras.utils import plot_model
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = 'sans-serif'
-rcParams['font.sans-serif'] = ['Helvetica']
+rcParams['font.sans-serif'] = ['Verdana']
 
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
@@ -79,7 +79,7 @@ MODEL = 'rnn'
 def get_arguments():
     parser = argparse.ArgumentParser(description='Sequence to sequence autoencoder network')
     parser.add_argument('data', type=str, help='The HDF5 file containing preprocessed data.')
-    parser.add_argument('model', type=str,
+    parser.add_argument('out', type=str,
                         help='Where to save the trained model. If this file exists, it will be opened and resumed.')
     parser.add_argument('grammar', type=str, help='The HDF5 file with the tiling grammar.')
     parser.add_argument('--model', type=str, default=MODEL,
@@ -242,13 +242,13 @@ def main():
                             decoder_target_data[w_id][c_id-1][one_h_id_c] = 1.
 
         model = Seq2SeqAE()
-        if os.path.isfile(args.model):
-            model.load(charset, charset_cats, args.model, latent_dim=args.latent_dim)
+        if os.path.isfile(args.out):
+            model.load(charset, charset_cats, args.out, latent_dim=args.latent_dim)
         else:
             model.create(charset, charset_cats, latent_dim=args.latent_dim)
 
         if args.epochs > 0:
-            checkpointer = ModelCheckpoint(filepath=args.model,
+            checkpointer = ModelCheckpoint(filepath=args.out,
                                         verbose=1,
                                         save_best_only=True)
 
@@ -257,7 +257,7 @@ def main():
                                             patience = 3,
                                             min_lr = 0.0001)
 
-            filename, ext = os.path.splitext(args.model)
+            filename, ext = os.path.splitext(args.out)
             plot_model(model.autoencoder, to_file=filename + '_autoencoder_nn.pdf', show_shapes=True)
             plot_model(model.decoder, to_file=filename + '_decoder_nn.pdf', show_shapes=True)
 
@@ -269,7 +269,7 @@ def main():
                                 callbacks=[checkpointer, reduce_lr])
 
             # Save model
-            model.autoencoder.save(args.model)
+            model.autoencoder.save(args.out)
 
             # summarize history for loss
             plt.plot(history.history['val_loss'])
@@ -337,13 +337,13 @@ def main():
     elif args.model == 'rnn':
 
         model = Seq2SeqRNN()
-        if os.path.isfile(args.model):
-            model.load(charset, charset_cats, args.model, latent_dim=args.latent_dim)
+        if os.path.isfile(args.out):
+            model.load(charset, charset_cats, args.out, latent_dim=args.latent_dim)
         else:
             model.create(charset, charset_cats, latent_dim=args.latent_dim)
 
         if args.epochs > 0:
-            checkpointer = ModelCheckpoint(filepath=args.model,
+            checkpointer = ModelCheckpoint(filepath=args.out,
                                         verbose=1,
                                         save_best_only=True)
 
@@ -352,7 +352,7 @@ def main():
                                             patience = 3,
                                             min_lr = 0.0001)
 
-            filename, ext = os.path.splitext(args.model)
+            filename, ext = os.path.splitext(args.out)
             plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
 
 
@@ -363,7 +363,7 @@ def main():
                                 callbacks=[checkpointer, reduce_lr])
 
             # Save model
-            model.rnn.save(args.model)
+            model.rnn.save(args.out)
 
             # summarize history for loss
             plt.plot(history.history['val_loss'])
@@ -417,13 +417,13 @@ def main():
     elif args.model == 'no_mask_rnn':
 
         model = Seq2SeqNoMaskRNN()
-        if os.path.isfile(args.model):
-            model.load(charset, charset_cats, args.model, latent_dim=args.latent_dim)
+        if os.path.isfile(args.out):
+            model.load(charset, charset_cats, args.out, latent_dim=args.latent_dim)
         else:
             model.create(charset, charset_cats, latent_dim=args.latent_dim)
 
         if args.epochs > 0:
-            checkpointer = ModelCheckpoint(filepath=args.model,
+            checkpointer = ModelCheckpoint(filepath=args.out,
                                         verbose=1,
                                         save_best_only=True)
 
@@ -432,7 +432,7 @@ def main():
                                             patience = 3,
                                             min_lr = 0.0001)
 
-            filename, ext = os.path.splitext(args.model)
+            filename, ext = os.path.splitext(args.out)
             plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
 
 
@@ -443,10 +443,10 @@ def main():
                                 callbacks=[checkpointer, reduce_lr])
 
             # Save model
-            model.rnn.save(args.model)
+            model.rnn.save(args.out)
 
             # summarize history for loss
-            plt.plot(history.history['val_loss'], col='red')
+            plt.plot(history.history['val_loss'], color='red')
             plt.title('model loss')
             plt.ylabel('loss')
             plt.xlabel('epoch')

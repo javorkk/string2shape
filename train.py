@@ -14,7 +14,7 @@ from keras.utils import plot_model
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = 'sans-serif'
-rcParams['font.sans-serif'] = ['Helvetica']
+rcParams['font.sans-serif'] = ['Verdana']
 
 NUM_EPOCHS = 1
 BATCH_SIZE = 200

@@ -1,3 +1,4 @@
+from __future__ import print_function #pylint bug workaround
 import argparse
 import pandas
 import h5py
@@ -62,21 +63,22 @@ def main():
             for j, _ in enumerate(edge_categories_lists[i]):
                 edge_categories[i][j] = edge_categories_lists[i][j]
 
-    charset_cats = list(reduce(lambda x, y: set(y) | x, edge_categories, set()))
-    charset_cats.sort()
+        #charset_cats = list(reduce(lambda x, y: set(y) | x, edge_categories, set()))
+        #charset_cats.sort()
+        charset_cats = range(max_category + 1)
 
-    edge_categories_masks = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH, len(charset_cats)))
-    if MIN_BOUND_COL_NAME in data.keys() and MAX_BOUND_COL_NAME in data.keys():
-        edge_categories_min = data[MIN_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
-        edge_categories_max = data[MAX_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
+        edge_categories_masks = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH, len(charset_cats)))
+        if MIN_BOUND_COL_NAME in data.keys() and MAX_BOUND_COL_NAME in data.keys():
+            edge_categories_min = data[MIN_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
+            edge_categories_max = data[MAX_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
 
-        edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(edge_categories_lists), MAX_WORD_LENGTH, len(charset_cats)), dtype=int), axis = 0)
-        for i, _ in enumerate(edge_categories_min):
-            for j, _ in enumerate(edge_categories_min[i]):
-                for k in range(edge_categories_min[i][j], edge_categories_max[i][j]):
-                    edge_categories_masks[i][j][k] = 1
-            for j in range(len(edge_categories_min[i]), MAX_WORD_LENGTH):
-                edge_categories_masks[i][j][len(charset_cats) - 1] = 1
+            edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(edge_categories_lists), MAX_WORD_LENGTH, len(charset_cats)), dtype=int), axis = 0)
+            for i, _ in enumerate(edge_categories_min):
+                for j, _ in enumerate(edge_categories_min[i]):
+                    for k in range(edge_categories_min[i][j], edge_categories_max[i][j]):
+                        edge_categories_masks[i][j][k] = 1
+                for j in range(len(edge_categories_min[i]), MAX_WORD_LENGTH):
+                    edge_categories_masks[i][j][len(charset_cats) - 1] = 1
 
     if args.property_column:
         properties = data[args.property_column][keys]

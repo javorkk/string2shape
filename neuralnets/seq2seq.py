@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense, Multiply, Activation
+from keras.layers import Input, LSTM, Dense, Multiply, Activation, Bidirectional, Concatenate
 
 class Seq2SeqAE():
 
@@ -96,10 +96,13 @@ class Seq2SeqRNN():
         num_decoder_tokens = len(output_charset)
 
         inputs = Input(shape=(None, num_encoder_tokens), name='input')
-        lstm_0 = LSTM(latent_dim, return_sequences=True, name='lstm_0')(inputs)
-        lstm_1 = LSTM(latent_dim, return_sequences=True, name='lstm_1')(lstm_0)
-        lstm_2 = LSTM(latent_dim, return_sequences=True, name='lstm_2')(lstm_1)
-        dense  = Dense(num_decoder_tokens, activation=None, name='dense')(lstm_2)#masks
+        lstm_0_f = LSTM(latent_dim, return_sequences=True, name='lstm_0_f')(inputs)
+        lstm_0_b = LSTM(latent_dim, return_sequences=True, name='lstm_0_b', go_backwards=True)(inputs)
+        lstm_0 = Concatenate(name='concatenate')([lstm_0_f, lstm_0_b])
+        #lstm_0 = LSTM(latent_dim, return_sequences=True, name='lstm_0')(inputs)
+        #lstm_1 = LSTM(latent_dim, return_sequences=True, name='lstm_1')(lstm_0)
+        #lstm_2 = LSTM(latent_dim, return_sequences=True, name='lstm_2')(lstm_1)
+        dense  = Dense(num_decoder_tokens, activation=None, name='dense')(lstm_0)#masks
         masks = Input(shape=(None, num_decoder_tokens), name='masks')#masks
         masked = Multiply(name='masking')([dense, masks])#masks
         outputs = Activation('softmax', name='output')(masked)#masks
@@ -132,10 +135,14 @@ class Seq2SeqNoMaskRNN():
         num_decoder_tokens = len(output_charset)
 
         inputs = Input(shape=(None, num_encoder_tokens), name='input')
-        lstm_0 = LSTM(latent_dim, return_sequences=True, name='lstm_0')(inputs)
-        lstm_1 = LSTM(latent_dim, return_sequences=True, name='lstm_1')(lstm_0)
-        lstm_2 = LSTM(latent_dim, return_sequences=True, name='lstm_2')(lstm_1)
-        outputs  = Dense(num_decoder_tokens, activation='softmax', name='dense')(lstm_2)
+
+        lstm_0_f = LSTM(latent_dim, return_sequences=True, name='lstm_0_f')(inputs)
+        lstm_0_b = LSTM(latent_dim, return_sequences=True, name='lstm_0_b', go_backwards=True)(inputs)
+        lstm_0 = Concatenate(name='concatenate')([lstm_0_f, lstm_0_b])
+        # lstm_0 = LSTM(latent_dim, return_sequences=True, name='lstm_0')(inputs)
+        # lstm_1 = LSTM(latent_dim, return_sequences=True, name='lstm_1')(lstm_0)
+        # lstm_2 = LSTM(latent_dim, return_sequences=True, name='lstm_2')(lstm_1)
+        outputs  = Dense(num_decoder_tokens, activation='softmax', name='dense')(lstm_0)
 
         self.rnn = Model(inputs, outputs)
 

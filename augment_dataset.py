@@ -33,7 +33,7 @@ def process_folder(folder_name, file_list = []):
 def augment_folder(file_list=[], word_list=[]):
     for item_id in range(len(file_list) - 1):
         item_name_1 = file_list[item_id]
-        sample_id = np.random.randint(item_id + 1, len(file_list))
+        sample_id = np.random.randint(item_id, len(file_list))
         item_name_2 = file_list[sample_id]
         current_str = obj_tools.create_variations(item_name_1, item_name_2)
         current_words = current_str.split("\n")                
@@ -105,6 +105,9 @@ def main():
     print("max # neighbors: " + str(tile_grammar.max_degree()))
     tile_grammar.store(args.out_grammarpath)
 
+    print("removing duplicates...")
+    remove_duplicates(tile_grammar, args.in_folder, inputA, inputB, initial_smiles_strings)
+
     smiles_strings = []
     for i in range(args.num_iterations):
         current_file_list = []
@@ -125,7 +128,7 @@ def main():
     valid_strings = []
     for w in smiles_strings:
         if(loaded_grammar.check_word(w) == True):
-            if len(str(w)) <= MAX_WORD_LENGTH and len(str(w)) > 0 :
+            if len(str(w)) > 0 :
                 valid_strings.append(w)      
 
     print("# valid strings: " + str(len(valid_strings)))

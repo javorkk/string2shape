@@ -170,9 +170,13 @@ public:
 						const float zNode = posNode.z;
 						const float3 posNbr = positions[neighborId];
 						const float zNbr = posNbr.z;
-						if (!alreadyIncluded && zNode + 0.15f * nodeSizes[nodeId] < zNbr /*- 0.25f * nodeSizes[neighborId]*/)
+						if (!alreadyIncluded && (zNode + 0.15f * nodeSizes[nodeId] < zNbr || zNbr + 0.15f * nodeSizes[neighborId] < zNode)/*- 0.25f * nodeSizes[neighborId]*/)
 						{
 							alreadyIncluded = genRand() > alpha;
+						}
+						else if (alreadyIncluded && zNode + 0.25f * nodeSizes[nodeId] > zNbr && zNode - 0.25f * nodeSizes[nodeId] < zNbr)
+						{
+							alreadyIncluded = genRand() > 0.25f;
 						}
 					}
 
@@ -503,10 +507,10 @@ public:
 
 		unsigned int offset = (unsigned int)(genRand() * (float)graphSize2);
 		bool success = randomMatchingOperator(aId, offset);
-		//if(!success)
-		//	success = randomMatchingOperator(aId, offset / 2u);
-		//if(!success)
-		//	randomMatchingOperator(aId, offset / 4u);
+		if(!success)
+			success = randomMatchingOperator(aId, offset / 2u);
+		if(!success)
+			randomMatchingOperator(aId, offset / 4u);
 		if(!success)
 			randomMatchingOperator(aId, 0u);
 
@@ -741,7 +745,7 @@ public:
 			(float)vMat[2], (float)vMat[5], (float)vMat[8]
 		);
 
-		const float spatialTolerance = 0.01f * diagonal;
+		const float spatialTolerance = 0.05f * diagonal;
 		bool valid = true;
 		for (unsigned int i = 0u; i < subgraphSize && valid; ++i)
 		{
@@ -841,7 +845,7 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	float3 minBound, maxBound;
 	ObjectBoundsExporter()(aObj1, minBound, maxBound);
 	const float boundsDiagonal = len(maxBound - minBound);
-	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.05f);
+	const float spatialTolerance = /*boundsDiagonal * */std::max(aRelativeThreshold, 0.125f);
 	//const float spatialTolerance = 30.f * (aRelativeThreshold + 0.03f);
 
 
@@ -905,10 +909,10 @@ __host__ std::string VariationGenerator::operator()(const char * aFilePath1, con
 	//const unsigned int subgraphSampleSize = (unsigned int)objCenters1.size() / 2u;
 
 	for (unsigned int subgraphSampleSize = 4u;// (unsigned int)std::min(aGraph1.numNodes(), aGraph2.numNodes()) / 4u;
-		subgraphSampleSize <= (unsigned int) 3u * aGraph1.numNodes() / 4u;
+		subgraphSampleSize <= (unsigned int) 7u * aGraph1.numNodes() / 8u;
 		subgraphSampleSize++)
 	{
-		std::cout << "Mixing " << shortName1 << " and " << shortName2 << " subgraph size : " << subgraphSampleSize << " / " << 3u * aGraph1.numNodes() / 4u << std::flush <<"\r";
+		std::cout << "Mixing " << shortName1 << " and " << shortName2 << " subgraph size : " << subgraphSampleSize << " / " << 7u * aGraph1.numNodes() / 8u << std::flush <<"\r";
 
 		if (subgraphSampleSize < 3)
 			continue;

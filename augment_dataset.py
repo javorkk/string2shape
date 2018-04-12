@@ -71,13 +71,19 @@ def remove_duplicates(tile_grammar, folder_name, inputA, inputB, word_list = [])
         file_path = folder_name + "/" + item_name
         if  file_path != inputA and file_path != inputB and not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"):
             current_str = obj_tools.obj2string(file_path)
-            current_words.append(current_str)
             base_path, extension = os.path.splitext(file_path)
             os.remove(base_path + "_coll_graph.obj")            
             os.remove(base_path + "_coll_graph.mtl")
+
+            if not tile_grammar.check_word(current_str):
+                os.remove(file_path)
+                os.remove(base_path + ".mtl")
+                continue
+
+            current_words.append(current_str)
             for i in range(len(current_words) - 1):
                 if tile_grammar.similar_words(current_words[i], current_str):
-                    os.remove(file_path)                   
+                    os.remove(file_path)
                     os.remove(base_path + ".mtl")
                     current_words.pop()
                     break

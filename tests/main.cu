@@ -91,12 +91,14 @@ int main()
     //const char* variationFile2 = "../scenes/test_skyscraper/v02.obj";
 	//const char* variationFile1 = "../scenes/test_sand_castle/v01.obj";
 	//const char* variationFile2 = "../scenes/test_sand_castle/v02.obj";
-	const char* variationFile1 = "../scenes/test_playground/v001.obj";
-	const char* variationFile2 = "../scenes/test_playground/v002.obj";
+	//const char* variationFile1 = "../scenes/test_playground/v001.obj";
+	//const char* variationFile2 = "../scenes/test_playground/v002.obj";
 	//const char* variationFile1 = "../scenes/moon_base/variant_01.obj";
 	//const char* variationFile2 = "../scenes/moon_base/variant_02.obj";
 	//const char* variationFile1 = "../scenes/test_brick_house/b01.obj";
 	//const char* variationFile2 = "../scenes/test_brick_house/b02.obj";
+	const char* variationFile1 = "../scenes/test_brick_house/b03.obj";
+	const char* variationFile2 = "../scenes/test_brick_house/b04.obj";
 
 
 	ShapeVariationTest variationTest;

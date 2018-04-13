@@ -99,6 +99,8 @@ def main():
 
     if len(initial_file_list) == 1:
         initial_file_list.append(initial_file_list[0])
+    else:
+        initial_file_list = sorted(initial_file_list)
 
     inputA = initial_file_list[0]
     inputB = initial_file_list[len(initial_file_list) - 1]

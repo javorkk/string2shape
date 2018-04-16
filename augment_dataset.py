@@ -75,7 +75,7 @@ def remove_duplicates(tile_grammar, folder_name, inputA, inputB, word_list = [])
             os.remove(base_path + "_coll_graph.obj")            
             os.remove(base_path + "_coll_graph.mtl")
 
-            if not tile_grammar.check_word(current_str):
+            if len(current_str) > 8 * MAX_WORD_LENGTH or not tile_grammar.check_word(current_str):
                 os.remove(file_path)
                 os.remove(base_path + ".mtl")
                 continue

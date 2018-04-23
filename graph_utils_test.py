@@ -4,6 +4,7 @@ import os
 import obj_tools
 import neuralnets.grammar as grammar
 import neuralnets.shape_graph as shape_graph
+from neuralnets.shape_graph import smiles_variations
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="Shape graph configuration estimation from .obj file collections.")
@@ -52,6 +53,26 @@ def main():
     print(smiles_strings[0])
     print("edge categories:")
     print(edge_categories)
+
+    dummy_node_id = len(node_ids[0])
+    
+    padded_node_ids = []
+    num_nodes = 0 
+    for char_id, _ in enumerate(smiles_strings[0]):
+        if smiles_strings[0][char_id] in tile_grammar.charset:
+            padded_node_ids.append(node_ids[0][num_nodes])
+            num_nodes += 1
+        else:
+            padded_node_ids.append(dummy_node_id)
+    padded_node_ids.append(dummy_node_id) #ensure at least one occurrence
+
+    smiles_variants, node_lists = smiles_variations(smiles_strings[0], padded_node_ids, tile_grammar, 2)
+    print("smiles variants:")
+    print(smiles_variants)
+
+    print("node lists:")
+    print(node_lists)
+
 
     #print("cluster centers:")
     #print(cluster_centers)

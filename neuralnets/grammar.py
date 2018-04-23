@@ -483,7 +483,7 @@ class TilingGrammar():
                 padded_node_types.append(char)
             else:
                 padded_node_types.append(dummy_type) #dummy node need max id
-        padded_node_types.append(dummy_type)#ensure at least one occurence
+        padded_node_types.append(dummy_type)#ensure at least one occurrence
 
         node_types_list = self.smiles_to_edges(word, padded_node_types)
         bounds_list = []
@@ -499,6 +499,24 @@ class TilingGrammar():
                 type_id = self.neighbor_types.index(type_pair)
                 bounds_list.append([self.categories_prefix[type_id], self.categories_prefix[type_id + 1]])
         return bounds_list
+
+    def smiles_to_one_hot(self, word, charset):
+        num_chars = len(charset)
+        one_hot = np.zeros(dtype='float32', shape=(len(word), num_chars))
+        for j in range(len(word)):
+            one_hot[j][np.where(charset == word[j])] = 1
+        return one_hot
+
+    def smiles_to_mask(self, word, max_length=120):
+        bounds_list = self.smiles_to_categories_bounds(word)
+        num_categories = self.categories_prefix[-1] + 1
+        masks = np.zeros(dtype='float32', shape=(max_length, num_categories))
+        for j, bounds in enumerate(bounds_list):
+            for k in range(bounds[0], bounds[1]):
+                masks[j][k] = 1
+        for j in range(len(bounds_list), max_length):
+            masks[j][num_categories - 1] = 1
+        return masks
 
     def load(self, filename):
         h5f = h5py.File(filename, "r")

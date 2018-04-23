@@ -61,6 +61,7 @@ import numpy as np
 from neuralnets.seq2seq import Seq2SeqAE, Seq2SeqRNN, Seq2SeqNoMaskRNN
 from neuralnets.grammar import TilingGrammar
 from neuralnets.utils import load_categories_dataset, decode_smiles_from_indexes, from_one_hot_array
+from neuralnets.shape_graph import smiles_variations
 
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.utils import plot_model
@@ -69,6 +70,13 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = ['Verdana']
+
+from collections import Counter
+
+def most_common_elem(lst):
+    data = Counter(lst)
+    return data.most_common(1)[0][0]
+
 
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
@@ -94,13 +102,13 @@ def get_arguments():
                         help='Number of samples to process per minibatch during training.')
     return parser.parse_args()
 
-def decode_sequence(model,
+def decode_sequence_ae(model,
                     input_seq,
                     input_mask,
                     input_len,
                     output_charset,
                     bounds=None,
-                    max_length=120):
+                    max_length=WORD_LENGTH):
     num_decoder_tokens = len(output_charset)
     max_category = max(output_charset)
 
@@ -167,13 +175,21 @@ def decode_sequence(model,
 
     return decoded_sequence
 
+def predict_sequence(model,
+                    input_seq,
+                    input_mask=None):
+    if input_mask is None:
+        return model.rnn.predict(input_seq)
+    else:
+        return model.rnn.predict([input_seq, input_mask])
+
 def decode_sequence_rnn(model,
-                    input_seq,
-                    input_mask,
+                    input_seq,                    
                     input_len,
-                    output_charset):
+                    output_charset,
+                    input_mask=None):
 
-    output_sequence = model.rnn.predict([input_seq, input_mask])
+    output_sequence = predict_sequence(model, input_seq, input_mask)
 
     decoded_sequence = []
     while len(decoded_sequence) < input_len:
@@ -184,21 +200,72 @@ def decode_sequence_rnn(model,
 
     return decoded_sequence
 
-def decode_sequence_no_mask(model,
-                    input_seq,
-                    input_len,
-                    output_charset):
+def decode_sequence(model,
+                    grammar,
+                    input_charset,
+                    input_word,
+                    max_length=WORD_LENGTH,
+                    num_variants=10):
 
-    output_sequence = model.rnn.predict(input_seq)
+    if num_variants <= 1:
+        num_variants = 1 
+    ##############################################################################################################
+    #Generate multiple string variants for the input graph
+    ##############################################################################################################
+    padded_node_ids = []
+    num_nodes = 0 
+    for char_id, _ in enumerate(input_word):
+        if input_word[char_id] in grammar.charset:
+            padded_node_ids.append(num_nodes)
+            num_nodes += 1
+        else:
+            padded_node_ids.append(max_length)
 
-    decoded_sequence = []
-    while len(decoded_sequence) < input_len:
-        char_id = len(decoded_sequence)
-        sampled_token_index = np.argmax(output_sequence[0, char_id, :])
-        sampled_category = output_charset[sampled_token_index]
-        decoded_sequence.append(sampled_category)
+    dummy_node_id = num_nodes
 
-    return decoded_sequence
+    for i, _ in enumerate(padded_node_ids):
+        if padded_node_ids[i] == max_length:
+            padded_node_ids[i] = dummy_node_id
+
+    padded_node_ids.append(dummy_node_id) #ensure at least one occurrence
+
+    smiles_variants, node_variants = smiles_variations(input_word, padded_node_ids, grammar, num_variants - 1)
+
+    smiles_strings = [input_word] + smiles_variants
+    node_lists = [padded_node_ids] + node_variants
+    edge_lists = []
+    for word, nodes in zip(smiles_strings, node_lists):
+        edge_lists.append(grammar.smiles_to_edges(word, nodes))
+
+
+    input_sequences = np.empty(dtype='float32', shape=(num_variants, max_length, len(input_charset)))
+    input_masks = np.empty(dtype='float32', shape=(num_variants, max_length, grammar.categories_prefix[-1] + 1))
+    for i, word in enumerate(smiles_strings):
+        input_sequences[i] = grammar.smiles_to_one_hot(word.ljust(max_length), input_charset)
+        input_masks[i] = grammar.smiles_to_mask(word, max_length)
+
+    ##############################################################################################################
+    #Classify each string (estimate edge configurations)
+    ##############################################################################################################
+    output_charset = list(range(0, grammar.categories_prefix[-1] + 1, 1))
+
+    decoded_sequences = []
+    for i in range(num_variants):
+        decoded_sequences.append(decode_sequence_rnn(model, input_sequences[i:i+1], len(smiles_strings[i]), output_charset, input_masks[i:i+1]))
+
+    output_sequence = []
+    per_edge_categories = []
+    for edge_id, edge in enumerate(edge_lists[0]):
+        local_categories = [decoded_sequences[0][edge_id]]
+        if edge[0] != dummy_node_id or edge[1] != dummy_node_id:
+            for j in range(1, num_variants):
+                if edge in edge_lists[j]: #edge direction can be reversed in the other list
+                    idx = edge_lists[j].index(edge)
+                    local_categories.append(decoded_sequences[j][idx])
+        per_edge_categories.append(local_categories)
+        output_sequence.append(most_common_elem(local_categories))
+
+    return output_sequence
 
 def main():
     args = get_arguments()
@@ -295,10 +362,10 @@ def main():
             input_seq = encoder_input_data[word_id: word_id + 1]
             input_mask = decoder_input_masks[word_id: word_id + 1]
             category_bounds = tile_grammar.smiles_to_categories_bounds(train_string)
-            decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
+            decoded_seq_1 = decode_sequence_ae(model, input_seq, input_mask, len(train_string), charset_cats, category_bounds)
             #print ('decoded categories (w/ bounds):', decoded_seq_1)
 
-            decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(train_string), charset_cats)
+            decoded_seq_2 = decode_sequence_ae(model, input_seq, input_mask, len(train_string), charset_cats)
             #print ('decoded categories (no bounds):', decoded_seq_2)
 
             print ('[train, decoded, decoded] categories :', zip(train_sequence[:len(train_string)], decoded_seq_1, decoded_seq_2))
@@ -322,10 +389,10 @@ def main():
             input_seq = encoder_test_data[word_id: word_id + 1]
             input_mask = decoder_test_masks[word_id: word_id + 1]
             category_bounds = tile_grammar.smiles_to_categories_bounds(test_string)
-            decoded_seq_1 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
+            decoded_seq_1 = decode_sequence_ae(model, input_seq, input_mask, len(test_string), charset_cats, category_bounds)
             #print ('decoded categories (w/ bounds):', decoded_seq_1)
 
-            decoded_seq_2 = decode_sequence(model, input_seq, input_mask, len(test_string), charset_cats)
+            decoded_seq_2 = decode_sequence_ae(model, input_seq, input_mask, len(test_string), charset_cats)
             #print ('decoded categories (no bounds):', decoded_seq_2)
             
             print ('[train, decoded, decoded] categories :', zip(test_sequence[:len(test_string)], decoded_seq_1, decoded_seq_2))
@@ -388,7 +455,7 @@ def main():
 
             input_seq = encoder_input_data[word_id: word_id + 1]
             input_mask = decoder_input_masks[word_id: word_id + 1]
-            decoded_seq_1 = decode_sequence_rnn(model, input_seq, input_mask, len(train_string), charset_cats)
+            decoded_seq_1 = decode_sequence_rnn(model, input_seq, len(train_string), charset_cats, input_mask)
 
             print ('(train, decoded) categories :', zip(train_sequence, decoded_seq_1))
 
@@ -408,9 +475,12 @@ def main():
 
             input_seq = encoder_test_data[word_id: word_id + 1]
             input_mask = decoder_test_masks[word_id: word_id + 1]
-            decoded_seq_1 = decode_sequence_rnn(model, input_seq, input_mask, len(test_string), charset_cats)
+            decoded_seq_1 = decode_sequence_rnn(model, input_seq, len(test_string), charset_cats, input_mask)
             
-            print ('(train, decoded) categories :', zip(test_sequence, decoded_seq_1))
+            print ('(test, decoded) categories :', zip(test_sequence, decoded_seq_1))
+
+            decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, WORD_LENGTH, 32)
+            print ('(test, decoded_1, decoded_2) categories :', zip(test_sequence, decoded_seq_1, decoded_seq_2))
     ###############################################################################################################
     #Simple RNN without masking
     ###############################################################################################################
@@ -468,7 +538,7 @@ def main():
 
             input_seq = encoder_input_data[word_id: word_id + 1]
             input_mask = decoder_input_masks[word_id: word_id + 1]
-            decoded_seq_1 = decode_sequence_no_mask(model, input_seq, len(train_string), charset_cats)
+            decoded_seq_1 = decode_sequence_rnn(model, input_seq, len(train_string), charset_cats)
 
             print ('(train, decoded) categories :', zip(train_sequence, decoded_seq_1))
 
@@ -488,7 +558,7 @@ def main():
 
             input_seq = encoder_test_data[word_id: word_id + 1]
             input_mask = decoder_test_masks[word_id: word_id + 1]
-            decoded_seq_1 = decode_sequence_no_mask(model, input_seq, len(test_string), charset_cats)
+            decoded_seq_1 = decode_sequence_rnn(model, input_seq, len(test_string), charset_cats)
             
             print ('(train, decoded) categories :', zip(test_sequence, decoded_seq_1))
 

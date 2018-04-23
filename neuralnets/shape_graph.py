@@ -2,6 +2,7 @@ from __future__ import print_function #pylint bug workaround
 import math
 import numpy as np
 import h5py
+import random
 
 import obj_tools
 import neuralnets.grammar as grammar
@@ -176,7 +177,7 @@ def categorize_edges(file_list, t_grammar, out_plot = None):
 
         out_cluster_centers.append(cluster_centers)
         # #############################################################################
-        # Plot Result
+        # Plot result_str
 
         if(out_plot != None):
             colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
@@ -297,3 +298,113 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             edge_categories.append(closest_cluster_center_id + categories_prefix[cluster_set_id])
 
     return edge_categories
+
+def smiles_substring(node_id, visited, adjacency_lists, cycle_ids, node_types, t_grammar):
+    visited[node_id] = 1
+    neighbor_list = adjacency_lists[node_id]
+    random.shuffle(neighbor_list)
+
+    dummy_node_id = len(visited)
+
+    result_str = t_grammar.charset[node_types[node_id]]
+    result_node_list = [node_id]
+    
+    cycle_labels = ""
+    for cycle_id in cycle_ids[node_id]:
+        if cycle_labels == "":
+            cycle_labels += str(cycle_id)
+        else:
+            cycle_labels += t_grammar.NUM_DELIMITER + str(cycle_id)
+    result_str += cycle_labels
+    result_node_list += [dummy_node_id for ch in cycle_labels]
+    
+    last_subtree = ""
+    last_nodes = []
+    other_subtrees = ""
+    other_nodes = []
+
+    for nbr_id in neighbor_list:
+        if visited[nbr_id]:
+            continue
+        subtree_str, subtree_nodes = smiles_substring(nbr_id, visited, adjacency_lists, cycle_ids, node_types, t_grammar)
+        if last_subtree == "":
+            last_subtree = subtree_str
+            last_nodes = subtree_nodes
+        else:
+            other_subtrees += t_grammar.BRANCH_START
+            other_subtrees += subtree_str
+            other_subtrees += t_grammar.BRANCH_END
+            
+            other_nodes += [dummy_node_id]
+            other_nodes += subtree_nodes
+            other_nodes += [dummy_node_id]
+
+
+    result_str += other_subtrees
+    result_str += last_subtree
+
+    result_node_list += other_nodes
+    result_node_list += last_nodes
+
+    return result_str, result_node_list
+
+def smiles_variations(word, padded_node_ids, t_grammar, num_variations=10):
+   
+    num_nodes = 0
+    dummy_node_id = max(padded_node_ids)
+    node_ids = [idx for idx in padded_node_ids if idx != dummy_node_id]
+    node_types = [len(t_grammar.charset) for i in node_ids]    
+
+    for char_id, _ in enumerate(word):
+        if word[char_id] in t_grammar.charset:
+            node_types[node_ids[num_nodes]] = t_grammar.charset.index(word[char_id])
+            num_nodes += 1
+
+    edge_list = t_grammar.smiles_to_edges(word, padded_node_ids)
+    
+    adjacency_lists = []
+    cycle_lists = []
+    for node_id in range(num_nodes):
+        current_neighbors = set()
+        current_cycles = set()
+        for idx, edge in enumerate(edge_list):            
+            if edge[0] == node_id:
+                if word[idx] in t_grammar.charset:
+                    current_neighbors.add(edge[1])
+                elif word[idx] in t_grammar.DIGITS:
+                    current_cycles.add(edge[1])
+            if edge[1] == node_id:
+                if word[idx] in t_grammar.charset:
+                    current_neighbors.add(edge[0])
+                elif word[idx] in t_grammar.DIGITS:
+                    current_cycles.add(edge[0])
+        adjacency_lists.append(sorted(list(current_neighbors)))
+        cycle_lists.append(sorted(list(current_cycles)))
+    
+    cycle_ids = []
+    cycle_count = 0
+    for node_id in range(num_nodes):
+        local_ids = []
+        for cyclic_node_id in cycle_lists[node_id]:
+            if cyclic_node_id > node_id:
+                local_ids.append(cycle_count)
+                cycle_count += 1
+            else:
+                local_ids.append(cycle_ids[cyclic_node_id][cycle_lists[cyclic_node_id].index(node_id)])                                      
+        cycle_ids.append(local_ids)
+
+    result_str = ""
+    result_node_lists = []
+    for iteration_id in range(num_variations):
+        visited = []
+        for node_id in range(num_nodes):
+            visited.append(0)
+        start_node_id = random.randint(0, num_nodes - 1)
+        new_string, node_list = smiles_substring(start_node_id, visited, adjacency_lists, cycle_ids, node_types, t_grammar)
+        if t_grammar.check_word(new_string):
+            result_str += new_string
+            result_node_lists.append(node_list)
+        if iteration_id < num_variations - 1:
+            result_str += "\n"
+    
+    return result_str.split("\n"), result_node_lists

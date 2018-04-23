@@ -479,8 +479,9 @@ def main():
             
             print ('(test, decoded) categories :', zip(test_sequence, decoded_seq_1))
 
-            decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, WORD_LENGTH, 32)
-            print ('(test, decoded_1, decoded_2) categories :', zip(test_sequence, decoded_seq_1, decoded_seq_2))
+            num_smiles_variants = 32
+            decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, WORD_LENGTH, num_smiles_variants)
+            print ('(test, decoded_1, decoded_', num_smiles_variants, ') categories :', zip(test_sequence, decoded_seq_1, decoded_seq_2))
     ###############################################################################################################
     #Simple RNN without masking
     ###############################################################################################################

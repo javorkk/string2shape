@@ -50,6 +50,7 @@ def process_folder(folder_name, file_list=[]):
 def main():
     args = get_arguments()
     file_list = process_folder(args.in_folder)
+    file_list = sorted(file_list)
 
     input_a = file_list[0]
     input_b = file_list[len(file_list) - 1]

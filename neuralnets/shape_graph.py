@@ -279,14 +279,20 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
             edge_categories.append(num_categories)
         else:
             edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
-            type_id_pair = graph.node_types[edge_index]
-            if type_id_pair.shape[0] == 0:
-                #work around missing edges in graph.node_ids
-                char_a = word[padded_node_ids.index(node_id_pair[0])]
-                char_b = word[padded_node_ids.index(node_id_pair[1])]
-                type_id_pair = np.array([t_grammar.charset.index(char_a), t_grammar.charset.index(char_b)])
-
-            cluster_set_id = graph.node_unique_types.index(type_id_pair.reshape(2).tolist())
+            # type_id_pair = graph.node_types[edge_index]
+            # if type_id_pair.shape[0] == 0:
+            #     #work around missing edges in graph.node_ids
+            #     char_a = word[padded_node_ids.index(node_id_pair[0])]
+            #     char_b = word[padded_node_ids.index(node_id_pair[1])]
+            #     type_id_pair = np.array([t_grammar.charset.index(char_a), t_grammar.charset.index(char_b)])
+            
+            # cluster_set_id = graph.node_unique_types.index(type_id_pair.reshape(2).tolist())
+            
+            char_a = word[padded_node_ids.index(node_id_pair[0])]
+            char_b = word[padded_node_ids.index(node_id_pair[1])]
+            type_pair = [char_a, char_b]
+            cluster_set_id = t_grammar.neighbor_types.index(type_pair)
+            
             relative_translation = graph.relative_translations[edge_index]
             closest_cluster_center_id = num_categories
             dist = float("inf")

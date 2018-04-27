@@ -424,7 +424,11 @@ class TilingGrammar():
         cycle_ids = []
         last_char = word[0]
         last_node_id = padded_node_ids[0]
+        digit_skip_counter = 0
         for char_id in range(1,len(word)):
+            if digit_skip_counter > 0:
+                digit_skip_counter -= 1
+                continue
             if word[char_id] in self.charset:
                 if last_char in self.charset:
                     edge_list.append([padded_node_ids[char_id], last_node_id])
@@ -453,6 +457,8 @@ class TilingGrammar():
                 last_digit_id = char_id
                 while last_digit_id < len(word) and self.DIGITS.find(word[last_digit_id]) != -1:
                     last_digit_id += 1
+                    digit_skip_counter += 1
+                digit_skip_counter -= 1
                 cycle_edge_id = int(word[char_id: last_digit_id])
                 if cycle_edge_id in cycle_ids:
                     neighbor_node_id = cycle_vals[cycle_ids.index(cycle_edge_id)]
@@ -467,8 +473,9 @@ class TilingGrammar():
                     while last_digit_id < len(word) and self.DIGITS.find(word[last_digit_id]) != -1:
                         last_digit_id += 1
                         edge_list.append([dummy_node_id, dummy_node_id])
-                char_id = last_digit_id - 1
-                last_char = word[char_id]
+                if last_digit_id == len(word):
+                    break
+                last_char = word[last_digit_id - 1]
             elif word[char_id] == self.NUM_DELIMITER:
                 edge_list.append([dummy_node_id, dummy_node_id])
                 last_char = word[char_id]

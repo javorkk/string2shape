@@ -14,7 +14,7 @@ class TilingVAE():
     
     def create(self,
                charset,
-               max_length = 120,
+               max_length = 480,
                latent_rep_size = 292,
                weights_file = None):
         charset_length = len(charset)

@@ -81,7 +81,7 @@ def most_common_elem(lst):
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
 LATENT_DIM = 292
-WORD_LENGTH = 120
+WORD_LENGTH = 480
 MODEL = 'rnn'
 
 def get_arguments():

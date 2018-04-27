@@ -7,7 +7,7 @@ import obj_tools
 import neuralnets.grammar as grammar
 
 SMILES_COL_NAME = "structure"
-MAX_WORD_LENGTH = 120
+MAX_WORD_LENGTH = 480
 ITERATIONS = 2
 
 def get_arguments():

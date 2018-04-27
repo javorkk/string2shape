@@ -10,7 +10,7 @@ SMILES_COL_NAME = "structure"
 CATEGORIES_COL_NAME = "edge_categories"
 MIN_BOUND_COL_NAME = "min_category"
 MAX_BOUND_COL_NAME = "max_category"
-MAX_WORD_LENGTH = 120
+MAX_WORD_LENGTH = 480
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="Wavefront .obj to SMILES string conversion")
@@ -101,6 +101,11 @@ def main():
                 for cat in current_categories:
                     categories_str += str(cat) + " "
                 edge_categories.append(categories_str[:-1])
+
+                if len(current_categories) > len(word):
+                    print("wrong number of edge categories: ", len(current_categories), " instead of ", len(word))
+                    print(word)
+                    print(current_categories)
 
                 category_bounds = tile_grammar.smiles_to_categories_bounds(word)
                 min_bound_str = ""

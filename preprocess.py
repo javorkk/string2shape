@@ -12,7 +12,7 @@ SMILES_COL_NAME = "structure"
 CATEGORIES_COL_NAME = "edge_categories"
 MIN_BOUND_COL_NAME = "min_category"
 MAX_BOUND_COL_NAME = "max_category"
-MAX_WORD_LENGTH = 120
+MAX_WORD_LENGTH = 480
 CHUNK_SIZE = 200
 
 def get_arguments():

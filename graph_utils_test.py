@@ -49,9 +49,9 @@ def main():
 
     edge_categories = shape_graph.smiles_to_edge_categories(smiles_strings[0], node_ids[0], cluster_centers, graph_edges,  tile_grammar)
     
-    print("smiles string:")
+    print("smiles string len: ", len(smiles_strings[0]))
     print(smiles_strings[0])
-    print("edge categories:")
+    print("edge categories len: ", len(edge_categories))
     print(edge_categories)
 
     dummy_node_id = len(node_ids[0])

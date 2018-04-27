@@ -9,7 +9,7 @@ class Seq2SeqAE():
     def create(self,
                input_charset,
                output_charset,
-               max_length=120,
+               max_length=480,
                latent_dim=292,
                weights_file = None):
 
@@ -88,7 +88,7 @@ class Seq2SeqRNN():
     def create(self,
                input_charset,
                output_charset,
-               max_length=120,
+               max_length=480,
                latent_dim=292,
                weights_file = None):
 
@@ -127,7 +127,7 @@ class Seq2SeqNoMaskRNN():
     def create(self,
                input_charset,
                output_charset,
-               max_length=120,
+               max_length=480,
                latent_dim=292,
                weights_file = None):
 

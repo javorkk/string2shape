@@ -5,12 +5,14 @@ import pandas
 import obj_tools
 import neuralnets.grammar as grammar
 import neuralnets.shape_graph as shape_graph
+from neuralnets.shape_graph import smiles_variations
 
 SMILES_COL_NAME = "structure"
 CATEGORIES_COL_NAME = "edge_categories"
 MIN_BOUND_COL_NAME = "min_category"
 MAX_BOUND_COL_NAME = "max_category"
 MAX_WORD_LENGTH = 480
+VARIATIONS = 1
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="Wavefront .obj to SMILES string conversion")
@@ -23,6 +25,8 @@ def get_arguments():
     parser.add_argument("--categories_column", type=str, default=CATEGORIES_COL_NAME,
                         help="Column with edge categories. Default: %s" % CATEGORIES_COL_NAME)
     parser.add_argument("--plot", type=str, help="Where to save the edge configuration plot.")
+    parser.add_argument('--num_variations', type=int, metavar='N', default=VARIATIONS,
+                        help="Creates additional variants for each input SMILES string.")
     return parser.parse_args()
 
 #def process_folder(folder_name, word_list = []):
@@ -92,29 +96,42 @@ def main():
         graph_edges = shape_graph.ShapeGraph(obj_tools.obj2graph(file_name))
 
         for i, _ in enumerate(current_strings):
-            word = current_strings[i]
-            nodes = node_ids[i]
-            if tile_grammar.check_word(word) and len(str(word)) <= MAX_WORD_LENGTH and len(str(word)) > 0 and word not in smiles_strings:
-                smiles_strings.append(word)
-                current_categories = shape_graph.smiles_to_edge_categories(word, nodes, cluster_centers, graph_edges, tile_grammar)
-                categories_str = ""
-                for cat in current_categories:
-                    categories_str += str(cat) + " "
-                edge_categories.append(categories_str[:-1])
+            dummy_node_id = len(node_ids[0])
+    
+            padded_node_ids = []
+            num_nodes = 0 
+            for char_id, _ in enumerate(current_strings[i]):
+                if current_strings[i][char_id] in tile_grammar.charset:
+                    padded_node_ids.append(node_ids[0][num_nodes])
+                    num_nodes += 1
+                else:
+                    padded_node_ids.append(dummy_node_id)
+            padded_node_ids.append(dummy_node_id) #ensure at least one occurrence
 
-                if len(current_categories) > len(word):
-                    print("wrong number of edge categories: ", len(current_categories), " instead of ", len(word))
-                    print(word)
-                    print(current_categories)
+            variant_strings, variant_nodes = smiles_variations(current_strings[i], padded_node_ids, tile_grammar, args.num_variations)
+            for word, padded_nodes in zip(variant_strings, variant_nodes):
+                nodes = [x for x in padded_nodes if x != dummy_node_id]
+                if tile_grammar.check_word(word) and len(str(word)) <= MAX_WORD_LENGTH and len(str(word)) > 0 and word not in smiles_strings:
+                    smiles_strings.append(word)
+                    current_categories = shape_graph.smiles_to_edge_categories(word, nodes, cluster_centers, graph_edges, tile_grammar)
+                    categories_str = ""
+                    for cat in current_categories:
+                        categories_str += str(cat) + " "
+                    edge_categories.append(categories_str[:-1])
 
-                category_bounds = tile_grammar.smiles_to_categories_bounds(word)
-                min_bound_str = ""
-                max_bound_str = ""
-                for bounds in category_bounds:
-                    min_bound_str += str(bounds[0]) + " "
-                    max_bound_str += str(bounds[1]) + " "
-                edge_cat_min.append(min_bound_str[:-1])
-                edge_cat_max.append(max_bound_str[:-1])
+                    if len(current_categories) > len(word):
+                        print("wrong number of edge categories: ", len(current_categories), " instead of ", len(word))
+                        print(word)
+                        print(current_categories)
+
+                    category_bounds = tile_grammar.smiles_to_categories_bounds(word)
+                    min_bound_str = ""
+                    max_bound_str = ""
+                    for bounds in category_bounds:
+                        min_bound_str += str(bounds[0]) + " "
+                        max_bound_str += str(bounds[1]) + " "
+                    edge_cat_min.append(min_bound_str[:-1])
+                    edge_cat_max.append(max_bound_str[:-1])
 
 
     print("# items: " + str(len(smiles_strings)))

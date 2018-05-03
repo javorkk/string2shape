@@ -115,8 +115,7 @@ class GrammarCheck
 
 	__host__ bool isOnTheGround(const float3& aPt, const float3& aMinBound, const float3& aMaxBound)
 	{
-		const float objSize = len(aMaxBound - aMinBound);
-		return aPt.z < aMinBound.z + 0.05f * objSize;
+		return aPt.z < aMinBound.z + 0.01f * (aMaxBound.z - aMinBound.z);
 	}
 public:
 	__host__ GrammarCheck():mNumTypes(0u)

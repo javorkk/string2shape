@@ -260,11 +260,12 @@ __host__ void GrammarCheck::init(
 
 	float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
 	float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-	ObjectBoundsExporter()(aObj, minBound, maxBound);
-
-	const float objSize = len(maxBound - minBound);
-
+	for (size_t i = 0; i < objCenters.size() - 1; i++)
+	{
+		minBound = min(minBound, objCenters[i]);
+		maxBound = max(maxBound, objCenters[i]);
+	}
+	
 	for (size_t i = 0; i < aIntervals.size() - 1; i++)
 	{
 		unsigned int typeId = nodeTypes[i];
@@ -368,11 +369,12 @@ __host__ bool GrammarCheck::checkSupport(
 
 	float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
 	float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-	ObjectBoundsExporter()(aObj, minBound, maxBound);
-
-	const float objSize = len(maxBound - minBound);
-
+	for (size_t i = 0; i < objCenters.size() - 1; i++)
+	{
+		minBound = min(minBound, objCenters[i]);
+		maxBound = max(maxBound, objCenters[i]);
+	}
+	
 	for (size_t i = 0; i < aIntervals.size() - 1; i++)
 	{
 		unsigned int typeId = aNodeTypes[i];

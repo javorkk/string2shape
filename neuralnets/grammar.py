@@ -239,6 +239,48 @@ class TilingGrammar():
                 return False #different node type histogram
         #equal number of nodes of each type
         #equal number of graph edges
+
+        dummy_type = str(unichr(127))
+        padded_node_types_1 = []
+        for i, char in enumerate(str1):
+            if char in self.charset:
+                padded_node_types_1.append(char)
+            else:
+                padded_node_types_1.append(dummy_type) #dummy node need max id
+        padded_node_types_1.append(dummy_type)#ensure at least one occurrence
+
+        node_types_list_1 = self.smiles_to_edges(str1, padded_node_types_1)
+
+        #patch edge type list by removing multiple cycle edge entries
+        for i in range(1, len(str1)):
+            prev = str1[i - 1]
+            char = str1[i]
+            if char in self.DIGITS and prev in self.DIGITS:
+                node_types_list_1[i] = [dummy_type, dummy_type]
+
+        padded_node_types_2 = []
+        for i, char in enumerate(str2):
+            if char in self.charset:
+                padded_node_types_2.append(char)
+            else:
+                padded_node_types_2.append(dummy_type) #dummy node need max id
+        padded_node_types_2.append(dummy_type)#ensure at least one occurrence
+
+        node_types_list_2 = self.smiles_to_edges(str2, padded_node_types_2)
+
+        #patch edge type list by removing multiple cycle edge entries
+        for i in range(1, len(str2)):
+            prev = str2[i - 1]
+            char = str2[i]
+            if char in self.DIGITS and prev in self.DIGITS:
+                node_types_list_2[i] = [dummy_type, dummy_type]
+
+        for edge in self.neighbor_types:
+            flipped = [edge[1], edge[0]]
+            count_1 = node_types_list_1.count(edge) + node_types_list_1.count(flipped)
+            count_2 = node_types_list_2.count(edge) + node_types_list_2.count(flipped)
+            if count_1 != count_2:
+                return False #different number of edges of a certain type
         return True
 
     def max_degree(self):

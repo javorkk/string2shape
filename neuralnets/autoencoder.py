@@ -2,7 +2,7 @@ import copy
 from keras import backend as K
 from keras import objectives
 from keras.models import Model
-from keras.layers import Input, Dense, Lambda
+from keras.layers import Input, Dense, Lambda, LSTM
 from keras.layers.core import Dense, Activation, Flatten, RepeatVector
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.recurrent import GRU
@@ -83,9 +83,11 @@ class TilingVAE():
     def _buildDecoder(self, z, latent_rep_size, max_length, charset_length):
         h = Dense(latent_rep_size, name='latent_input', activation = 'relu')(z)
         h = RepeatVector(max_length, name='repeat_vector')(h)
-        h = GRU(501, return_sequences = True, name='gru_1')(h)
-        h = GRU(501, return_sequences = True, name='gru_2')(h)
-        h = GRU(501, return_sequences = True, name='gru_3')(h)
+        h = GRU(701, return_sequences = True, name='gru_1')(h)
+        h = GRU(701, return_sequences = True, name='gru_2')(h)
+        h = GRU(701, return_sequences = True, name='gru_3')(h)
+        #h = LSTM(501, return_sequences=True, name='lstm_1')(h)
+        #h = LSTM(501, return_sequences=True, name='lstm_2')(h)
         return TimeDistributed(Dense(charset_length, activation='softmax'), name='decoded_mean')(h)
 
     def save(self, filename):

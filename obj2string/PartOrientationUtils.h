@@ -74,15 +74,16 @@ public:
 		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
 		{
 			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
-			const float3 delta = vec - center;
-			const float distSQR = dot(delta, delta);
-			if (distSQR > dist0 && distSQR - dist0 > 0.001f * dist0)
+			//const float3 delta = vec - center;
+			//const float distSQR = dot(delta, delta);
+			const float dist = len(vec - center);
+			if (dist > dist0 && dist - dist0 > 0.001f * dist0)
 			{
 				vtx0 = vec;
-				dist0 = distSQR;
+				dist0 = dist;
 				count = 1.f;
 			}
-			else if (fabsf(dist0 - distSQR) < 0.001f * dist0)
+			else if (fabsf(dist0 - dist) < 0.001f * dist0)
 			{
 				vtx0 += vec;
 				count += 1.f;
@@ -97,15 +98,16 @@ public:
 		for (unsigned int vtxId = 0; vtxId < vtxCount; ++vtxId)
 		{
 			const float3 vec = vertexBuffer[vtxRange.x + vtxId];
-			const float3 delta = vec - vtx0;
-			const float distSQR = dot(delta, delta);
-			if (distSQR > diameter && distSQR - diameter > 0.0001f * diameter)
+			//const float3 delta = vec - vtx0;
+			//const float distSQR = dot(delta, delta);
+			const float dist = len(vec - vtx0);
+			if (dist > diameter && dist - diameter > 0.001f * diameter)
 			{
 				vtx1 = vec;
-				diameter = distSQR;
+				diameter = dist;
 				count = 1.f;
 			}
-			else if (fabsf(diameter - distSQR) < 0.0001f * diameter)
+			else if (fabsf(diameter - dist) < 0.001f * diameter)
 			{
 				vtx1 += vec;
 				count += 1.f;

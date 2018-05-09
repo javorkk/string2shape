@@ -97,8 +97,8 @@ int main()
 	//const char* variationFile2 = "../scenes/moon_base/variant_02.obj";
 	//const char* variationFile1 = "../scenes/test_brick_house/b01.obj";
 	//const char* variationFile2 = "../scenes/test_brick_house/b02.obj";
-	const char* variationFile1 = "../scenes/test_brick_house/b03.obj";
-	const char* variationFile2 = "../scenes/test_brick_house/b04.obj";
+	const char* variationFile1 = "../scenes/test_brick_house/b02.obj";
+	const char* variationFile2 = "../scenes/test_brick_house/b03.obj";
 
 
 	ShapeVariationTest variationTest;
@@ -133,6 +133,10 @@ int main()
 	//const char* wiggleFile1 = "../scenes/sand_castle/v01.obj";
 	//const char* wiggleFile2 = "../scenes/sand_castle/v02.obj";
 	//const char* wiggleFile3 = "../scenes/wiggle_test/v01_v02_3.obj";
+
+	//const char* wiggleFile1 = "../scenes/test_brick_house/b02.obj";
+	//const char* wiggleFile2 = "../scenes/test_brick_house/b03.obj";
+	//const char* wiggleFile3 = "../scenes/test_brick_house/b02.obj";
 
 
 	const char* wiggleOutFile = "../scenes/wiggle_test/fixed.obj";

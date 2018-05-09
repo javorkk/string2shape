@@ -2,6 +2,7 @@ from __future__ import print_function #pylint bug workaround
 import argparse
 import os
 import pandas
+import re
 import obj_tools
 import neuralnets.grammar as grammar
 import neuralnets.shape_graph as shape_graph
@@ -27,6 +28,8 @@ def get_arguments():
     parser.add_argument("--plot", type=str, help="Where to save the edge configuration plot.")
     parser.add_argument('--num_variations', type=int, metavar='N', default=VARIATIONS,
                         help="Creates additional variants for each input SMILES string.")
+    parser.add_argument('--remove_cycles', dest='remove_cycles', action='store_true',
+                        help='Convert input graphs to trees by discarding edges.')
     return parser.parse_args()
 
 #def process_folder(folder_name, word_list = []):
@@ -97,7 +100,10 @@ def main():
 
         for i, _ in enumerate(current_strings):
             dummy_node_id = len(node_ids[0])
-    
+
+            if args.remove_cycles:
+                current_strings[i] = re.sub(tile_grammar.DIGITS + tile_grammar.NUM_DELIMITER, "", current_strings[i])
+
             padded_node_ids = []
             num_nodes = 0 
             for char_id, _ in enumerate(current_strings[i]):

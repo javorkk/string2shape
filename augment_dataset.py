@@ -120,7 +120,9 @@ def main():
     for i in range(args.num_iterations):
         current_file_list = []
         process_folder(args.in_folder, current_file_list)
-        print("Current # of variations: " + str(len(current_file_list)))        
+        print("Current # of variations: " + str(len(current_file_list)))
+        if len(current_file_list) == 1:
+            current_file_list.append(current_file_list[0])    
         augment_folder(current_file_list, smiles_strings)
         smiles_strings = list(set(smiles_strings))
         if args.fix_variations:

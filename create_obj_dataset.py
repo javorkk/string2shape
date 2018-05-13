@@ -117,7 +117,9 @@ def main():
             variant_strings, variant_nodes = smiles_variations(current_strings[i], padded_node_ids, tile_grammar, args.num_variations)
             for word, padded_nodes in zip(variant_strings, variant_nodes):
                 nodes = [x for x in padded_nodes if x != dummy_node_id]
-                if tile_grammar.check_word(word) and len(str(word)) <= MAX_WORD_LENGTH and len(str(word)) > 0 and word not in smiles_strings:
+                if not args.remove_cycles and not tile_grammar.check_word(word):
+                    continue
+                if len(str(word)) <= MAX_WORD_LENGTH and len(str(word)) > 0 and word not in smiles_strings:
                     smiles_strings.append(word)
                     current_categories = shape_graph.smiles_to_edge_categories(word, nodes, cluster_centers, graph_edges, tile_grammar)
                     categories_str = ""

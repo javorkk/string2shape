@@ -113,6 +113,10 @@ def main():
     print("max # neighbors: " + str(tile_grammar.max_degree()))
     tile_grammar.store(args.out_grammarpath)
 
+    if args.fix_variations:
+        print("fixing variations...")
+        fix_variations(args.in_folder, [],  inputA, inputB)
+
     print("removing duplicates...")
     remove_duplicates(tile_grammar, args.in_folder, inputA, inputB, initial_smiles_strings)
 

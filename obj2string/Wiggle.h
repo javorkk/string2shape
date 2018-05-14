@@ -38,7 +38,8 @@ public:
 		numCorrections(0u),
 		seedNodeId((unsigned)-1),
 		spatialTolerance(-0.001f),
-		angleTolerance(0.0038053019f),//1.f - cos(5)
+		//angleTolerance(0.0038053019f),//1.f - cos(5)
+		angleTolerance(0.015192247f),//1.f - cos(10)
 		//angleTolerance(0.055f),
 		debugOutputLocalFrames(false)
 	{}

@@ -120,11 +120,11 @@ int main()
 	//const char* wiggleFile3 = "../scenes/wiggle_test/v001_v001_v002_2_3_v001_v002_3_v002_3_3_v001_v002_2_v002_2_v001_v002_3_v002_3_3_3.obj";	
 	//const char* wiggleFile3 = "../scenes/wiggle_test/v002.obj";
 
-	const char* wiggleFile1 = "../scenes/wiggle_test/c19.obj";
-	const char* wiggleFile2 = "../scenes/wiggle_test/c28.obj";
-	//const char* wiggleFile3 = "../scenes/wiggle_test/v_1_4_11.obj";
-	//const char* wiggleFile3 = "../scenes/wiggle_test/c19_c19_c28_12_1.obj";
-	const char* wiggleFile3 = "../scenes/wiggle_test/v_1_4_12.obj";
+	//const char* wiggleFile1 = "../scenes/wiggle_test/c19.obj";
+	//const char* wiggleFile2 = "../scenes/wiggle_test/c28.obj";
+	////const char* wiggleFile3 = "../scenes/wiggle_test/v_1_4_11.obj";
+	////const char* wiggleFile3 = "../scenes/wiggle_test/c19_c19_c28_12_1.obj";
+	//const char* wiggleFile3 = "../scenes/wiggle_test/v_1_4_12.obj";
 
 	//const char* wiggleFile1 = "../scenes/skyscraper/v01.obj";
 	//const char* wiggleFile2 = "../scenes/skyscraper/v02.obj";
@@ -134,9 +134,9 @@ int main()
 	//const char* wiggleFile2 = "../scenes/sand_castle/v02.obj";
 	//const char* wiggleFile3 = "../scenes/wiggle_test/v01_v02_3.obj";
 
-	//const char* wiggleFile1 = "../scenes/test_brick_house/b02.obj";
-	//const char* wiggleFile2 = "../scenes/test_brick_house/b03.obj";
-	//const char* wiggleFile3 = "../scenes/test_brick_house/b02.obj";
+	const char* wiggleFile1 = "../scenes/test_brick_house/b02.obj";
+	const char* wiggleFile2 = "../scenes/test_brick_house/b03.obj";
+	const char* wiggleFile3 = "../scenes/test_brick_house/b03_5.obj";
 
 
 	const char* wiggleOutFile = "../scenes/wiggle_test/fixed.obj";

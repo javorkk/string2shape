@@ -95,7 +95,7 @@ def main():
         current_strings = []
         if args.remove_cycles:
             for elem in initial_strings:
-                current_strings.append(re.sub(tile_grammar.DIGITS + tile_grammar.NUM_DELIMITER, "", elem))
+                current_strings.append(re.sub("["+tile_grammar.DIGITS + tile_grammar.NUM_DELIMITER+"]", "", elem))
         else:
             current_strings = initial_strings
 

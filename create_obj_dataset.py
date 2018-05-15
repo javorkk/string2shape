@@ -89,8 +89,15 @@ def main():
         if str_node_ids == '':
             continue
         str_node_ids_list = str_node_ids.split("\n")
-        current_strings = str_node_ids_list[:len(str_node_ids_list) / 2]
+        initial_strings = str_node_ids_list[:len(str_node_ids_list) / 2]
         node_ids_list = str_node_ids_list[len(str_node_ids_list) / 2:]
+
+        current_strings = []
+        if args.remove_cycles:
+            for elem in initial_strings:
+                current_strings.append(re.sub(tile_grammar.DIGITS + tile_grammar.NUM_DELIMITER, "", elem))
+        else:
+            current_strings = initial_strings
 
         node_ids = []
         for node_list in node_ids_list:
@@ -100,9 +107,6 @@ def main():
 
         for i, _ in enumerate(current_strings):
             dummy_node_id = len(node_ids[0])
-
-            if args.remove_cycles:
-                current_strings[i] = re.sub(tile_grammar.DIGITS + tile_grammar.NUM_DELIMITER, "", current_strings[i])
 
             padded_node_ids = []
             num_nodes = 0 

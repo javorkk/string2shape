@@ -40,12 +40,14 @@ def get_arguments():
 def main():
     args = get_arguments()
     data = pandas.read_hdf(args.infile, 'table')
+    
     keys = data[args.smiles_column].map(len) < MAX_WORD_LENGTH + 1
+    data = data[keys]
 
-    if args.length <= len(keys):
-        data = data[keys].sample(n=args.length)
-    else:
-        data = data[keys]
+    if args.length <= len(data):
+        data = data.sample(n=args.length)
+
+    data = data.reset_index(drop=True)
 
     structures = data[args.smiles_column].map(lambda x: list(x.ljust(MAX_WORD_LENGTH)))
 
@@ -55,13 +57,16 @@ def main():
     edge_categories = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH))
 
     if args.categories_column in data.keys():
-        edge_categories_lists = data[args.categories_column].map(lambda x: [int(c) for c in x.split(" ") ])
-        max_category = max(max(edge_categories_lists))
+        max_category = 0
+        for i, cat_str in enumerate(data[args.categories_column]):
+            category_list = [int(c) for c in cat_str.split(" ")]
+            max_category = max(max_category, max(category_list))
 
-        edge_categories = np.append(edge_categories, np.full((len(edge_categories_lists), MAX_WORD_LENGTH), max_category, dtype=int), axis = 0)
-        for i, _ in enumerate(edge_categories_lists):
-            for j, _ in enumerate(edge_categories_lists[i]):
-                edge_categories[i][j] = edge_categories_lists[i][j]
+        edge_categories = np.append(edge_categories, np.full((len(data[args.categories_column]), MAX_WORD_LENGTH), max_category, dtype=int), axis = 0)
+        for i, cat_str in enumerate(data[args.categories_column]):
+            category_list = [int(c) for c in cat_str.split(" ")]
+            for j, val in enumerate(category_list):
+                edge_categories[i][j] = val
 
         #charset_cats = list(reduce(lambda x, y: set(y) | x, edge_categories, set()))
         #charset_cats.sort()
@@ -69,15 +74,15 @@ def main():
 
         edge_categories_masks = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH, len(charset_cats)))
         if MIN_BOUND_COL_NAME in data.keys() and MAX_BOUND_COL_NAME in data.keys():
-            edge_categories_min = data[MIN_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
-            edge_categories_max = data[MAX_BOUND_COL_NAME].map(lambda x: [int(c) for c in x.split(" ") ])
 
-            edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(edge_categories_lists), MAX_WORD_LENGTH, len(charset_cats)), dtype=int), axis = 0)
-            for i, _ in enumerate(edge_categories_min):
-                for j, _ in enumerate(edge_categories_min[i]):
-                    for k in range(edge_categories_min[i][j], edge_categories_max[i][j]):
+            edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(data[args.categories_column]), MAX_WORD_LENGTH, len(charset_cats)), dtype=int), axis = 0)
+            for i, (min_str, max_str) in enumerate(zip(data[MIN_BOUND_COL_NAME], data[MAX_BOUND_COL_NAME])):
+                current_min = [int(c) for c in min_str.split(" ")]
+                current_max = [int(c) for c in max_str.split(" ")]
+                for j, _ in enumerate(zip(current_min, current_max)):
+                    for k in range(current_min[j], current_max[j]):
                         edge_categories_masks[i][j][k] = 1
-                for j in range(len(edge_categories_min[i]), MAX_WORD_LENGTH):
+                for j in range(len(current_min), MAX_WORD_LENGTH):
                     edge_categories_masks[i][j][len(charset_cats) - 1] = 1
 
     if args.property_column:

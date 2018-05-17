@@ -14,7 +14,7 @@ class TilingVAE():
     
     def create(self,
                charset,
-               max_length = 480,
+               max_length = 120,
                latent_rep_size = 292,
                weights_file = None):
         charset_length = len(charset)
@@ -59,6 +59,9 @@ class TilingVAE():
         h = Convolution1D(9, 9, activation = 'relu', name='conv_1')(x)
         h = Convolution1D(9, 9, activation = 'relu', name='conv_2')(h)
         h = Convolution1D(10, 11, activation = 'relu', name='conv_3')(h)
+        # h = GRU(501, return_sequences = True, name='in_gru_1')(x)
+        # h = GRU(501, return_sequences = True, name='in_gru_2')(h)
+        # h = GRU(501, return_sequences = True, name='in_gru_3')(h)
         h = Flatten(name='flatten_1')(h)
         h = Dense(435, activation = 'relu', name='dense_1')(h)
 
@@ -83,9 +86,9 @@ class TilingVAE():
     def _buildDecoder(self, z, latent_rep_size, max_length, charset_length):
         h = Dense(latent_rep_size, name='latent_input', activation = 'relu')(z)
         h = RepeatVector(max_length, name='repeat_vector')(h)
-        h = GRU(701, return_sequences = True, name='gru_1')(h)
-        h = GRU(701, return_sequences = True, name='gru_2')(h)
-        h = GRU(701, return_sequences = True, name='gru_3')(h)
+        h = GRU(701, return_sequences = True, name='out_gru_1')(h)
+        h = GRU(701, return_sequences = True, name='out_gru_2')(h)
+        h = GRU(701, return_sequences = True, name='out_gru_3')(h)
         #h = LSTM(501, return_sequences=True, name='lstm_1')(h)
         #h = LSTM(501, return_sequences=True, name='lstm_2')(h)
         return TimeDistributed(Dense(charset_length, activation='softmax'), name='decoded_mean')(h)

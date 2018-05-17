@@ -81,7 +81,7 @@ def most_common_elem(lst):
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
 LATENT_DIM = 292
-WORD_LENGTH = 480
+WORD_LENGTH = 120
 MODEL = 'rnn'
 
 def get_arguments():
@@ -480,7 +480,7 @@ def main():
             print ('(test, decoded) categories :', zip(test_sequence, decoded_seq_1))
 
             num_smiles_variants = 32
-            decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, WORD_LENGTH, num_smiles_variants)
+            decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, max_length=args.word_length, num_variants=num_smiles_variants)
             print ('(test, decoded_1, decoded_' + str(num_smiles_variants) + ') categories :', zip(test_sequence, decoded_seq_1, decoded_seq_2))
     ###############################################################################################################
     #Simple RNN without masking

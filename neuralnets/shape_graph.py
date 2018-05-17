@@ -407,9 +407,9 @@ def smiles_variations(word, padded_node_ids, t_grammar, num_variations=10):
             visited.append(0)
         start_node_id = random.randint(0, num_nodes - 1)
         new_string, node_list = smiles_substring(start_node_id, visited, adjacency_lists, cycle_ids, node_types, t_grammar)
-        if t_grammar.check_word(new_string):
-            result_str += new_string
-            result_node_lists.append(node_list)
+        #if t_grammar.check_word(new_string):
+        result_str += new_string
+        result_node_lists.append(node_list)
         if iteration_id < num_variations - 1:
             result_str += "\n"
     

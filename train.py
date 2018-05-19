@@ -5,10 +5,10 @@ import os
 import h5py
 import numpy as np
 
-from neuralnets.autoencoder import TilingVAE
+from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
     decode_smiles_from_indexes, load_dataset
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
 
 from keras.utils import plot_model
 import matplotlib.pyplot as plt
@@ -19,6 +19,7 @@ rcParams['font.sans-serif'] = ['Verdana']
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
 LATENT_DIM = 292
+TYPE = 'simple'
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Molecular autoencoder network')
@@ -31,11 +32,49 @@ def get_arguments():
                         help='Dimensionality of the latent representation.')
     parser.add_argument('--batch_size', type=int, metavar='N', default=BATCH_SIZE,
                         help='Number of samples to process per minibatch during training.')
+    parser.add_argument('--type', type=str, default=TYPE,
+                        help='What type model to train: simple, lstm.')
     return parser.parse_args()
+
+class PlotLearning(Callback):
+    def on_train_begin(self, logs={}):
+        self.i = 0
+        self.x = []
+        self.losses = []
+        self.val_losses = []
+        self.acc = []
+        self.val_acc = []
+        self.fig = plt.figure()
+        
+        self.logs = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        
+        self.logs.append(logs)
+        self.x.append(self.i)
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
+        self.acc.append(logs.get('acc'))
+        self.val_acc.append(logs.get('val_acc'))
+        self.i += 1
+        f, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
+
+        ax1.plot(self.x, self.losses, label="loss")
+        ax1.plot(self.x, self.val_losses, label="val_loss")
+        ax1.legend()
+        
+        ax2.plot(self.x, self.acc, label="accuracy")
+        ax2.plot(self.x, self.val_acc, label="validation accuracy")
+        ax2.legend()
+        
+        plt.savefig('vae_loss_history.pdf', bbox_inches='tight')
 
 def main():
     args = get_arguments()
     data_train, data_test, charset = load_dataset(args.data)
+
+    word_length = data_train.shape[1]
+    print("----------- max word length is ",word_length, " -----------------")
 
     #print ("Grammar characters: ") 
     #print (charset)
@@ -50,12 +89,14 @@ def main():
     #    print(exaple)
 
     #return
-
     model = TilingVAE()
+    if args.type == 'lstm':
+        model = Tiling_LSTM_VAE()
+
     if os.path.isfile(args.model):
-        model.load(charset, args.model, latent_rep_size = args.latent_dim)
+        model.load(charset, args.model, max_w_length=word_length, latent_rep_size=args.latent_dim)
     else:
-        model.create(charset, latent_rep_size = args.latent_dim)
+        model.create(charset, max_length=word_length, latent_rep_size=args.latent_dim)
 
     checkpointer = ModelCheckpoint(filepath = args.model,
                                    verbose = 1,
@@ -69,22 +110,26 @@ def main():
     filename, ext = os.path.splitext(args.model) 
     plot_model(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)
 
+
+    plot = PlotLearning()
+
     history = model.autoencoder.fit(
         data_train,
         data_train,
         shuffle = True,
         epochs = args.epochs,
         batch_size = args.batch_size,
-        callbacks = [checkpointer, reduce_lr],
+        callbacks = [checkpointer, reduce_lr, plot],
         validation_data = (data_test, data_test)
     )
 
-    # summarize history for loss
-    plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
+    os.rename('vae_loss_history.pdf', filename + '_loss_history.pdf')
+#     # summarize history for loss
+#     plt.plot(history.history['val_loss'])
+#     plt.title('model loss')
+#     plt.ylabel('loss')
+#     plt.xlabel('epoch')
+#     plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
 if __name__ == '__main__':
     main()

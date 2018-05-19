@@ -21,12 +21,15 @@ def get_arguments():
     parser.add_argument('outfile', type=str, help='Output file name')
     parser.add_argument('--length', type=int, metavar='N', default = MAX_NUM_ROWS,
                         help='Maximum number of rows to include (randomly sampled).')
+    parser.add_argument('--word_length', type=int, default = MAX_WORD_LENGTH,
+                        help='Maximum length of input sequences.')
     parser.add_argument('--smiles_column', type=str, default = SMILES_COL_NAME,
                         help="Name of the column that contains the SMILES strings. Default: %s" % SMILES_COL_NAME)
     parser.add_argument("--categories_column", type=str, default = CATEGORIES_COL_NAME,
                         help="Name of the column that contains edge categories. Default: %s" % CATEGORIES_COL_NAME)
     parser.add_argument('--property_column', type=str,
                         help="Name of the column that contains the property values to predict. Default: None")
+
     return parser.parse_args()
 
 # def chunk_iterator(dataset, chunk_size=CHUNK_SIZE):
@@ -41,7 +44,7 @@ def main():
     args = get_arguments()
     data = pandas.read_hdf(args.infile, 'table')
     
-    keys = data[args.smiles_column].map(len) < MAX_WORD_LENGTH + 1
+    keys = data[args.smiles_column].map(len) < args.word_length + 1
     data = data[keys]
 
     if args.length <= len(data):
@@ -49,12 +52,12 @@ def main():
 
     data = data.reset_index(drop=True)
 
-    structures = data[args.smiles_column].map(lambda x: list(x.ljust(MAX_WORD_LENGTH)))
+    structures = data[args.smiles_column].map(lambda x: list(x.ljust(args.word_length)))
 
     charset = list(reduce(lambda x, y: set(y) | x, structures, set()))
     charset.sort()
 
-    edge_categories = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH))
+    edge_categories = np.empty(dtype=int, shape=(0, args.word_length))
 
     if args.categories_column in data.keys():
         max_category = 0
@@ -62,7 +65,7 @@ def main():
             category_list = [int(c) for c in cat_str.split(" ")]
             max_category = max(max_category, max(category_list))
 
-        edge_categories = np.append(edge_categories, np.full((len(data[args.categories_column]), MAX_WORD_LENGTH), max_category, dtype=int), axis = 0)
+        edge_categories = np.append(edge_categories, np.full((len(data[args.categories_column]), args.word_length), max_category, dtype=int), axis = 0)
         for i, cat_str in enumerate(data[args.categories_column]):
             category_list = [int(c) for c in cat_str.split(" ")]
             for j, val in enumerate(category_list):
@@ -72,17 +75,17 @@ def main():
         #charset_cats.sort()
         charset_cats = range(max_category + 1)
 
-        edge_categories_masks = np.empty(dtype=int, shape=(0, MAX_WORD_LENGTH, len(charset_cats)))
+        edge_categories_masks = np.empty(dtype=int, shape=(0, args.word_length, len(charset_cats)))
         if MIN_BOUND_COL_NAME in data.keys() and MAX_BOUND_COL_NAME in data.keys():
 
-            edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(data[args.categories_column]), MAX_WORD_LENGTH, len(charset_cats)), dtype=int), axis = 0)
+            edge_categories_masks = np.append(edge_categories_masks, np.zeros((len(data[args.categories_column]), args.word_length, len(charset_cats)), dtype=int), axis = 0)
             for i, (min_str, max_str) in enumerate(zip(data[MIN_BOUND_COL_NAME], data[MAX_BOUND_COL_NAME])):
                 current_min = [int(c) for c in min_str.split(" ")]
                 current_max = [int(c) for c in max_str.split(" ")]
                 for j, _ in enumerate(zip(current_min, current_max)):
                     for k in range(current_min[j], current_max[j]):
                         edge_categories_masks[i][j][k] = 1
-                for j in range(len(current_min), MAX_WORD_LENGTH):
+                for j in range(len(current_min), args.word_length):
                     edge_categories_masks[i][j][len(charset_cats) - 1] = 1
 
     if args.property_column:
@@ -102,16 +105,16 @@ def main():
     h5f.create_dataset('charset', data=charset)
     h5f.create_dataset('charset_cats', data=charset_cats)
 
-    h5f.create_dataset("data_train", data=np.array(map(one_hot_encoded_fn, structures[train_idx])), chunks=(CHUNK_SIZE, MAX_WORD_LENGTH, len(charset)))
-    h5f.create_dataset("data_test", data=np.array(map(one_hot_encoded_fn, structures[test_idx])), chunks=(CHUNK_SIZE, MAX_WORD_LENGTH, len(charset)))
+    h5f.create_dataset("data_train", data=np.array(map(one_hot_encoded_fn, structures[train_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset)))
+    h5f.create_dataset("data_test", data=np.array(map(one_hot_encoded_fn, structures[test_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset)))
     
     if edge_categories.shape[0] > 0:
-        h5f.create_dataset("categories_train", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[train_idx])), chunks=(CHUNK_SIZE, MAX_WORD_LENGTH, len(charset_cats)))
-        h5f.create_dataset("categories_test", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[test_idx])), chunks=(CHUNK_SIZE, MAX_WORD_LENGTH, len(charset_cats)))
+        h5f.create_dataset("categories_train", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[train_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+        h5f.create_dataset("categories_test", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[test_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
 
     if edge_categories_masks.shape[0] > 0:
-        h5f.create_dataset("masks_train", data=edge_categories_masks[train_idx], chunks=(CHUNK_SIZE, MAX_WORD_LENGTH, len(charset_cats)))
-        h5f.create_dataset("masks_test", data=edge_categories_masks[test_idx], chunks=(CHUNK_SIZE, MAX_WORD_LENGTH, len(charset_cats)))
+        h5f.create_dataset("masks_train", data=edge_categories_masks[train_idx], chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+        h5f.create_dataset("masks_test", data=edge_categories_masks[test_idx], chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
 
     # def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
     #                          chunk_size=CHUNK_SIZE, apply_fn=None):
@@ -124,21 +127,21 @@ def main():
     #             new_data[chunk_ixs, ...] = apply_fn(chunk)
 
     # create_chunk_dataset(h5f, 'data_train', train_idx,
-    #                      (len(train_idx), MAX_WORD_LENGTH, len(charset)),
+    #                      (len(train_idx), args.word_length, len(charset)),
     #                      apply_fn=lambda ch: np.array(map(one_hot_encoded_fn,
     #                                                       structures[ch])))
     # create_chunk_dataset(h5f, 'data_test', test_idx,
-    #                      (len(test_idx), MAX_WORD_LENGTH, len(charset)),
+    #                      (len(test_idx), args.word_length, len(charset)),
     #                      apply_fn=lambda ch: np.array(map(one_hot_encoded_fn,
     #                                                       structures[ch])))
 
     # if edge_categories.shape[0] > 0:
     #     create_chunk_dataset(h5f, 'categories_train', train_idx,
-    #                          (len(train_idx), MAX_WORD_LENGTH, len(charset_cats)),
+    #                          (len(train_idx), args.word_length, len(charset_cats)),
     #                          apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
 
     #     create_chunk_dataset(h5f, 'categories_test', test_idx,
-    #                          (len(test_idx), MAX_WORD_LENGTH, len(charset_cats)),
+    #                          (len(test_idx), args.word_length, len(charset_cats)),
     #                          apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
 
     if args.property_column:

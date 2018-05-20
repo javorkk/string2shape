@@ -52,6 +52,9 @@ def main():
 
     data = data.reset_index(drop=True)
 
+    ######################################################################################
+    #SMILES strings
+    ######################################################################################
     structures = data[args.smiles_column].map(lambda x: list(x.ljust(args.word_length)))
 
     charset = list(reduce(lambda x, y: set(y) | x, structures, set()))
@@ -59,6 +62,20 @@ def main():
 
     edge_categories = np.empty(dtype=int, shape=(0, args.word_length))
 
+    train_idx, test_idx = map(np.array, train_test_split(structures.index, test_size=0.20))
+
+    one_hot_encoded_fn = lambda row: map(lambda x: one_hot_array(x, len(charset)),
+                                         one_hot_index(row, charset))
+
+    h5f = h5py.File(args.outfile, 'w')
+    h5f.create_dataset('charset', data=charset)
+
+    h5f.create_dataset("data_train", data=np.array(map(one_hot_encoded_fn, structures[train_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset)))
+    h5f.create_dataset("data_test", data=np.array(map(one_hot_encoded_fn, structures[test_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset)))
+
+    ######################################################################################
+    #edge categories
+    ######################################################################################
     if args.categories_column in data.keys():
         max_category = 0
         for i, cat_str in enumerate(data[args.categories_column]):
@@ -75,6 +92,8 @@ def main():
         #charset_cats.sort()
         charset_cats = range(max_category + 1)
 
+        h5f.create_dataset('charset_cats', data=charset_cats)
+
         edge_categories_masks = np.empty(dtype=int, shape=(0, args.word_length, len(charset_cats)))
         if MIN_BOUND_COL_NAME in data.keys() and MAX_BOUND_COL_NAME in data.keys():
 
@@ -88,33 +107,27 @@ def main():
                 for j in range(len(current_min), args.word_length):
                     edge_categories_masks[i][j][len(charset_cats) - 1] = 1
 
+        one_hot_encoded_cats_fn = lambda row: map(lambda x: one_hot_array(x, len(charset_cats)),
+                                                one_hot_index(row, charset_cats))
+
+        if edge_categories.shape[0] > 0:
+            h5f.create_dataset("categories_train", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[train_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+            h5f.create_dataset("categories_test", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[test_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+
+        if edge_categories_masks.shape[0] > 0:
+            h5f.create_dataset("masks_train", data=edge_categories_masks[train_idx], chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+            h5f.create_dataset("masks_test", data=edge_categories_masks[test_idx], chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+
+    ######################################################################################
+    #additional properties
+    ######################################################################################
     if args.property_column:
         properties = data[args.property_column][keys]
+        h5f.create_dataset('property_train', data=properties[train_idx])
+        h5f.create_dataset('property_test', data=properties[test_idx])
 
     del data
-
-    train_idx, test_idx = map(np.array, train_test_split(structures.index, test_size=0.20))
-
-    one_hot_encoded_fn = lambda row: map(lambda x: one_hot_array(x, len(charset)),
-                                         one_hot_index(row, charset))
-
-    one_hot_encoded_cats_fn = lambda row: map(lambda x: one_hot_array(x, len(charset_cats)),
-                                              one_hot_index(row, charset_cats))
-
-    h5f = h5py.File(args.outfile, 'w')
-    h5f.create_dataset('charset', data=charset)
-    h5f.create_dataset('charset_cats', data=charset_cats)
-
-    h5f.create_dataset("data_train", data=np.array(map(one_hot_encoded_fn, structures[train_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset)))
-    h5f.create_dataset("data_test", data=np.array(map(one_hot_encoded_fn, structures[test_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset)))
-    
-    if edge_categories.shape[0] > 0:
-        h5f.create_dataset("categories_train", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[train_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
-        h5f.create_dataset("categories_test", data=np.array(map(one_hot_encoded_cats_fn, edge_categories[test_idx])), chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
-
-    if edge_categories_masks.shape[0] > 0:
-        h5f.create_dataset("masks_train", data=edge_categories_masks[train_idx], chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
-        h5f.create_dataset("masks_test", data=edge_categories_masks[test_idx], chunks=(CHUNK_SIZE, args.word_length, len(charset_cats)))
+    h5f.close()
 
     # def create_chunk_dataset(h5file, dataset_name, dataset, dataset_shape,
     #                          chunk_size=CHUNK_SIZE, apply_fn=None):
@@ -143,11 +156,6 @@ def main():
     #     create_chunk_dataset(h5f, 'categories_test', test_idx,
     #                          (len(test_idx), args.word_length, len(charset_cats)),
     #                          apply_fn=lambda c: np.array(map(one_hot_encoded_cats_fn, edge_categories[c].tolist())))
-
-    if args.property_column:
-        h5f.create_dataset('property_train', data=properties[train_idx])
-        h5f.create_dataset('property_test', data=properties[test_idx])
-    h5f.close()
 
 if __name__ == '__main__':
     main()

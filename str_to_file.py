@@ -12,7 +12,7 @@ def process_folder(folder_name, query_word):
     for item_name in os.listdir(folder_name):
         subfolfer_name = os.path.join(folder_name, item_name)
         if os.path.isdir(subfolfer_name):
-            process_folder(subfolfer_name, word_list)
+            process_folder(subfolfer_name, query_word)
         if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"): 
             current_str = obj_tools.obj2strings(folder_name + "/" + item_name)
             current_words = current_str.split("\n")            

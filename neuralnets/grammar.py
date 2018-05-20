@@ -140,7 +140,7 @@ class TilingGrammar():
                 cycle_vals.append(last_non_number_id)
             return True, next_char_id, edges
     
-    def _check_word(self, word, char_id = 0, branch_start_count = 0, cycle_ids = [], cycle_vals = [], edges = []):
+    def _check_word(self, word, char_id=0, branch_start_count=0, cycle_ids=[], cycle_vals=[], edges=[]):
         #TODO: this should not be necessary!
         if char_id == 0 and len(cycle_ids) + len(cycle_vals) > 0:
             while len(cycle_ids) > 0:
@@ -156,7 +156,7 @@ class TilingGrammar():
             charset_id = self.charset.index(char)
         else:
             return False, char_id, []
-            
+
 
         num_neighbors = 0
         if(char_id > 0):
@@ -175,13 +175,13 @@ class TilingGrammar():
             num_neighbors += 1
             next_char_id += 1
             if(next_char_id >= len(word)):
-                return False, next_char_id
+                return False, next_char_id, []
             if(next_char_id == self.BRANCH_END):
-                return False, next_char_id
+                return False, next_char_id, []
             if(next_char_id == self.BRANCH_START):
-                return False, next_char_id
+                return False, next_char_id, []
             if(self.DIGITS.find(word[next_char_id]) != -1 or word[next_char_id] == self.NUM_DELIMITER):
-                return False, next_char_id 
+                return False, next_char_id, [] 
           
             if([word[char_id], word[next_char_id]] not in self.neighbor_types ):
                 return False, next_char_id, []
@@ -207,7 +207,7 @@ class TilingGrammar():
                 edges.append([next_char_id, char_id])
             valid, next_char_id, edges = self._check_word(word, next_char_id, branch_start_count, cycle_ids, cycle_vals, edges)
             if next_char_id < len(word) and not valid:
-                return False, next_char_id, []            
+                return False, next_char_id, []
 
         if(next_char_id < len(word) and branch_start_count == 0 and word[next_char_id] == self.BRANCH_END):
             return False, next_char_id, []
@@ -217,13 +217,25 @@ class TilingGrammar():
         
         return True, next_char_id, edges
 
-    def check_word(self, word):
+    def check_word(self, word, verbose=False):
         if(word.count(self.BRANCH_START) != word.count(self.BRANCH_END)):
+            if verbose:
+                print("Number of ( does not match number of ):")
+                print(word)
             return False
         for i in range(len(self.DIGITS)):
             if(word.count(self.DIGITS[i]) % 2 != 0):
+                if verbose:
+                    print("Uneven number of ",self.DIGITS[i],"s in the word:")
+                    print(word)
                 return False
         result, dummy_id, dummy_edge_list = self._check_word(word)
+        if result == False and verbose:
+            print("Error at char id ", dummy_id, " in: ")
+            if dummy_id < len(word):
+                print(word[0:dummy_id], " >",word[dummy_id],"< ", word[dummy_id + 1:])
+            else:
+                print(word[:-1], " >",word[-1],"< ")
         while len(dummy_edge_list) > 0:
             dummy_edge_list.pop()
         #if not result:
@@ -282,6 +294,18 @@ class TilingGrammar():
             if count_1 != count_2:
                 return False #different number of edges of a certain type
         return True
+
+    def word_similarity(self, str1, str2):
+        retval = 0.0
+        num_nodes = 0.0
+        for i in range(1, len(self.charset)):
+            num_nodes += str1.count(self.charset[i])
+            num_nodes += str2.count(self.charset[i])
+
+        for i in range(1, len(self.charset)):
+            retval += abs(str1.count(self.charset[i]) - str2.count(self.charset[i])) / num_nodes
+
+        return retval
 
     def max_degree(self):
         #return max([pair[1] for pair in self.neighbor_counts])

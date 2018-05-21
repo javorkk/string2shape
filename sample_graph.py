@@ -123,19 +123,19 @@ def gen_latent_points(args):
             if not tiling_grammar.check_word(char_data_p):
                 continue
 
-            for k in [0.01, 0.02, 0.04, 0.08, 0.1, 0.2, 0.4, 0.8, 1.6]:
+            for k in [0.01, 0.02, 0.04, 0.08, 0.1, 0.2, 0.4, 0.8, 1.6, 2.0]:
                 current_distance = np.linalg.norm(latent_data[path_ids[p]] - latent_data[path_ids[p + 1]])
                 rnd_offset = np.array([np.random.random(latent_dim)]) * 0.1 * current_distance
                 z_sample = (1.0 - k) * latent_data[path_ids[p]] + k * latent_data[path_ids[p + 1]] + rnd_offset
                 decoded_sample_k = model.decoder.predict(z_sample.reshape(1, latent_dim)).argmax(axis=2)[0]
                 char_sample_k = decode_smiles_from_indexes(decoded_sample_k, charset)
+                if not tiling_grammar.check_word(char_sample_k):
+                    continue
                 if tiling_grammar.similar_words(char_sample_k, char_data_p):
                     continue
                 if tiling_grammar.similar_words(char_sample_k, char_data_0):
                     continue
                 if tiling_grammar.similar_words(char_sample_k, char_data_1):
-                    continue
-                if not tiling_grammar.check_word(char_sample_k):
                     continue
                 latent_data =  np.append(latent_data, z_sample, axis=0)
                 if args.verbose:
@@ -225,7 +225,7 @@ def sample_path(args):
     search_graph = nx.read_graphml(args.latent_graph)
     node_list = [int(x) for x in list(search_graph.nodes)]
 
-    for i in range(args.num_samples / 10):
+    for i in range(args.num_samples):
         samples = np.random.randint(0, len(node_list), 2)
         sample_ids = [node_list[samples[0]], node_list[samples[1]]]
 
@@ -239,16 +239,45 @@ def sample_path(args):
 
         shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
 
+        if len(shortest_path) < 5:
+            continue
+
+        decoded_words = [char_data_0]
+        valid_words = [True]
+
+        for pt_id in shortest_path[1:-1]:
+            for j in range(20):
+                decoded_data = model.decoder.predict(latent_data[int(pt_id)].reshape(1, args.latent_dim)).argmax(axis=2)[0]
+                word =  decode_smiles_from_indexes(decoded_data, charset)
+                if tiling_grammar.check_word(word):
+                    duplicate = False
+                    for previous, valid_flag in zip(decoded_words, valid_words):
+                        if not valid_flag:
+                            continue
+                        if tiling_grammar.similar_words(word, previous):
+                            duplicate = True
+                    if not duplicate:
+                        decoded_words.append(word)
+                        valid_words.append(True)
+                        break
+                elif j == 19:
+                    decoded_words.append(word)
+                    valid_words.append(False)
+
+        decoded_words.append(char_data_1)
+        valid_words.append(True)
+
+        if valid_words.count(True) < 5:
+            continue
+
         print("---------------------path sample " + str(i) + "------------------------------------------")
-        print("start:", decoded_data_0)
-        for pt_id in shortest_path:
-            decoded_data = model.decoder.predict(latent_data[int(pt_id)].reshape(1, args.latent_dim)).argmax(axis=2)[0]
-            word =  decode_smiles_from_indexes(decoded_data, charset)
-            if tiling_grammar.check_word(word):
-                print("valid:", word)
+        print("start  :", decoded_words[0])
+        for w, flag in zip(decoded_words, valid_words)[1:-1]:
+            if flag:
+                print("valid  :", w)
             else:
-                print("invalid:", word)
-        print("end:", decoded_data_1)
+                print("invalid:", w)
+        print("end    :", decoded_words[-1])
         print("----------------------------------------------------------------------------------")
 
 def main():

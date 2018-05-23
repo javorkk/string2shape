@@ -17,10 +17,23 @@ def str_to_file(folder_name, query_word, tiling_grammar):
         if os.path.isdir(subfolfer_name):
             str_to_file(subfolfer_name, query_word, tiling_grammar)
         if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"): 
-            current_str = obj_tools.obj2string(folder_name + "/" + item_name)
-            if tiling_grammar.similar_words(query_word, current_str):
-                print(query_word + " found in " + item_name)
-                return True
+            #current_str = obj_tools.obj2string(folder_name + "/" + item_name)
+            current_strings = obj_tools.obj2strings(folder_name + "/" + item_name).split("\n")
+
+            for current_str in current_strings:
+                mismatch = False
+                for i in range(len(tiling_grammar.DIGITS)):
+                    if(query_word.count(tiling_grammar.DIGITS[i]) != current_str.count(tiling_grammar.DIGITS[i])):
+                        mismatch = True
+                        break#different number of cycles
+                for i in range(1, len(tiling_grammar.charset)):
+                    if(query_word.count(tiling_grammar.charset[i]) != current_str.count(tiling_grammar.charset[i])):
+                        mismatch = True
+                        break
+                #if tiling_grammar.similar_words(query_word, current_str):
+                if not mismatch:
+                    print(query_word + " found in " + item_name)
+                    return True
     return False
 
 def main():

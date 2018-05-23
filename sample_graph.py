@@ -246,11 +246,11 @@ def sample_path(args):
         valid_words = [True]
 
         for pt_id in shortest_path[1:-1]:
-            for j in range(20):
+            for j in range(64):
                 decoded_data = model.decoder.predict(latent_data[int(pt_id)].reshape(1, args.latent_dim)).argmax(axis=2)[0]
                 word =  decode_smiles_from_indexes(decoded_data, charset)
                 if tiling_grammar.check_word(word):
-                    duplicate = False
+                    duplicate = tiling_grammar.similar_words(word, char_data_1)
                     for previous, valid_flag in zip(decoded_words, valid_words):
                         if not valid_flag:
                             continue
@@ -260,7 +260,7 @@ def sample_path(args):
                         decoded_words.append(word)
                         valid_words.append(True)
                         break
-                elif j == 19:
+                elif j == 63:
                     decoded_words.append(word)
                     valid_words.append(False)
 

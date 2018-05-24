@@ -5,7 +5,7 @@ import os
 import h5py
 import numpy as np
 
-from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE
+from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_GRU_VAE
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
     decode_smiles_from_indexes, load_dataset
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
@@ -33,7 +33,7 @@ def get_arguments():
     parser.add_argument('--batch_size', type=int, metavar='N', default=BATCH_SIZE,
                         help='Number of samples to process per minibatch during training.')
     parser.add_argument('--type', type=str, default=TYPE,
-                        help='What type model to train: simple, lstm.')
+                        help='What type model to train: simple, lstm, gru.')
     return parser.parse_args()
 
 class PlotLearning(Callback):
@@ -68,6 +68,7 @@ class PlotLearning(Callback):
         ax2.legend()
         
         plt.savefig('vae_loss_history.pdf', bbox_inches='tight')
+        plt.close()
 
 def main():
     args = get_arguments()
@@ -92,6 +93,8 @@ def main():
     model = TilingVAE()
     if args.type == 'lstm':
         model = Tiling_LSTM_VAE()
+    elif args.type == 'gru':
+        model = Tiling_GRU_VAE()
 
     if os.path.isfile(args.model):
         model.load(charset, args.model, max_w_length=word_length, latent_rep_size=args.latent_dim)

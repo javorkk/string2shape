@@ -37,6 +37,10 @@ def get_arguments():
     return parser.parse_args()
 
 class PlotLearning(Callback):
+ 
+    def set_filename(self, name='filename'):
+        self.filename = name
+
     def on_train_begin(self, logs={}):
         self.i = 0
         self.x = []
@@ -67,7 +71,7 @@ class PlotLearning(Callback):
         ax2.plot(self.x, self.val_acc, label="validation accuracy")
         ax2.legend()
         
-        plt.savefig('vae_loss_history.pdf', bbox_inches='tight')
+        plt.savefig(self.filename + '_loss_history.pdf', bbox_inches='tight')
         plt.close()
 
 def main():
@@ -115,6 +119,7 @@ def main():
 
 
     plot = PlotLearning()
+    plot.set_filename(filename)
 
     history = model.autoencoder.fit(
         data_train,
@@ -126,7 +131,6 @@ def main():
         validation_data = (data_test, data_test)
     )
 
-    os.rename('vae_loss_history.pdf', filename + '_loss_history.pdf')
 #     # summarize history for loss
 #     plt.plot(history.history['val_loss'])
 #     plt.title('model loss')

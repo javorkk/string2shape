@@ -47,6 +47,9 @@ def main():
     keys = data[args.smiles_column].map(len) < args.word_length + 1
     data = data[keys]
 
+    keys = data[args.smiles_column].map(lambda x: list(x).count('9') == 0) == True
+    data = data[keys]
+
     if args.length <= len(data):
         data = data.sample(n=args.length)
 

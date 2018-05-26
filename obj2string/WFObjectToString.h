@@ -35,6 +35,8 @@ EXPORT extern int testRandomVariations(const char * aFilename1, const char* aFil
 
 EXPORT extern int fixVariation(const char * aFileName1, const char* aFileName2, const char* aFileName3, const char* aOutFileName);
 
+EXPORT extern int StringToWFObject(const char * aFileName1, const char* aFileName2, const char* aInputString, const char* aOutFileName);
+
 EXPORT extern int testRandomNumberGenerator(void);
 
 

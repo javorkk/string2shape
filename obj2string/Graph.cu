@@ -8,6 +8,7 @@
 #include <thrust/transform_scan.h>
 #include <thrust/fill.h>
 #include <thrust/sequence.h>
+#include <thrust/sort.h>
 
 #include "DebugUtils.h"
 #include "Timer.h"
@@ -380,13 +381,18 @@ __host__ void Graph::toSpanningTree(thrust::device_vector<EdgeType>& oAdjacencyM
 		writeEdgeTypes);
 }
 
-__host__ void Graph::fromAdjacencyList(size_t aNumNodes)
+__host__ void Graph::fromAdjacencyList(size_t aNumNodes, bool aSorted)
 {
 	intervals = thrust::device_vector<unsigned int>(aNumNodes + 1);
 	//initialize first value + all empty intervals at the start
 	thrust::fill(intervals.begin(), intervals.begin() + adjacencyKeys[0] + 1, 0u);
 	//initialize last value + all empty intervals at the end
 	thrust::fill(intervals.end() - 1 - (aNumNodes - 1 - adjacencyKeys[adjacencyKeys.size() - 1]), intervals.end(), (unsigned int)adjacencyKeys.size());
+
+	if (!aSorted)
+	{
+		thrust::sort_by_key(adjacencyKeys.begin(), adjacencyKeys.end(), adjacencyVals.begin());
+	}
 
 	IntervalExtractor extractIntervals(intervals.data());
 	thrust::counting_iterator<size_t> first(0u);

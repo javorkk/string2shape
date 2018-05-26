@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <deque>
 
 #include <chrono>
 #include <random>

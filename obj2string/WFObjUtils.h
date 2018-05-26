@@ -36,8 +36,8 @@ public:
 		const WFObject& aObj2,
 		float3 aTranslation2,
 		quaternion4f aRotation2,
-		thrust::host_vector<unsigned int>& aFlags1,
-		thrust::host_vector<unsigned int>& aFlags2) const;
+		const thrust::host_vector<unsigned int>& aFlags1,
+		const thrust::host_vector<unsigned int>& aFlags2) const;
 };
 
 class WFObjectFileExporter

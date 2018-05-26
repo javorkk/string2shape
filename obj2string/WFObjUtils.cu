@@ -62,8 +62,8 @@ __host__ WFObject WFObjectMerger::operator()(
 	const WFObject & aObj2,
 	float3 aTranslation2,
 	quaternion4f aRotation2,
-	thrust::host_vector<unsigned int>& aFlags1,
-	thrust::host_vector<unsigned int>& aFlags2) const
+	const thrust::host_vector<unsigned int>& aFlags1,
+	const thrust::host_vector<unsigned int>& aFlags2) const
 {
 
 	thrust::host_vector<float3> objCenters1;
@@ -80,7 +80,7 @@ __host__ WFObject WFObjectMerger::operator()(
 	WFObject obj;
 
 	//assume identical materials in aObj1 and aObj2
-	obj.materials.assign(aObj1.materials.begin(), aObj1.materials.end());
+	obj.materials.assign(aObj2.materials.begin(), aObj2.materials.end());
 
 	std::vector<size_t> vtxIndexMap1(aObj1.getNumVertices(), (size_t)-1);
 	std::vector<size_t> vtxIndexMap2(aObj2.getNumVertices(), (size_t)-1);

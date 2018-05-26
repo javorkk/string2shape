@@ -305,6 +305,8 @@ public:
 
 	__host__ std::vector<float> getEdgesTypesAndOrientations();
 
+	__host__ quaternion4f getAbsoluteRotation(unsigned int aNodeId);
+
 };
 
 #endif // PARTORIENTATIONUTILS_H_B86401E5_2DB4_40AA_A09C_A388E57677B8

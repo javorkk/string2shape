@@ -14,6 +14,7 @@
 #include "PartOrientationUtils.h"
 #include "WFObjUtils.h"
 #include "RNG.h"
+#include "GraphToWFObject.h"
 
 
 #ifdef __cplusplus
@@ -250,6 +251,112 @@ extern "C" {
 
 		return 0;
 
+	}
+
+	int StringToWFObject(
+		const char * aFileName1,
+		const char * aFileName2,
+		const char * aInputString,
+		const char * aOutFileName)
+	{
+		WFObject obj1;
+		obj1.read(aFileName1);
+
+		WFObject obj2;
+		obj2.read(aFileName2);
+
+		CollisionDetector detector;
+		Graph graph1 = detector.computeCollisionGraph(obj1, 0.0f);
+		Graph graph2 = detector.computeCollisionGraph(obj2, 0.0f);
+
+		std::stringstream ss(aInputString);
+		std::string NodesStr_1_1;
+		std::getline(ss, NodesStr_1_1, '\n');
+		std::string NodesStr_1_2;
+		std::getline(ss, NodesStr_1_2, '\n');
+		std::string EdgeTypeStr_1;
+		std::getline(ss, EdgeTypeStr_1, '\n');
+
+		thrust::host_vector<unsigned int> keys1(graph1.adjacencyKeys);
+		thrust::host_vector<unsigned int> vals1(graph1.adjacencyVals);
+		thrust::host_vector<unsigned int> edgeTypes1(graph1.numEdges(), (unsigned int)-1);
+		std::stringstream nodes_ss_1_1(NodesStr_1_1);
+		std::stringstream nodes_ss_1_2(NodesStr_1_2);
+		std::stringstream edge_types_1(EdgeTypeStr_1);
+		unsigned int node_1, node_2, edge_type;
+		while (nodes_ss_1_1 >> node_1 && nodes_ss_1_2 >> node_2 && edge_types_1 >> edge_type)
+		{
+			for (unsigned int edgeId = 0u; edgeId < graph1.numEdges(); ++edgeId)
+			{
+				if (keys1[edgeId] == node_1 && vals1[edgeId] == node_2)
+				{
+					edgeTypes1[edgeId] = edge_type;
+					break;
+				}
+			}
+		}
+
+		std::string NodesStr_2_1;
+		std::getline(ss, NodesStr_2_1, '\n');
+		std::string NodesStr_2_2;
+		std::getline(ss, NodesStr_2_2, '\n');
+		std::string EdgeTypeStr_2;
+		std::getline(ss, EdgeTypeStr_2, '\n');
+
+		thrust::host_vector<unsigned int> keys2(graph2.adjacencyKeys);
+		thrust::host_vector<unsigned int> vals2(graph2.adjacencyVals);
+		thrust::host_vector<unsigned int> edgeTypes2(graph2.numEdges(), (unsigned int)-1);
+		std::stringstream nodes_ss_2_1(NodesStr_2_1);
+		std::stringstream nodes_ss_2_2(NodesStr_2_2);
+		std::stringstream edge_types_2(EdgeTypeStr_2);
+		while (nodes_ss_2_1 >> node_1 && nodes_ss_2_2 >> node_2 && edge_types_2 >> edge_type)
+		{
+			for (unsigned int edgeId = 0u; edgeId < graph2.numEdges(); ++edgeId)
+			{
+				if (keys2[edgeId] == node_1 && vals2[edgeId] == node_2)
+				{
+					edgeTypes2[edgeId] = edge_type;
+					break;
+				}
+			}
+		}
+
+
+		std::string NodesStr_3_1;
+		std::getline(ss, NodesStr_3_1, '\n');
+		std::string NodesStr_3_2;
+		std::getline(ss, NodesStr_3_2, '\n');
+		std::string EdgeTypeStr_3;
+		std::getline(ss, EdgeTypeStr_3, '\n');
+
+		std::vector<unsigned int> keys3;
+		std::vector<unsigned int> vals3;
+		std::vector<unsigned int> edgeTypes3;
+		std::stringstream nodes_ss_3_1(NodesStr_3_1);
+		std::stringstream nodes_ss_3_2(NodesStr_3_2);
+		std::stringstream edge_types_3(EdgeTypeStr_3);
+		unsigned int max_node_id = 0u;
+		while (nodes_ss_3_1 >> node_1 && nodes_ss_3_2 >> node_2 && edge_types_3 >> edge_type)
+		{
+			max_node_id = std::max(max_node_id, node_1);
+			max_node_id = std::max(max_node_id, node_2);
+			keys3.push_back(node_1);
+			vals3.push_back(node_2);
+			edgeTypes3.push_back(edge_type);
+		}
+
+		Graph graph3;
+		graph3.adjacencyKeys = thrust::device_vector<unsigned int>(keys3);
+		graph3.adjacencyVals = thrust::device_vector<unsigned int>(vals3);
+		graph3.fromAdjacencyList(max_node_id + 1, false);
+
+		thrust::host_vector<unsigned int> edgeTypes3Host(edgeTypes3);
+
+		WFObject obj3 = WFObjectGenerator()(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+
+		WFObjectFileExporter()(obj3, aOutFileName);
+
+		return 0;
 	}
 
 

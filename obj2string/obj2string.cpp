@@ -1,6 +1,30 @@
 ﻿#include "pch.h"
 #include "WFObjectToString.h"
 
+static PyObject * string2obj_wrapper(PyObject * self, PyObject * args)
+{
+	int result;
+	const char * input_file_1;
+	const char * input_file_2;
+	const char * input_string;
+	const char * output_file;
+
+	PyObject * ret;
+
+	// parse arguments
+	if (!PyArg_ParseTuple(args, "s|s|s|s", &input_file_1, &input_file_2, &input_string, &output_file)) {
+		return NULL;
+	}
+
+	// run the actual function
+	result = StringToWFObject(input_file_1, input_file_2, input_string, output_file);
+
+	// build the resulting int into a Python object.
+	ret = PyLong_FromLong(result);
+
+	return ret;
+}
+
 static PyObject * obj2graph_wrapper(PyObject * self, PyObject * args)
 {
 	const char * input;
@@ -187,6 +211,7 @@ static PyMethodDef OBJ2StringMethods[] = {
 	{ "create_variations", create_variations_wrapper, METH_VARARGS, "Creates random variations out of a pair of .obj files and writes them in the same folder. Returns the SMILES-type strings representing the variations." },
 	{ "fix_variation", fix_variation_wrapper, METH_VARARGS, "Given a pair of example .obj files, attempts to repair a random variations. If successful, the repaired object is written to a file." },
 	{ "obj2graph", obj2graph_wrapper, METH_VARARGS, "Converts a .obj file into a part graph with relative translation and rotations for each connected pair of nodes." },
+	{ "string2obj", string2obj_wrapper, METH_VARARGS, "Generates a .obj file constructed out of the parts in two input files (as perscribed by the configuration string)." },
 	{ NULL, NULL, 0, NULL }
 };
 

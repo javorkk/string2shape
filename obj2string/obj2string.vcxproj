@@ -18,6 +18,7 @@
     <ClInclude Include="DebugUtils.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="Graph2String.h" />
+    <ClInclude Include="GraphToWFObject.h" />
     <ClInclude Include="obj2string.h" />
     <ClInclude Include="PartOrientationUtils.h" />
     <ClInclude Include="pch.h" />
@@ -52,6 +53,7 @@
     <CudaCompile Include="CollisionGraphExporter.cu" />
     <CudaCompile Include="Graph.cu" />
     <CudaCompile Include="Graph2String.cu" />
+    <CudaCompile Include="GraphToWFObject.cu" />
     <CudaCompile Include="PartOrientationUtils.cu" />
     <CudaCompile Include="Wiggle.cu" />
     <CudaCompile Include="UniformGridSortBuilder.cu" />

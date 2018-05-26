@@ -191,3 +191,12 @@ __host__ std::vector<float> PartOrientationEstimator::getEdgesTypesAndOrientatio
 	}
 	return result;
 }
+
+__host__ quaternion4f PartOrientationEstimator::getAbsoluteRotation(unsigned int aNodeId)
+{
+	for (size_t i = 0; i < mNeighborIdKeys.size(); ++i)
+		if (mNeighborIdKeys[i] == aNodeId)
+			return mAbsoluteRotation[i];
+
+	return make_quaternion4f(0.f, 0.f, 0.f, 1.f);
+}

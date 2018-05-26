@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Wiggle.h"
 
-#include <deque>
-
 #include "WFObjUtils.h"
 #include "PartOrientationUtils.h"
 

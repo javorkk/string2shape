@@ -63,7 +63,7 @@ from neuralnets.grammar import TilingGrammar
 from neuralnets.utils import load_categories_dataset, decode_smiles_from_indexes, from_one_hot_array
 from neuralnets.shape_graph import smiles_variations
 
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
 from keras.utils import plot_model
 
 import matplotlib.pyplot as plt
@@ -76,6 +76,44 @@ from collections import Counter
 def most_common_elem(lst):
     data = Counter(lst)
     return data.most_common(1)[0][0]
+
+class PlotLearning(Callback):
+ 
+    def set_filename(self, name='filename'):
+        self.filename = name
+
+    def on_train_begin(self, logs={}):
+        self.i = 0
+        self.x = []
+        self.losses = []
+        self.val_losses = []
+        self.acc = []
+        self.val_acc = []
+        self.fig = plt.figure()
+        
+        self.logs = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        
+        self.logs.append(logs)
+        self.x.append(self.i)
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
+        self.acc.append(logs.get('acc'))
+        self.val_acc.append(logs.get('val_acc'))
+        self.i += 1
+        f, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
+
+        ax1.plot(self.x, self.losses, label="loss")
+        ax1.plot(self.x, self.val_losses, label="val_loss")
+        ax1.legend()
+        
+        ax2.plot(self.x, self.acc, label="accuracy")
+        ax2.plot(self.x, self.val_acc, label="validation accuracy")
+        ax2.legend()
+        
+        plt.savefig(self.filename + '_loss_history.pdf', bbox_inches='tight')
+        plt.close()
 
 
 NUM_EPOCHS = 1
@@ -328,23 +366,17 @@ def main():
             plot_model(model.autoencoder, to_file=filename + '_autoencoder_nn.pdf', show_shapes=True)
             plot_model(model.decoder, to_file=filename + '_decoder_nn.pdf', show_shapes=True)
 
+            plot = PlotLearning()
+            plot.set_filename(filename)
 
             history = model.autoencoder.fit([encoder_input_data, decoder_input_data, decoder_input_masks], decoder_target_data,
                                 batch_size=args.batch_size,
                                 epochs=args.epochs,
                                 validation_split=0.2,
-                                callbacks=[checkpointer, reduce_lr])
+                                callbacks=[checkpointer, reduce_lr, plot])
 
             # Save model
             model.autoencoder.save(args.out)
-
-            # summarize history for loss
-            plt.plot(history.history['val_loss'])
-            plt.title('model loss')
-            plt.ylabel('loss')
-            plt.xlabel('epoch')
-            plt.ylim(ymin=0, ymax=2.0)
-            plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
         #test-decode a couple of train examples
         sample_ids = np.random.randint(0, len(data_train), 4)
@@ -421,24 +453,17 @@ def main():
 
             filename, ext = os.path.splitext(args.out)
             plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
-
+            plot = PlotLearning()
+            plot.set_filename(filename)
 
             history = model.rnn.fit([encoder_input_data, decoder_input_masks], decoder_input_data,
                                 batch_size=args.batch_size,
                                 epochs=args.epochs,
                                 validation_split=0.2,
-                                callbacks=[checkpointer, reduce_lr])
+                                callbacks=[checkpointer, reduce_lr, plot])
 
             # Save model
             model.rnn.save(args.out)
-
-            # summarize history for loss
-            plt.plot(history.history['val_loss'])
-            plt.title('model loss')
-            plt.ylabel('loss')
-            plt.xlabel('epoch')
-            plt.ylim(ymin=0, ymax=2.0)
-            plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
         #test-decode a couple of train examples
         sample_ids = np.random.randint(0, len(data_train), 2)
@@ -505,24 +530,17 @@ def main():
 
             filename, ext = os.path.splitext(args.out)
             plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
-
+            plot = PlotLearning()
+            plot.set_filename(filename)
 
             history = model.rnn.fit(encoder_input_data, decoder_input_data,
                                 batch_size=args.batch_size,
                                 epochs=args.epochs,
                                 validation_split=0.2,
-                                callbacks=[checkpointer, reduce_lr])
+                                callbacks=[checkpointer, reduce_lr, plot])
 
             # Save model
             model.rnn.save(args.out)
-
-            # summarize history for loss
-            plt.plot(history.history['val_loss'], color='red')
-            plt.title('model loss')
-            plt.ylabel('loss')
-            plt.xlabel('epoch')
-            plt.ylim(ymin=0, ymax=2.0)
-            plt.savefig(filename + '_loss_history.pdf', bbox_inches='tight')
 
         #test-decode a couple of train examples
         sample_ids = np.random.randint(0, len(data_train), 2)

@@ -360,7 +360,7 @@ def main():
             reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
                                             factor = 0.2,
                                             patience = 3,
-                                            min_lr = 0.0001)
+                                            min_lr = 0.000001)
 
             filename, ext = os.path.splitext(args.out)
             plot_model(model.autoencoder, to_file=filename + '_autoencoder_nn.pdf', show_shapes=True)
@@ -449,7 +449,7 @@ def main():
             reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
                                             factor = 0.2,
                                             patience = 3,
-                                            min_lr = 0.0001)
+                                            min_lr = 0.000001)
 
             filename, ext = os.path.splitext(args.out)
             plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
@@ -526,7 +526,7 @@ def main():
             reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
                                             factor = 0.2,
                                             patience = 3,
-                                            min_lr = 0.0001)
+                                            min_lr = 0.000001)
 
             filename, ext = os.path.splitext(args.out)
             plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)

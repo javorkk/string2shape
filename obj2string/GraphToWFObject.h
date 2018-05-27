@@ -56,7 +56,6 @@ public:
 		const quaternion4f& aRotation);
 
 	__host__ unsigned int findCorresponingEdgeId(
-		Graph & aGraph1,
 		thrust::host_vector<unsigned int>& aEdgeTypes1,
 		unsigned int aTargetEdgeType);
 

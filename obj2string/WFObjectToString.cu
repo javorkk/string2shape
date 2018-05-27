@@ -336,6 +336,7 @@ extern "C" {
 		std::stringstream nodes_ss_3_2(NodesStr_3_2);
 		std::stringstream edge_types_3(EdgeTypeStr_3);
 		unsigned int max_node_id = 0u;
+		std::cerr << "edge types 3: ";
 		while (nodes_ss_3_1 >> node_1 && nodes_ss_3_2 >> node_2 && edge_types_3 >> edge_type)
 		{
 			max_node_id = std::max(max_node_id, node_1);
@@ -343,14 +344,33 @@ extern "C" {
 			keys3.push_back(node_1);
 			vals3.push_back(node_2);
 			edgeTypes3.push_back(edge_type);
+			std::cerr << edge_type << " ";
 		}
 
+		std::cerr << "\n";
+		
 		Graph graph3;
 		graph3.adjacencyKeys = thrust::device_vector<unsigned int>(keys3);
 		graph3.adjacencyVals = thrust::device_vector<unsigned int>(vals3);
 		graph3.fromAdjacencyList(max_node_id + 1, false);
 
-		thrust::host_vector<unsigned int> edgeTypes3Host(edgeTypes3);
+		thrust::host_vector<unsigned int> edgeTypes3Host(graph3.numEdges(), (unsigned)-1);
+		std::cerr << "seen edge ids: ";
+		for (unsigned int i = 0u; i < edgeTypes3.size(); ++i)
+		{
+			unsigned int node_1 = keys3[i];
+			unsigned int node_2 = vals3[i];
+			unsigned int edge_type = edgeTypes3[i];
+			for (unsigned int edgeId = 0u; edgeId < graph3.numEdges(); ++edgeId)
+			{
+				if (graph3.adjacencyKeys[edgeId] == node_1 && graph3.adjacencyVals[edgeId] == node_2)
+				{
+					edgeTypes3Host[edgeId] = edge_type;
+					std::cerr << edgeId << " ";
+					break;
+				}
+			}
+		}
 
 		WFObject obj3 = WFObjectGenerator()(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
 

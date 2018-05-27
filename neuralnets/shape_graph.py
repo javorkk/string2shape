@@ -305,6 +305,76 @@ def smiles_to_edge_categories(word, node_ids, cluster_centers, graph, t_grammar)
 
     return edge_categories
 
+def smiles_to_all_edge_categories(word, node_ids, cluster_centers, graph, t_grammar):
+    dummy_node_id = len(node_ids)
+
+    num_nodes = 0
+    padded_node_ids = []
+    for char_id, _ in enumerate(word):
+        if word[char_id] in t_grammar.charset:
+            padded_node_ids.append(node_ids[num_nodes])
+            num_nodes += 1
+        else:
+            padded_node_ids.append(dummy_node_id)
+    padded_node_ids.append(dummy_node_id) #ensure at least one occurence
+
+    edge_list = t_grammar.smiles_to_edges(word, padded_node_ids)
+
+    num_categories = 0
+    categories_prefix = [0]
+    for clusters in cluster_centers:
+        num_categories += clusters.shape[0]
+        categories_prefix.append(num_categories)
+
+    edge_categories = []
+    output_edges = []
+    for node_id_pair in edge_list:
+        if node_id_pair == [dummy_node_id, dummy_node_id]:
+            continue
+            #edge_categories.append(num_categories)
+        else:
+            edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
+            char_a = word[padded_node_ids.index(node_id_pair[0])]
+            char_b = word[padded_node_ids.index(node_id_pair[1])]
+            type_pair = [char_a, char_b]
+            cluster_set_id = t_grammar.neighbor_types.index(type_pair)
+            
+            relative_translation = graph.relative_translations[edge_index]
+            closest_cluster_center_id = num_categories
+            dist = float("inf")
+            for i in range(cluster_centers[cluster_set_id].shape[0]):
+                current = np.linalg.norm(cluster_centers[cluster_set_id][i] - relative_translation)
+                if current < dist:
+                    dist = current
+                    closest_cluster_center_id = i
+            edge_categories.append(closest_cluster_center_id + categories_prefix[cluster_set_id])
+            output_edges.append(node_id_pair)
+
+    for node_id_pair in edge_list:
+        if node_id_pair == [dummy_node_id, dummy_node_id]:
+            continue
+            #edge_categories.append(num_categories)
+        else:
+            node_id_pair = [node_id_pair[1], node_id_pair[0]]
+            edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
+            char_a = word[padded_node_ids.index(node_id_pair[0])]
+            char_b = word[padded_node_ids.index(node_id_pair[1])]
+            type_pair = [char_a, char_b]
+            cluster_set_id = t_grammar.neighbor_types.index(type_pair)
+            
+            relative_translation = graph.relative_translations[edge_index]
+            closest_cluster_center_id = num_categories
+            dist = float("inf")
+            for i in range(cluster_centers[cluster_set_id].shape[0]):
+                current = np.linalg.norm(cluster_centers[cluster_set_id][i] - relative_translation)
+                if current < dist:
+                    dist = current
+                    closest_cluster_center_id = i
+            edge_categories.append(closest_cluster_center_id + categories_prefix[cluster_set_id])
+            output_edges.append(node_id_pair)
+
+    return edge_categories, output_edges
+
 def smiles_substring(node_id, visited, adjacency_lists, cycle_ids, node_types, t_grammar):
     visited[node_id] = 1
     neighbor_list = adjacency_lists[node_id]

@@ -73,9 +73,31 @@ def main():
     print("node lists:")
     print(node_lists)
 
-
     #print("cluster centers:")
     #print(cluster_centers)
+
+    edge_list = tile_grammar.smiles_to_edges(smiles_strings[0], padded_node_ids)
+    print("edge list:")
+    print(edge_list)
+
+    all_edge_categories, all_edges = shape_graph.smiles_to_all_edge_categories(smiles_strings[0], node_ids[0], cluster_centers, graph_edges,  tile_grammar)
+
+    if len(all_edge_categories) != len(all_edges):
+        print("Error, mismatching number of edges",len(all_edges),"and edge categories", len(all_edge_categories))
+
+    output_str = ""
+    for edge in all_edges:
+        output_str += str(edge[0]) + " "
+    output_str += "\n"
+    for edge in all_edges:
+        output_str += str(edge[1]) + " "
+    output_str += "\n"
+    for categ in all_edge_categories:
+        output_str += str(categ) + " "
+    output_str += "\n"
+
+    print("graph embedding output string:")
+    print(output_str)
 
 
 if __name__ == "__main__":

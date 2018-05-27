@@ -33,7 +33,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 
 	WFObject outputObj;
 
-	unsigned int numNodes = (unsigned)aGraph3.intervals.size() - 1u;
+	unsigned int numNodes = aGraph3.numNodes();
 	thrust::host_vector<unsigned int> visited(numNodes, 0u);
 	thrust::host_vector<unsigned int> intervalsHost(aGraph3.intervals);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph3.adjacencyVals);
@@ -48,8 +48,8 @@ __host__ WFObject WFObjectGenerator::operator()(
 	unsigned int seedEdgeId = aGraph3.neighborsBegin(seedNodeId);
 	unsigned int seedEdgeType = aEdgeTypes3[seedEdgeId];
 
-	unsigned int seedNodeObj1 = aGraph1.adjacencyKeys[findCorresponingEdgeId(aGraph1, aEdgeTypes1, seedEdgeType)];
-	unsigned int seedNodeObj2 = aGraph2.adjacencyKeys[findCorresponingEdgeId(aGraph2, aEdgeTypes2, seedEdgeType)];
+	unsigned int seedNodeObj1 = aGraph1.adjacencyKeys[findCorresponingEdgeId(aEdgeTypes1, seedEdgeType)];
+	unsigned int seedNodeObj2 = aGraph2.adjacencyKeys[findCorresponingEdgeId(aEdgeTypes2, seedEdgeType)];
 
 	if (seedNodeObj1 == (unsigned)-1 && seedNodeObj2 == (unsigned)-1)
 	{
@@ -121,20 +121,18 @@ __host__ WFObject WFObjectGenerator::operator()(
 			const unsigned int neighborId = adjacencyValsHost[nbrId];
 			if (visited[neighborId] == 0u)
 			{
-				frontier.push_back(neighborId);
-				visited[neighborId] = 1u;
 
-				unsigned int currentEdgeId = aGraph3.neighborsBegin(nodeId) + nbrId;
+				unsigned int currentEdgeId = nbrId;
 				unsigned int currentEdgeType = aEdgeTypes3[currentEdgeId];
 
-				unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType);
+				unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aEdgeTypes1, currentEdgeType);
 
 				if (correspondingEdgeIdObj1 == (unsigned)-1)
 				{
-					std::cerr << "Failed to create WFObject node " << correspondingEdgeIdObj1 << "\n";
+					std::cerr << "Failed to create WFObject node " << neighborId << "\n";
 					std::cerr << "(After inserting " << indertedNodeCount << " nodes.)\n";
 
-					return outputObj;
+					continue;
 				}
 
 				unsigned int correspondingNodeIdObj1 = aGraph1.adjacencyKeys[correspondingEdgeIdObj1];
@@ -151,6 +149,8 @@ __host__ WFObject WFObjectGenerator::operator()(
 				outputObj = insertPieces(outputObj, aObj1, subgraphFlags1, translationA, translationA1, relativeR);
 
 				nodeIdMap[neighborId] = indertedNodeCount++;
+				frontier.push_back(neighborId);
+				visited[neighborId] = 1u;
 			}
 		}
 	}
@@ -175,7 +175,7 @@ __host__ WFObject WFObjectGenerator::insertPieces(
 	return result;
 }
 
-__host__ unsigned int WFObjectGenerator::findCorresponingEdgeId(Graph & aGraph1, thrust::host_vector<unsigned int>& aEdgeTypes1, unsigned int aTargetEdgeType)
+__host__ unsigned int WFObjectGenerator::findCorresponingEdgeId(thrust::host_vector<unsigned int>& aEdgeTypes1, unsigned int aTargetEdgeType)
 {
 	std::vector<unsigned int> permutedIds(aEdgeTypes1.size());
 	for (unsigned int i = 0u; i < permutedIds.size(); ++i)

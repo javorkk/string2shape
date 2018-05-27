@@ -307,6 +307,10 @@ public:
 
 	__host__ quaternion4f getAbsoluteRotation(unsigned int aNodeId);
 
+	__host__ float3 getRelativeTranslation(unsigned int aEdgeId) { return mRelativeTranslation[aEdgeId]; }
+
+	__host__ quaternion4f getRelativeRotation(unsigned int aEdgeId) { return mRelativeRotation[aEdgeId]; }
+
 };
 
 #endif // PARTORIENTATIONUTILS_H_B86401E5_2DB4_40AA_A09C_A388E57677B8

@@ -8,12 +8,17 @@
 #include "Algebra.h"
 #include "WFObject.h"
 #include "Graph.h"
+#include "PartOrientationUtils.h"
 
 #include <thrust/host_vector.h>
 
 class WFObjectGenerator
 {
 	std::default_random_engine mRNG;
+	PartOrientationEstimator mOrientations1;
+	PartOrientationEstimator mOrientations2;
+	thrust::host_vector<float3> objCenters1;
+	thrust::host_vector<float3> objCenters2;
 public:
 	unsigned int seed;
 	unsigned int seedNodeId;
@@ -45,21 +50,20 @@ public:
 	__host__ WFObject insertPieces(
 		const WFObject& aObj1,
 		const WFObject& aObj2,
-		const thrust::host_vector<unsigned int>& subgraphFlags,
-		const float3& aTranslation,
+		const thrust::host_vector<unsigned int>& aSubgraphFlags2,
+		const float3& aTranslation1,
+		const float3& aTranslation2,
 		const quaternion4f& aRotation);
 
-	__host__ std::pair<unsigned int, unsigned int> findCorresponingEdge(
+	__host__ unsigned int findCorresponingEdgeId(
 		Graph & aGraph1,
 		thrust::host_vector<unsigned int>& aEdgeTypes1,
 		unsigned int aTargetEdgeType);
 
-	//__host__ void processNeighbors(
-	//	unsigned int						aNodeId,
-	//	thrust::host_vector<unsigned int>&	visited,
-	//	thrust::host_vector<unsigned int>&	intervalsHost,
-	//	thrust::host_vector<unsigned int>&	adjacencyValsHost,
-	//	thrust::host_vector<unsigned int>&	nodeTypeIds);
+	__host__ void translateObj(
+		WFObject& aObj,
+		unsigned int aObjId,
+		const float3 & aTranslation);
 };
 
 

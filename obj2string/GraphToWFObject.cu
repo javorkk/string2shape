@@ -3,7 +3,6 @@
 
 #include "Algebra.h"
 #include "WFObjUtils.h"
-#include "PartOrientationUtils.h"
 
 #include <thrust/reduce.h>
 
@@ -85,7 +84,6 @@ __host__ WFObject WFObjectGenerator::operator()(
 		const unsigned int nodeId = frontier.front();
 		frontier.pop_front();
 		
-		const unsigned int nodeCount = 1u;
 		thrust::host_vector<unsigned int> nodeIds(1, nodeIdMap[nodeId]);
 
 		thrust::host_vector<float3> vertexBufferHost;
@@ -186,7 +184,7 @@ __host__ unsigned int WFObjectGenerator::findCorresponingEdgeId(Graph & aGraph1,
 
 	for (size_t i = 0; i < aEdgeTypes1.size(); ++i)
 	{
-		size_t edgeId = permutedIds[i];
+		unsigned int edgeId = permutedIds[i];
 		if (aEdgeTypes1[edgeId] == aTargetEdgeType)
 		{
 			return edgeId;

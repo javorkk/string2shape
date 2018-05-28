@@ -16,6 +16,8 @@
 #include "RNG.h"
 #include "GraphToWFObject.h"
 
+#include "DebugUtils.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -279,14 +281,15 @@ extern "C" {
 
 		thrust::host_vector<unsigned int> keys1(graph1.adjacencyKeys);
 		thrust::host_vector<unsigned int> vals1(graph1.adjacencyVals);
-		thrust::host_vector<unsigned int> edgeTypes1(graph1.numEdges(), (unsigned int)-1);
+		thrust::host_vector<unsigned int> edgeTypes1(graph1.numEdges() * 2, (unsigned int)-1);
+
 		std::stringstream nodes_ss_1_1(NodesStr_1_1);
 		std::stringstream nodes_ss_1_2(NodesStr_1_2);
 		std::stringstream edge_types_1(EdgeTypeStr_1);
 		unsigned int node_1, node_2, edge_type;
 		while (nodes_ss_1_1 >> node_1 && nodes_ss_1_2 >> node_2 && edge_types_1 >> edge_type)
 		{
-			for (unsigned int edgeId = 0u; edgeId < graph1.numEdges(); ++edgeId)
+			for (unsigned int edgeId = 0u; edgeId < graph1.numEdges() * 2; ++edgeId)
 			{
 				if (keys1[edgeId] == node_1 && vals1[edgeId] == node_2)
 				{
@@ -295,6 +298,10 @@ extern "C" {
 				}
 			}
 		}
+
+		//outputHostVector("keys1     : ", keys1);
+		//outputHostVector("vals1     : ", vals1);
+		//outputHostVector("edgeTypes1: ", edgeTypes1);
 
 		std::string NodesStr_2_1;
 		std::getline(ss, NodesStr_2_1, '\n');
@@ -305,13 +312,13 @@ extern "C" {
 
 		thrust::host_vector<unsigned int> keys2(graph2.adjacencyKeys);
 		thrust::host_vector<unsigned int> vals2(graph2.adjacencyVals);
-		thrust::host_vector<unsigned int> edgeTypes2(graph2.numEdges(), (unsigned int)-1);
+		thrust::host_vector<unsigned int> edgeTypes2(graph2.numEdges() * 2, (unsigned int)-1);
 		std::stringstream nodes_ss_2_1(NodesStr_2_1);
 		std::stringstream nodes_ss_2_2(NodesStr_2_2);
 		std::stringstream edge_types_2(EdgeTypeStr_2);
 		while (nodes_ss_2_1 >> node_1 && nodes_ss_2_2 >> node_2 && edge_types_2 >> edge_type)
 		{
-			for (unsigned int edgeId = 0u; edgeId < graph2.numEdges(); ++edgeId)
+			for (unsigned int edgeId = 0u; edgeId < graph2.numEdges() * 2; ++edgeId)
 			{
 				if (keys2[edgeId] == node_1 && vals2[edgeId] == node_2)
 				{
@@ -321,6 +328,9 @@ extern "C" {
 			}
 		}
 
+		//outputHostVector("keys2     : ", keys2);
+		//outputHostVector("vals2     : ", vals2);
+		//outputHostVector("edgeTypes2: ", edgeTypes2);
 
 		std::string NodesStr_3_1;
 		std::getline(ss, NodesStr_3_1, '\n');
@@ -336,7 +346,6 @@ extern "C" {
 		std::stringstream nodes_ss_3_2(NodesStr_3_2);
 		std::stringstream edge_types_3(EdgeTypeStr_3);
 		unsigned int max_node_id = 0u;
-		std::cerr << "edge types 3: ";
 		while (nodes_ss_3_1 >> node_1 && nodes_ss_3_2 >> node_2 && edge_types_3 >> edge_type)
 		{
 			max_node_id = std::max(max_node_id, node_1);
@@ -344,33 +353,32 @@ extern "C" {
 			keys3.push_back(node_1);
 			vals3.push_back(node_2);
 			edgeTypes3.push_back(edge_type);
-			std::cerr << edge_type << " ";
 		}
-
-		std::cerr << "\n";
 		
 		Graph graph3;
 		graph3.adjacencyKeys = thrust::device_vector<unsigned int>(keys3);
 		graph3.adjacencyVals = thrust::device_vector<unsigned int>(vals3);
 		graph3.fromAdjacencyList(max_node_id + 1, false);
 
-		thrust::host_vector<unsigned int> edgeTypes3Host(graph3.numEdges(), (unsigned)-1);
-		std::cerr << "seen edge ids: ";
+		thrust::host_vector<unsigned int> edgeTypes3Host(graph3.numEdges() * 2, (unsigned)-1);
 		for (unsigned int i = 0u; i < edgeTypes3.size(); ++i)
 		{
-			unsigned int node_1 = keys3[i];
-			unsigned int node_2 = vals3[i];
-			unsigned int edge_type = edgeTypes3[i];
-			for (unsigned int edgeId = 0u; edgeId < graph3.numEdges(); ++edgeId)
+			unsigned int nodeId_1 = keys3[i];
+			unsigned int nodeId_2 = vals3[i];
+			unsigned int edgeTypeId = edgeTypes3[i];
+			for (unsigned int edgeId = graph3.intervals[nodeId_1]; edgeId < graph3.intervals[nodeId_1 + 1]; ++edgeId)
 			{
-				if (graph3.adjacencyKeys[edgeId] == node_1 && graph3.adjacencyVals[edgeId] == node_2)
+				if (graph3.adjacencyVals[edgeId] == nodeId_2)
 				{
-					edgeTypes3Host[edgeId] = edge_type;
-					std::cerr << edgeId << " ";
+					edgeTypes3Host[edgeId] = edgeTypeId;
 					break;
 				}
 			}
 		}
+
+		//outputDeviceVector("keys3     : ", graph3.adjacencyKeys);
+		//outputDeviceVector("vals3     : ", graph3.adjacencyVals);
+		//outputHostVector("edgeTypes3: ", edgeTypes3Host);
 
 		WFObject obj3 = WFObjectGenerator()(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
 

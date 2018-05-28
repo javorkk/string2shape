@@ -11,6 +11,9 @@ __host__ void ObjectCenterExporter::operator()(
 	thrust::host_vector<float>& oObjSizes,
 	const float aSizeScaleFactor) const
 {
+	if (aObj.getNumObjects() <= 0)
+		return;
+
 	oObjCenters = thrust::host_vector<float3>(aObj.objects.size(), make_float3(0.f, 0.f, 0.f));
 	oObjSizes = thrust::host_vector<float>(aObj.objects.size(), 1.f);
 
@@ -49,6 +52,10 @@ __host__ void ObjectBoundsExporter::operator()(
 {
 	oMinBound = rep(FLT_MAX);
 	oMaxBound = rep(-FLT_MAX);
+
+	if (aObj.getNumVertices() <= 0u)
+		return;
+
 	for (auto it = aObj.vertices.begin(); it != aObj.vertices.end(); ++it)
 	{
 		oMinBound = min(*it, oMinBound);
@@ -80,7 +87,7 @@ __host__ WFObject WFObjectMerger::operator()(
 	WFObject obj;
 
 	//assume identical materials in aObj1 and aObj2
-	obj.materials.assign(aObj2.materials.begin(), aObj2.materials.end());
+	obj.materials = aObj2.materials;
 
 	std::vector<size_t> vtxIndexMap1(aObj1.getNumVertices(), (size_t)-1);
 	std::vector<size_t> vtxIndexMap2(aObj2.getNumVertices(), (size_t)-1);
@@ -104,17 +111,17 @@ __host__ WFObject WFObjectMerger::operator()(
 			if (vtxIndexMap1[vtxId1] == (size_t)-1)
 			{
 				vtxIndexMap1[vtxId1] = obj.vertices.size();
-				obj.vertices.push_back(aObj1.vertices[vtxId1] - aTranslation1);
+				obj.vertices.push_back(aObj1.vertices[vtxId1]);
 			}
 			if (vtxIndexMap1[vtxId2] == (size_t)-1)
 			{
 				vtxIndexMap1[vtxId2] = obj.vertices.size();
-				obj.vertices.push_back(aObj1.vertices[vtxId2] - aTranslation1);
+				obj.vertices.push_back(aObj1.vertices[vtxId2]);
 			}
 			if (vtxIndexMap1[vtxId3] == (size_t)-1)
 			{
 				vtxIndexMap1[vtxId3] = obj.vertices.size();
-				obj.vertices.push_back(aObj1.vertices[vtxId3] - aTranslation1);
+				obj.vertices.push_back(aObj1.vertices[vtxId3]);
 			}
 
 			face.vert1 = vtxIndexMap1[vtxId1];
@@ -164,7 +171,7 @@ __host__ WFObject WFObjectMerger::operator()(
 			if (aFlags1[obj1Id] == 0u)
 				continue;
 			size_t matId1 = aObj1.faces[aObj1.objects[obj1Id].x].material;
-			if (len((objCenters1[obj1Id] - aTranslation1) - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
+			if (len(objCenters1[obj1Id] - aTranslation1 - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
 				overlaps = true;
 		}
 		if (overlaps)
@@ -182,17 +189,17 @@ __host__ WFObject WFObjectMerger::operator()(
 			if (vtxIndexMap2[vtxId1] == (size_t)-1)
 			{
 				vtxIndexMap2[vtxId1] = obj.vertices.size();
-				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId1] - aTranslation2));
+				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId1] - aTranslation2) + aTranslation1);
 			}
 			if (vtxIndexMap2[vtxId2] == (size_t)-1)
 			{
 				vtxIndexMap2[vtxId2] = obj.vertices.size();
-				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId2] - aTranslation2));
+				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId2] - aTranslation2) + aTranslation1);
 			}
 			if (vtxIndexMap2[vtxId3] == (size_t)-1)
 			{
 				vtxIndexMap2[vtxId3] = obj.vertices.size();
-				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId3] - aTranslation2));
+				obj.vertices.push_back(transformVec(aRotation2, aObj2.vertices[vtxId3] - aTranslation2) + aTranslation1);
 			}
 
 			face.vert1 = vtxIndexMap2[vtxId1];

@@ -26,6 +26,7 @@ public:
 	__host__ WFObjectGenerator()
 	{
 		seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
+		mRNG = std::default_random_engine(seed);
 		seedNodeId = (unsigned)-1;
 	}
 

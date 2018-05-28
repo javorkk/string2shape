@@ -3,6 +3,7 @@
 
 #include "Algebra.h"
 #include "WFObjUtils.h"
+#include "DebugUtils.h"
 
 #include <thrust/reduce.h>
 
@@ -20,7 +21,6 @@ __host__ WFObject WFObjectGenerator::operator()(
 	thrust::host_vector<unsigned int>& aEdgeTypes2,
 	thrust::host_vector<unsigned int>& aEdgeTypes3)
 {
-
 	mOrientations1.init(aObj1, aGraph1);
 	mOrientations2.init(aObj2, aGraph2);
 	
@@ -33,16 +33,15 @@ __host__ WFObject WFObjectGenerator::operator()(
 
 	WFObject outputObj;
 
-	unsigned int numNodes = aGraph3.numNodes();
+	unsigned int numNodes = (unsigned)aGraph3.numNodes();
 	thrust::host_vector<unsigned int> visited(numNodes, 0u);
 	thrust::host_vector<unsigned int> intervalsHost(aGraph3.intervals);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph3.adjacencyVals);
 
 	if (seedNodeId >= (unsigned int)numNodes)
 	{
-		std::default_random_engine generator(seed);
 		std::uniform_int_distribution<unsigned int> distribution(0u, (unsigned int)numNodes - 1u);
-		seedNodeId = distribution(generator);
+		seedNodeId = distribution(mRNG);
 	}
 
 	unsigned int seedEdgeId = aGraph3.neighborsBegin(seedNodeId);
@@ -61,29 +60,36 @@ __host__ WFObject WFObjectGenerator::operator()(
 		thrust::host_vector<unsigned int> subgraphFlags1(aObj1.getNumObjects(), 0u);
 		subgraphFlags1[seedNodeObj1] = 1u;
 		float3 zero = make_float3(0.f, 0.f, 0.f);
-		outputObj = insertPieces(outputObj, aObj1, subgraphFlags1, zero, -objCenters1[seedNodeObj1], make_quaternion4f(0.f,0.f,0.f,1.f));
+		outputObj = insertPieces(outputObj, aObj1, subgraphFlags1, zero, zero, make_quaternion4f(0.f,0.f,0.f,1.f));
 	}
 	else
 	{
 		thrust::host_vector<unsigned int> subgraphFlags2(aObj2.getNumObjects(), 0u);
 		subgraphFlags2[seedNodeObj2] = 1u;
 		float3 zero = make_float3(0.f, 0.f, 0.f);
-		outputObj = insertPieces(outputObj, aObj2, subgraphFlags2, zero, -objCenters2[seedNodeObj2], make_quaternion4f(0.f, 0.f, 0.f, 1.f));
+		outputObj = insertPieces(outputObj, aObj2, subgraphFlags2, zero, zero, make_quaternion4f(0.f, 0.f, 0.f, 1.f));
 	}
 
 	std::deque<unsigned int> frontier;
 	frontier.push_back(seedNodeId);
 	visited[seedNodeId] = 1u;
 
-	unsigned int indertedNodeCount = 0u;
+	unsigned int insertedNodeCount = 0u;
 	thrust::host_vector<unsigned int> nodeIdMap(aGraph3.numNodes(), 0u);
-	nodeIdMap[seedNodeId] = indertedNodeCount++;
+	nodeIdMap[seedNodeId] = insertedNodeCount++;
 	
 	while (!frontier.empty())
 	{
 		const unsigned int nodeId = frontier.front();
 		frontier.pop_front();
 		
+		if (nodeIdMap[nodeId] >= outputObj.getNumObjects())
+		{
+			std::cerr << "Trying to use non-existing obj-object id " << nodeIdMap[nodeId] << "\n";
+			std::cerr << "Max obj-object id " << outputObj.getNumObjects() << "\n";
+			std::cerr << "Number of insertions: " << insertedNodeCount << "\n";
+			continue;
+		}
 		thrust::host_vector<unsigned int> nodeIds(1, nodeIdMap[nodeId]);
 
 		thrust::host_vector<float3> vertexBufferHost;
@@ -130,25 +136,28 @@ __host__ WFObject WFObjectGenerator::operator()(
 				if (correspondingEdgeIdObj1 == (unsigned)-1)
 				{
 					std::cerr << "Failed to create WFObject node " << neighborId << "\n";
-					std::cerr << "(After inserting " << indertedNodeCount << " nodes.)\n";
-
+					std::cerr << "(After inserting " << insertedNodeCount << " nodes.)\n";
+					std::cerr << "Edge type requested: " << currentEdgeType << "\n";
+					std::cerr << "Edge id : " << currentEdgeId << " out of " << aEdgeTypes3.size() << "\n";
+					outputHostVector("edgeTypes1: ", aEdgeTypes1);
 					continue;
 				}
 
 				unsigned int correspondingNodeIdObj1 = aGraph1.adjacencyKeys[correspondingEdgeIdObj1];
-				
+				unsigned int correspondingNeighborIdObj1 = aGraph1.adjacencyVals[correspondingEdgeIdObj1];
+
 				float3 translationA1 = objCenters1[correspondingNodeIdObj1];
 				quaternion4f rotationA1 = mOrientations1.getAbsoluteRotation(correspondingNodeIdObj1);
 
-				quaternion4f relativeR = rotationA * rotationA1.conjugate();
-				if (isIdentity(relativeR, 0.001f))
+				quaternion4f relativeR = rotationA1 * rotationA.conjugate();
+				//if (isIdentity(relativeR, 0.001f))
 					relativeR = make_quaternion4f(0.f, 0.f, 0.f, 1.f);
 
 				thrust::host_vector<unsigned int> subgraphFlags1(aObj1.getNumObjects(), 0u);
-				subgraphFlags1[correspondingNodeIdObj1] = 1u;
+				subgraphFlags1[correspondingNeighborIdObj1] = 1u;
 				outputObj = insertPieces(outputObj, aObj1, subgraphFlags1, translationA, translationA1, relativeR);
 
-				nodeIdMap[neighborId] = indertedNodeCount++;
+				nodeIdMap[neighborId] = insertedNodeCount++;
 				frontier.push_back(neighborId);
 				visited[neighborId] = 1u;
 			}

@@ -118,7 +118,7 @@ class PlotLearning(Callback):
 
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
-LATENT_DIM = 292
+LSTM_SIZE = 292
 WORD_LENGTH = 120
 MODEL = 'rnn'
 
@@ -134,8 +134,6 @@ def get_arguments():
                         help='Number of epochs to run during training.')
     parser.add_argument('--word_length', type=int, metavar='N', default=WORD_LENGTH,
                         help='Length of input sequences')
-    parser.add_argument('--latent_dim', type=int, metavar='N', default=LATENT_DIM,
-                        help='Dimensionality of the latent representation.')
     parser.add_argument('--batch_size', type=int, metavar='N', default=BATCH_SIZE,
                         help='Number of samples to process per minibatch during training.')
     return parser.parse_args()
@@ -348,9 +346,9 @@ def main():
 
         model = Seq2SeqAE()
         if os.path.isfile(args.out):
-            model.load(charset, charset_cats, args.out, latent_dim=args.latent_dim)
+            model.load(charset, charset_cats, args.out, lstm_size=LSTM_SIZE)
         else:
-            model.create(charset, charset_cats, latent_dim=args.latent_dim)
+            model.create(charset, charset_cats, lstm_size=LSTM_SIZE)
 
         if args.epochs > 0:
             checkpointer = ModelCheckpoint(filepath=args.out,
@@ -437,9 +435,9 @@ def main():
 
         model = Seq2SeqRNN()
         if os.path.isfile(args.out):
-            model.load(charset, charset_cats, args.out, latent_dim=args.latent_dim)
+            model.load(charset, charset_cats, args.out, latent_dim=LSTM_SIZE)
         else:
-            model.create(charset, charset_cats, latent_dim=args.latent_dim)
+            model.create(charset, charset_cats, lstm_size=LSTM_SIZE)
 
         if args.epochs > 0:
             checkpointer = ModelCheckpoint(filepath=args.out,
@@ -514,9 +512,9 @@ def main():
 
         model = Seq2SeqNoMaskRNN()
         if os.path.isfile(args.out):
-            model.load(charset, charset_cats, args.out, latent_dim=args.latent_dim)
+            model.load(charset, charset_cats, args.out, latent_dim=LSTM_SIZE)
         else:
-            model.create(charset, charset_cats, latent_dim=args.latent_dim)
+            model.create(charset, charset_cats, lstm_size=LSTM_SIZE)
 
         if args.epochs > 0:
             checkpointer = ModelCheckpoint(filepath=args.out,

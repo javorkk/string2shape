@@ -22,12 +22,14 @@ class WFObjectGenerator
 public:
 	unsigned int seed;
 	unsigned int seedNodeId;
+	bool strictEmbeddingFlag;
 
 	__host__ WFObjectGenerator()
 	{
 		seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
 		mRNG = std::default_random_engine(seed);
 		seedNodeId = (unsigned)-1;
+		strictEmbeddingFlag = true;
 	}
 
 	__host__ WFObject operator()(
@@ -45,6 +47,14 @@ public:
 		thrust::host_vector<unsigned int>& aEdgeTypes3
 		);
 
+	void appendNode(
+		WFObject &outputObj,
+		unsigned int correspondingEdgeIdObj1,
+		Graph & aGraph1,
+		WFObject & aObj1,
+		const quaternion4f &rotationA,
+		const float3 &translationA);
+
 	//inserts Obj-objects from aObj2 into aObj1
 	//all Obj-objects in aObj1 participate
 	//only flagged Obj-objects in aObj2 participate
@@ -57,13 +67,33 @@ public:
 		const quaternion4f& aRotation);
 
 	__host__ unsigned int findCorresponingEdgeId(
+		Graph& aGraph,
 		thrust::host_vector<unsigned int>& aEdgeTypes1,
-		unsigned int aTargetEdgeType);
+		unsigned int aTargetEdgeType,
+		unsigned int aTargetReverseType);
 
 	__host__ void translateObj(
 		WFObject& aObj,
 		unsigned int aObjId,
 		const float3 & aTranslation);
+
+	__host__ FORCE_INLINE unsigned int getOpositeEdgeId(
+		unsigned int aEdgeId,
+		thrust::host_vector<unsigned int>& intervals,
+		thrust::host_vector<unsigned int>& adjacencyKeys,
+		thrust::host_vector<unsigned int>& adjacencyVals)
+	{
+		if (aEdgeId >= adjacencyVals.size())
+			return (unsigned)adjacencyVals.size();
+		unsigned int oposingKey = adjacencyVals[aEdgeId];
+		unsigned int oposingVal = adjacencyKeys[aEdgeId];
+		for (unsigned int id = intervals[oposingKey]; id < intervals[oposingKey + 1]; ++id)
+			if (adjacencyVals[id] == oposingVal)
+				return id;
+		return (unsigned)adjacencyVals.size();
+	}
+
+
 };
 
 

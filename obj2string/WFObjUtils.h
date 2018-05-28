@@ -37,7 +37,8 @@ public:
 		float3 aTranslation2,
 		quaternion4f aRotation2,
 		const thrust::host_vector<unsigned int>& aFlags1,
-		const thrust::host_vector<unsigned int>& aFlags2) const;
+		const thrust::host_vector<unsigned int>& aFlags2,
+		bool skipOverlappingObjects = true) const;
 };
 
 class WFObjectFileExporter

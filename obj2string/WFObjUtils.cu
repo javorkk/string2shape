@@ -70,7 +70,8 @@ __host__ WFObject WFObjectMerger::operator()(
 	float3 aTranslation2,
 	quaternion4f aRotation2,
 	const thrust::host_vector<unsigned int>& aFlags1,
-	const thrust::host_vector<unsigned int>& aFlags2) const
+	const thrust::host_vector<unsigned int>& aFlags2,
+	bool skipOverlappingObjects) const
 {
 
 	thrust::host_vector<float3> objCenters1;
@@ -164,18 +165,21 @@ __host__ WFObject WFObjectMerger::operator()(
 	{
 		if (aFlags2[obj2Id] == 0u)
 			continue;
-		size_t matId2 = aObj2.faces[aObj2.objects[obj2Id].x].material;
-		bool overlaps = false;
-		for (size_t obj1Id = 0; obj1Id < aObj1.objects.size() && !overlaps; ++obj1Id)
+		if (skipOverlappingObjects)
 		{
-			if (aFlags1[obj1Id] == 0u)
+			size_t matId2 = aObj2.faces[aObj2.objects[obj2Id].x].material;
+			bool overlaps = false;
+			for (size_t obj1Id = 0; obj1Id < aObj1.objects.size() && !overlaps; ++obj1Id)
+			{
+				if (aFlags1[obj1Id] == 0u)
+					continue;
+				size_t matId1 = aObj1.faces[aObj1.objects[obj1Id].x].material;
+				if (len(objCenters1[obj1Id] - aTranslation1 - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
+					overlaps = true;
+			}
+			if (overlaps)
 				continue;
-			size_t matId1 = aObj1.faces[aObj1.objects[obj1Id].x].material;
-			if (len(objCenters1[obj1Id] - aTranslation1 - transformVec(aRotation2, objCenters2[obj2Id] - aTranslation2)) < 0.125f * objSizes1[obj1Id] && matId1 == matId2)
-				overlaps = true;
 		}
-		if (overlaps)
-			continue;
 
 		for (int faceId = aObj2.objects[obj2Id].x; faceId < aObj2.objects[obj2Id].y; ++faceId)
 		{

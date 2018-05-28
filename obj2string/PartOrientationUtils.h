@@ -266,7 +266,7 @@ public:
 		outTranslation[outId] = transformVec(rot1.conjugate(), translation[nodeId2] - translation[nodeId1]);
 		quaternion4f rot2 = rotation[nodeId2];
 		outRotation[outId] = rot2.conjugate() * rot1;
-		outRotationAbs[outId] = rot1.conjugate();
+		outRotationAbs[outId] = rot1;
 	}
 
 };

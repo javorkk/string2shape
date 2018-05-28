@@ -391,6 +391,7 @@ __host__ void Graph::fromAdjacencyList(size_t aNumNodes, bool aSorted)
 
 	if (!aSorted)
 	{
+		thrust::sort_by_key(adjacencyVals.begin(), adjacencyVals.end(), adjacencyKeys.begin());
 		thrust::sort_by_key(adjacencyKeys.begin(), adjacencyKeys.end(), adjacencyVals.begin());
 	}
 

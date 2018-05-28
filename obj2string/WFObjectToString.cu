@@ -366,23 +366,92 @@ extern "C" {
 			unsigned int nodeId_1 = keys3[i];
 			unsigned int nodeId_2 = vals3[i];
 			unsigned int edgeTypeId = edgeTypes3[i];
-			for (unsigned int edgeId = graph3.intervals[nodeId_1]; edgeId < graph3.intervals[nodeId_1 + 1]; ++edgeId)
-			{
-				if (graph3.adjacencyVals[edgeId] == nodeId_2)
-				{
-					edgeTypes3Host[edgeId] = edgeTypeId;
-					break;
-				}
-			}
+			unsigned int edgeId = graph3.getEdgeId(nodeId_1, nodeId_2);
+			edgeTypes3Host[edgeId] = edgeTypeId;
 		}
 
 		//outputDeviceVector("keys3     : ", graph3.adjacencyKeys);
 		//outputDeviceVector("vals3     : ", graph3.adjacencyVals);
 		//outputHostVector("edgeTypes3: ", edgeTypes3Host);
 
-		WFObject obj3 = WFObjectGenerator()(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+		WFObjectGenerator embedGraphAsObj;
+
+		///////////////////////////
+		//check edge configurations
+		///////////////////////////
+		for (unsigned int edgeId3 = 0; edgeId3 < edgeTypes3Host.size(); ++edgeId3)
+		{
+			unsigned int edgeTypeId3 = edgeTypes3Host[edgeId3];
+			unsigned int node3A = graph3.adjacencyKeys[edgeId3];
+			unsigned int node3B = graph3.adjacencyVals[edgeId3];
+
+			unsigned int oposingEdgeId3 = graph3.getOpositeEdgeId(edgeId3);
+			unsigned int oposingTypeId3 = edgeTypes3Host[oposingEdgeId3];
+			
+			bool foundIn1 = false;
+			for (unsigned int edgeId1 = 0; edgeId1 < edgeTypes1.size(); ++edgeId1)
+			{
+				unsigned int edgeTypeId1 = edgeTypes1[edgeId1];
+				unsigned int node1A = graph1.adjacencyKeys[edgeId3];
+				unsigned int node1B = graph1.adjacencyVals[edgeId3];
+
+				unsigned int oposingEdgeId1 = graph1.getOpositeEdgeId(edgeId1);
+				unsigned int oposingTypeId1 = edgeTypes1[oposingEdgeId1];
+
+				if (edgeTypeId3 == edgeTypeId1 && oposingTypeId3 == oposingTypeId1)
+				{
+					foundIn1 = true;
+					break;
+				}
+			}
+			bool foundIn2 = false;
+			for (unsigned int edgeId2 = 0; edgeId2 < edgeTypes2.size(); ++edgeId2)
+			{
+				unsigned int edgeTypeId2 = edgeTypes2[edgeId2];
+				unsigned int node1A = graph2.adjacencyKeys[edgeId3];
+				unsigned int node1B = graph2.adjacencyVals[edgeId3];
+
+				unsigned int oposingEdgeId2 = graph1.getOpositeEdgeId(edgeId2);
+				unsigned int oposingTypeId2 = edgeTypes1[oposingEdgeId2];
+
+				if (edgeTypeId3 == edgeTypeId2 && oposingTypeId3 == oposingTypeId2)
+				{
+					foundIn2 = true;
+					break;
+				}
+			}
+			if (!foundIn1 && !foundIn2)
+			{
+				std::cerr << "Did not find type pair " << edgeTypeId3 << " and " << oposingTypeId3 << "\n";
+				std::cerr << "Node ids in target graph " << node3A << " and " << node3B << "\n";
+				std::cerr << "Falling back to non-strict embedding.\n";				
+			}
+		}
+
+		WFObject obj3 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
 
 		WFObjectFileExporter()(obj3, aOutFileName);
+
+		embedGraphAsObj.strictEmbeddingFlag = false;
+		WFObject obj4 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+
+		std::string nonStrictObjFileName = std::string(aOutFileName) + std::string("_non_strict");
+		WFObjectFileExporter()(obj4, nonStrictObjFileName.c_str());
+
+		Wiggle wiggle;
+		wiggle.init(obj1, graph1);
+		wiggle.init(obj2, graph2);
+		//wiggle.debugOutputLocalFrames = true;
+
+		for (size_t i = 0; i < 128u; ++i)
+		{
+			wiggle.fixRelativeTransformations(obj4, graph3);
+			if (wiggle.numCorrections == 0u)
+				break;
+		}
+
+		std::string fixedObjFileName = std::string(aOutFileName) + std::string("_fixed");
+		WFObjectFileExporter()(obj4, fixedObjFileName.c_str());
 
 		return 0;
 	}

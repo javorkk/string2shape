@@ -23,27 +23,48 @@ public:
 
 	__host__ FORCE_INLINE size_t numEdges() const { return adjacencyVals.size() / 2u; }
 
-	__host__ FORCE_INLINE unsigned int neighborsBegin(const unsigned int aNodeId)
+	__host__ FORCE_INLINE unsigned int neighborsBegin(const unsigned int aNodeId) const
 	{
 		if (aNodeId >= intervals.size() - 2)
 			return (unsigned int) -1;//invalid node id
 
 		return intervals[aNodeId];
 	}
-	__host__ FORCE_INLINE unsigned int neighborsEnd(const unsigned int aNodeId)
+	__host__ FORCE_INLINE unsigned int neighborsEnd(const unsigned int aNodeId) const
 	{
 		if (aNodeId >= intervals.size() - 2)
 			return (unsigned int)-1;//invalid node id
 
 		return intervals[aNodeId + 1];
 	}
-	__host__ FORCE_INLINE unsigned int getNeighbor(const unsigned int aNeighborId)
+	__host__ FORCE_INLINE unsigned int getNeighbor(const unsigned int aNeighborId) const
 	{
 		if (aNeighborId >= adjacencyVals.size() - 1)
 			return (unsigned int)-1;//invalid id
 
 		return adjacencyVals[aNeighborId];
 	}
+
+	__host__ FORCE_INLINE unsigned int getEdgeId(unsigned int NodeIdA, unsigned int NodeIdB) const
+	{
+		if (NodeIdA >= numNodes() || NodeIdB >= numNodes())
+			return (unsigned)numEdges() * 2u;
+		thrust::host_vector<unsigned int> hostVals(adjacencyVals.begin() + intervals[NodeIdA], adjacencyVals.begin() + intervals[NodeIdA + 1]);
+		for (unsigned int id = 0u; id < hostVals.size(); ++id)
+			if (hostVals[id] == NodeIdB)
+				return id + intervals[NodeIdA];
+		return (unsigned)numEdges() * 2u;
+	}
+
+	__host__ FORCE_INLINE unsigned int getOpositeEdgeId(unsigned int aEdgeId) const
+	{
+		if (aEdgeId >= (unsigned)numEdges() * 2u)
+			return (unsigned)numEdges() * 2u;
+		unsigned int oposingKey = adjacencyVals[aEdgeId];
+		unsigned int oposingVal = adjacencyKeys[aEdgeId];
+		return  getEdgeId(oposingKey, oposingVal);
+	}
+
 	
 	__host__ void fromAdjacencyMatrix(thrust::device_vector<unsigned int>& aAdjacencyMatrix, size_t aStride);
 	

@@ -5,7 +5,7 @@ import os
 import h5py
 import numpy as np
 
-from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_GRU_VAE
+from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_GRU_VAE, Tiling_LSTM_VAE_
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
     decode_smiles_from_indexes, load_dataset
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
@@ -33,7 +33,7 @@ def get_arguments():
     parser.add_argument('--batch_size', type=int, metavar='N', default=BATCH_SIZE,
                         help='Number of samples to process per minibatch during training.')
     parser.add_argument('--type', type=str, default=TYPE,
-                        help='What type model to train: simple, lstm, gru.')
+                        help='What type model to train: simple, lstm, lstm_, gru.')
     return parser.parse_args()
 
 class PlotLearning(Callback):
@@ -94,11 +94,14 @@ def main():
     #    print(exaple)
 
     #return
-    model = TilingVAE()
     if args.type == 'lstm':
         model = Tiling_LSTM_VAE()
     elif args.type == 'gru':
         model = Tiling_GRU_VAE()
+    elif args.type == 'lstm_':
+        model = Tiling_LSTM_VAE_()
+    else:
+        model = TilingVAE()
 
     if os.path.isfile(args.model):
         model.load(charset, args.model, max_w_length=word_length, latent_rep_size=args.latent_dim)
@@ -112,7 +115,7 @@ def main():
     reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
                                   factor = 0.2,
                                   patience = 3,
-                                  min_lr = 0.0001)
+                                  min_lr = 0.00001)
 
     filename, ext = os.path.splitext(args.model) 
     plot_model(model.autoencoder, to_file=filename + '_nn.pdf', show_shapes=True)

@@ -153,12 +153,9 @@ def main():
     cluster_centers, node_types = shape_graph.categorize_edges(file_list[:10], tile_grammar)
 
     output_str_a =  file_to_graph_with_categories(inputA, cluster_centers, tile_grammar)
-    print("input string a: ")
-    print(output_str_a)
 
     output_str_b =  file_to_graph_with_categories(inputB, cluster_centers, tile_grammar)
-    print("input string b: ")
-    print(output_str_b)
+
 
     data_train, categories_train, masks_train, data_test, categories_test, masks_test, charset, charset_cats = load_categories_dataset(args.data)
 
@@ -184,6 +181,9 @@ def main():
         target_str += str(categ) + " "
     target_str += "\n"
 
+
+    print("target string: ")
+    print(target_str)
     filename, ext = os.path.splitext(args.out)
 
 

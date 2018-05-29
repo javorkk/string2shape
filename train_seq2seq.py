@@ -435,7 +435,7 @@ def main():
 
         model = Seq2SeqRNN()
         if os.path.isfile(args.out):
-            model.load(charset, charset_cats, args.out, latent_dim=LSTM_SIZE)
+            model.load(charset, charset_cats, args.out, lstm_size=LSTM_SIZE)
         else:
             model.create(charset, charset_cats, lstm_size=LSTM_SIZE)
 
@@ -512,7 +512,7 @@ def main():
 
         model = Seq2SeqNoMaskRNN()
         if os.path.isfile(args.out):
-            model.load(charset, charset_cats, args.out, latent_dim=LSTM_SIZE)
+            model.load(charset, charset_cats, args.out, lstm_size=LSTM_SIZE)
         else:
             model.create(charset, charset_cats, lstm_size=LSTM_SIZE)
 

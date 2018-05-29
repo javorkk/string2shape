@@ -318,7 +318,11 @@ def smiles_to_all_edge_categories(word, node_ids, cluster_centers, graph, t_gram
             padded_node_ids.append(dummy_node_id)
     padded_node_ids.append(dummy_node_id) #ensure at least one occurence
 
-    edge_list = t_grammar.smiles_to_edges(word, padded_node_ids)
+    initial_edge_list = t_grammar.smiles_to_edges(word, padded_node_ids)
+    edge_list = []
+    for edge in initial_edge_list:
+        edge_list.append(edge)
+        edge_list.append([edge[1], edge[0]])
 
     num_categories = 0
     categories_prefix = [0]
@@ -333,29 +337,6 @@ def smiles_to_all_edge_categories(word, node_ids, cluster_centers, graph, t_gram
             continue
             #edge_categories.append(num_categories)
         else:
-            edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
-            char_a = word[padded_node_ids.index(node_id_pair[0])]
-            char_b = word[padded_node_ids.index(node_id_pair[1])]
-            type_pair = [char_a, char_b]
-            cluster_set_id = t_grammar.neighbor_types.index(type_pair)
-            
-            relative_translation = graph.relative_translations[edge_index]
-            closest_cluster_center_id = num_categories
-            dist = float("inf")
-            for i in range(cluster_centers[cluster_set_id].shape[0]):
-                current = np.linalg.norm(cluster_centers[cluster_set_id][i] - relative_translation)
-                if current < dist:
-                    dist = current
-                    closest_cluster_center_id = i
-            edge_categories.append(closest_cluster_center_id + categories_prefix[cluster_set_id])
-            output_edges.append(node_id_pair)
-
-    for node_id_pair in edge_list:
-        if node_id_pair == [dummy_node_id, dummy_node_id]:
-            continue
-            #edge_categories.append(num_categories)
-        else:
-            node_id_pair = [node_id_pair[1], node_id_pair[0]]
             edge_index = np.where((np.array(node_id_pair) == graph.node_ids).sum(axis=1) == 2)[0]
             char_a = word[padded_node_ids.index(node_id_pair[0])]
             char_b = word[padded_node_ids.index(node_id_pair[1])]

@@ -548,7 +548,7 @@ class TilingGrammar():
 
         return edge_list
 
-    def smiles_to_categories_bounds(self, word):
+    def smiles_to_categories_bounds(self, word, invert_edge_direction=False):
         dummy_type = str(unichr(127))
         padded_node_types = []
         for i, char in enumerate(word):
@@ -568,6 +568,10 @@ class TilingGrammar():
         for type_pair in node_types_list:
             if type_pair == [dummy_type, dummy_type]:
                 bounds_list.append([num_categories, num_categories + 1])
+            elif invert_edge_direction:
+                inverted_pair = [type_pair[1], type_pair[0]]
+                i_type_id = self.neighbor_types.index(inverted_pair)
+                bounds_list.append([self.categories_prefix[i_type_id], self.categories_prefix[i_type_id + 1]])
             else:
                 type_id = self.neighbor_types.index(type_pair)
                 bounds_list.append([self.categories_prefix[type_id], self.categories_prefix[type_id + 1]])

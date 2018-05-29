@@ -379,6 +379,7 @@ extern "C" {
 		///////////////////////////
 		//check edge configurations
 		///////////////////////////
+		bool allEdgeTypesFound = true;
 		for (unsigned int edgeId3 = 0; edgeId3 < edgeTypes3Host.size(); ++edgeId3)
 		{
 			unsigned int edgeTypeId3 = edgeTypes3Host[edgeId3];
@@ -392,8 +393,6 @@ extern "C" {
 			for (unsigned int edgeId1 = 0; edgeId1 < edgeTypes1.size(); ++edgeId1)
 			{
 				unsigned int edgeTypeId1 = edgeTypes1[edgeId1];
-				unsigned int node1A = graph1.adjacencyKeys[edgeId3];
-				unsigned int node1B = graph1.adjacencyVals[edgeId3];
 
 				unsigned int oposingEdgeId1 = graph1.getOpositeEdgeId(edgeId1);
 				unsigned int oposingTypeId1 = edgeTypes1[oposingEdgeId1];
@@ -408,11 +407,9 @@ extern "C" {
 			for (unsigned int edgeId2 = 0; edgeId2 < edgeTypes2.size(); ++edgeId2)
 			{
 				unsigned int edgeTypeId2 = edgeTypes2[edgeId2];
-				unsigned int node1A = graph2.adjacencyKeys[edgeId3];
-				unsigned int node1B = graph2.adjacencyVals[edgeId3];
 
-				unsigned int oposingEdgeId2 = graph1.getOpositeEdgeId(edgeId2);
-				unsigned int oposingTypeId2 = edgeTypes1[oposingEdgeId2];
+				unsigned int oposingEdgeId2 = graph2.getOpositeEdgeId(edgeId2);
+				unsigned int oposingTypeId2 = edgeTypes2[oposingEdgeId2];
 
 				if (edgeTypeId3 == edgeTypeId2 && oposingTypeId3 == oposingTypeId2)
 				{
@@ -422,38 +419,94 @@ extern "C" {
 			}
 			if (!foundIn1 && !foundIn2)
 			{
-				std::cerr << "Did not find type pair " << edgeTypeId3 << " and " << oposingTypeId3 << "\n";
-				std::cerr << "Node ids in target graph " << node3A << " and " << node3B << "\n";
-				std::cerr << "Falling back to non-strict embedding.\n";				
+				allEdgeTypesFound = false;
+				//std::cerr << "Did not find type pair " << edgeTypeId3 << " and " << oposingTypeId3 << "\n";
+				//std::cerr << "Node ids in target graph " << node3A << " and " << node3B << "\n";							
 			}
 		}
 
-		WFObject obj3 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+		if(!allEdgeTypesFound)
+			std::cerr << "Did not find examples for some of the requested edge type pairs in the input shapes.\n";
 
-		WFObjectFileExporter()(obj3, aOutFileName);
+		GrammarCheck grammarCheck;
+		grammarCheck.init(obj1, graph1.intervals, graph1.adjacencyVals);
+		grammarCheck.init(obj2, graph2.intervals, graph2.adjacencyVals);
 
-		embedGraphAsObj.strictEmbeddingFlag = false;
-		WFObject obj4 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
-
-		std::string nonStrictObjFileName = std::string(aOutFileName) + std::string("_non_strict");
-		WFObjectFileExporter()(obj4, nonStrictObjFileName.c_str());
-
-		Wiggle wiggle;
-		wiggle.init(obj1, graph1);
-		wiggle.init(obj2, graph2);
-		//wiggle.debugOutputLocalFrames = true;
-
-		for (size_t i = 0; i < 128u; ++i)
+		for (size_t attempt = 0; attempt < 16; ++attempt)
 		{
-			wiggle.fixRelativeTransformations(obj4, graph3);
-			if (wiggle.numCorrections == 0u)
-				break;
+			WFObject obj3 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+			
+			if (obj3.getNumObjects() <= 0)
+				continue;
+
+			Graph graph3_1 = detector.computeCollisionGraph(obj3, 0.0f);
+			thrust::host_vector<unsigned int> nodeTypes(graph3_1.numNodes());
+			for (size_t nodeId = 0; nodeId < graph3_1.numNodes(); ++nodeId)
+			{
+				size_t faceId = obj3.objects[nodeId].x;
+				size_t materialId = obj3.faces[faceId].material;
+				nodeTypes[nodeId] = (unsigned int)materialId;
+			}
+			thrust::host_vector<unsigned int> hostIntervals(graph3_1.intervals);
+			thrust::host_vector<unsigned int> hostNbrIds(graph3_1.adjacencyVals);
+
+			if (grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
+			{
+				WFObjectFileExporter()(obj3, aOutFileName);
+				if(obj3.getNumObjects() == graph3.numNodes())
+					return 0;
+			}
 		}
 
-		std::string fixedObjFileName = std::string(aOutFileName) + std::string("_fixed");
-		WFObjectFileExporter()(obj4, fixedObjFileName.c_str());
+		embedGraphAsObj.strictEmbeddingFlag = false;
+		for (size_t attempt = 0; attempt < 16; ++attempt)
+		{
+			WFObject obj3 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+			
+			if (obj3.getNumObjects() <= 0)
+				continue;
 
-		return 0;
+			Graph graph3_1= detector.computeCollisionGraph(obj3, 0.0f);
+			thrust::host_vector<unsigned int> nodeTypes(graph3_1.numNodes());
+			for (size_t nodeId = 0; nodeId < graph3_1.numNodes(); ++nodeId)
+			{
+				size_t faceId = obj3.objects[nodeId].x;
+				size_t materialId = obj3.faces[faceId].material;
+				nodeTypes[nodeId] = (unsigned int)materialId;
+			}
+			thrust::host_vector<unsigned int> hostIntervals(graph3_1.intervals);
+			thrust::host_vector<unsigned int> hostNbrIds(graph3_1.adjacencyVals);
+
+			if (grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes))
+			{
+				std::cerr << "Found a valid graph embedding using not strictly matching edge category pairs.\n";
+				WFObjectFileExporter()(obj3, aOutFileName);
+				return 0;
+			}
+		}
+
+		std::string lastAttemptObjFileName = std::string(aOutFileName) + std::string("_attempt");
+		
+		//embedGraphAsObj.strictEmbeddingFlag = true;
+		WFObject obj3 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
+
+		//Wiggle wiggle;
+		//wiggle.init(obj1, graph1);
+		//wiggle.init(obj2, graph2);
+		////wiggle.debugOutputLocalFrames = true;
+
+		//for (size_t i = 0; i < 128u; ++i)
+		//{
+		//	wiggle.fixRelativeTransformations(obj3, graph3);
+		//	if (wiggle.numCorrections == 0u)
+		//		break;
+		//}
+
+		WFObjectFileExporter()(obj3, lastAttemptObjFileName.c_str());
+
+		//std::cerr << "Failed to find a valid shape embedding. Writing an attempt in " << lastAttemptObjFileName << ".obj\n";
+
+		return 1;
 	}
 
 

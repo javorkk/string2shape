@@ -39,27 +39,28 @@ __host__ WFObject WFObjectGenerator::operator()(
 	thrust::host_vector<unsigned int> adjacencyKeysHost(aGraph3.adjacencyKeys);
 	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph3.adjacencyVals);
 
-	if (seedNodeId >= (unsigned int)numNodes)
-	{
-		std::uniform_int_distribution<unsigned int> distribution(0u, (unsigned int)numNodes - 1u);
-		seedNodeId = distribution(mRNG);
-	}
+	std::uniform_int_distribution<unsigned int> randNodeId(0u, numNodes - 1u);
+	seedNodeId = randNodeId(mRNG);
 
-	unsigned int seedEdgeId = aGraph3.neighborsBegin(seedNodeId);
+	std::uniform_int_distribution<unsigned int> randEdgeId(intervalsHost[seedNodeId], intervalsHost[seedNodeId + 1] - 1);
+
+	unsigned int seedEdgeId = randEdgeId(mRNG);
 	unsigned int seedEdgeType = aEdgeTypes3[seedEdgeId];
 	unsigned int reverseSeedEdgeId = getOpositeEdgeId(seedEdgeId, intervalsHost, adjacencyKeysHost, adjacencyValsHost);
 	unsigned int reverseTypeId = aEdgeTypes3[reverseSeedEdgeId];
 
-	unsigned int seedNodeObj1 = aGraph1.adjacencyKeys[findCorresponingEdgeId(aGraph1, aEdgeTypes1, seedEdgeType, reverseTypeId)];
-	unsigned int seedNodeObj2 = aGraph2.adjacencyKeys[findCorresponingEdgeId(aGraph2, aEdgeTypes2, seedEdgeType, reverseTypeId)];
 
-	if (seedNodeObj1 == (unsigned)-1 && seedNodeObj2 == (unsigned)-1)
+	unsigned int correspondingEdgeG1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, seedEdgeType, reverseTypeId);
+	unsigned int correspondingEdgeG2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, seedEdgeType, reverseTypeId);
+	
+	if (correspondingEdgeG1 >= (unsigned)aGraph1.adjacencyKeys.size() && correspondingEdgeG2 >= (unsigned)aGraph2.adjacencyKeys.size())
 	{
 		std::cerr << "Failed to initialize WFObject creation at node " << seedNodeId << "\n";
 		return outputObj;
 	}
-	if (seedNodeObj1 != (unsigned)-1)
+	if (correspondingEdgeG1 < aGraph1.adjacencyKeys.size())
 	{
+		unsigned int seedNodeObj1 = aGraph1.adjacencyKeys[correspondingEdgeG1];
 		thrust::host_vector<unsigned int> subgraphFlags1(aObj1.getNumObjects(), 0u);
 		subgraphFlags1[seedNodeObj1] = 1u;
 		float3 zero = make_float3(0.f, 0.f, 0.f);
@@ -67,10 +68,11 @@ __host__ WFObject WFObjectGenerator::operator()(
 	}
 	else
 	{
+		unsigned int seedNodeObj2 = aGraph2.adjacencyKeys[correspondingEdgeG2];
 		thrust::host_vector<unsigned int> subgraphFlags2(aObj2.getNumObjects(), 0u);
 		subgraphFlags2[seedNodeObj2] = 1u;
 		float3 zero = make_float3(0.f, 0.f, 0.f);
-		outputObj = insertPieces(outputObj, aObj2, subgraphFlags2, zero, objCenters2[seedNodeObj1], make_quaternion4f(0.f, 0.f, 0.f, 1.f));
+		outputObj = insertPieces(outputObj, aObj2, subgraphFlags2, zero, objCenters2[seedNodeObj2], make_quaternion4f(0.f, 0.f, 0.f, 1.f));
 	}
 
 	std::deque<unsigned int> frontier;
@@ -143,22 +145,22 @@ __host__ WFObject WFObjectGenerator::operator()(
 				unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType, reverseEdgeType);
 				unsigned int correspondingEdgeIdObj2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, currentEdgeType, reverseEdgeType);
 				
-				if (correspondingEdgeIdObj1 != (unsigned)-1)
+				if (correspondingEdgeIdObj2 != (unsigned)-1 && (randNodeId(mRNG) < numNodes / 2u || correspondingEdgeIdObj1 == (unsigned)-1))
 				{
-					appendNode(outputObj, correspondingEdgeIdObj1, aGraph1, aObj1, rotationA, translationA);
+					appendNode(outputObj, correspondingEdgeIdObj2, aGraph2, aObj2, objCenters2, mOrientations2, rotationA, translationA);
 				}
-				else if (correspondingEdgeIdObj2 != (unsigned)-1)
+				else if (correspondingEdgeIdObj1 != (unsigned)-1)
 				{
-					appendNode(outputObj, correspondingEdgeIdObj2, aGraph2, aObj2, rotationA, translationA);
+					appendNode(outputObj, correspondingEdgeIdObj1, aGraph1, aObj1, objCenters1, mOrientations1, rotationA, translationA);
 				}
 				else
 				{
-					std::cerr << "Skipping WFObject node " << neighborId << "\n";
-					std::cerr << "(After inserting " << insertedNodeCount << " nodes.)\n";
-					std::cerr << "Edge type A->B requested: " << currentEdgeType << "\n";
-					std::cerr << "Edge type B->A requested: " << reverseEdgeType << "\n";
-					std::cerr << "Edge id : " << currentEdgeId << " out of " << aEdgeTypes3.size() << "\n";
-					std::cerr << "Reverse edge id : " << reverseEdgeId << " out of " << aEdgeTypes3.size() << "\n";
+					//std::cerr << "Skipping WFObject node " << neighborId << "\n";
+					//std::cerr << "(After inserting " << insertedNodeCount << " nodes.)\n";
+					//std::cerr << "Edge type A->B requested: " << currentEdgeType << "\n";
+					//std::cerr << "Edge type B->A requested: " << reverseEdgeType << "\n";
+					//std::cerr << "Edge id : " << currentEdgeId << " out of " << aEdgeTypes3.size() << "\n";
+					//std::cerr << "Reverse edge id : " << reverseEdgeId << " out of " << aEdgeTypes3.size() << "\n";
 					continue;
 				}
 
@@ -178,24 +180,26 @@ __host__ WFObject WFObjectGenerator::operator()(
 void WFObjectGenerator::appendNode(
 	WFObject &outputObj,
 	unsigned int correspondingEdgeIdObj1,
-	Graph & aGraph1,
-	WFObject & aObj1,
+	Graph & aGraph,
+	WFObject & aObj,
+	thrust::host_vector<float3>& aCenters,
+	PartOrientationEstimator& aOrientations,
 	const quaternion4f &rotationA,
 	const float3 &translationA)
 {
-	unsigned int correspondingNodeIdObj1 = aGraph1.adjacencyKeys[correspondingEdgeIdObj1];
-	unsigned int correspondingNeighborIdObj1 = aGraph1.adjacencyVals[correspondingEdgeIdObj1];
+	unsigned int correspondingNodeIdObj = aGraph.adjacencyKeys[correspondingEdgeIdObj1];
+	unsigned int correspondingNeighborIdObj = aGraph.adjacencyVals[correspondingEdgeIdObj1];
 
-	float3 translationA1 = objCenters1[correspondingNodeIdObj1];
-	quaternion4f rotationA1 = mOrientations1.getAbsoluteRotation(correspondingNodeIdObj1);
+	float3 translationA1 = aCenters[correspondingNodeIdObj];
+	quaternion4f rotationA1 = aOrientations.getAbsoluteRotation(correspondingNodeIdObj);
 
 	quaternion4f relativeR = rotationA * rotationA1.conjugate();
 	if (isIdentity(relativeR, 0.001f))
 		relativeR = make_quaternion4f(0.f, 0.f, 0.f, 1.f);
 
-	thrust::host_vector<unsigned int> subgraphFlags1(aObj1.getNumObjects(), 0u);
-	subgraphFlags1[correspondingNeighborIdObj1] = 1u;
-	outputObj = insertPieces(outputObj, aObj1, subgraphFlags1, translationA, translationA1, relativeR);
+	thrust::host_vector<unsigned int> subgraphFlags(aObj.getNumObjects(), 0u);
+	subgraphFlags[correspondingNeighborIdObj] = 1u;
+	outputObj = insertPieces(outputObj, aObj, subgraphFlags, translationA, translationA1, relativeR);
 }
 
 __host__ WFObject WFObjectGenerator::insertPieces(
@@ -238,11 +242,11 @@ __host__ unsigned int WFObjectGenerator::findCorresponingEdgeId(
 		{
 			return reverseId;
 		}
-		else if (strictEmbeddingFlag && aEdgeTypes1[edgeId] == aTargetEdgeType)
+		else if (!strictEmbeddingFlag && aEdgeTypes1[edgeId] == aTargetEdgeType)
 		{
 			bestInvalidEdgeId = edgeId;
 		}
-		else if (strictEmbeddingFlag && aEdgeTypes1[reverseId] == aTargetEdgeType)
+		else if (!strictEmbeddingFlag && aEdgeTypes1[reverseId] == aTargetEdgeType)
 		{
 			bestInvalidEdgeId = reverseId;
 		}

@@ -50,8 +50,10 @@ public:
 	void appendNode(
 		WFObject &outputObj,
 		unsigned int correspondingEdgeIdObj1,
-		Graph & aGraph1,
-		WFObject & aObj1,
+		Graph & aGraph,
+		WFObject & aObj,
+		thrust::host_vector<float3>& aCenters,
+		PartOrientationEstimator& aOrientations,
 		const quaternion4f &rotationA,
 		const float3 &translationA);
 

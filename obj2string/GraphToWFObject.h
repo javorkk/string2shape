@@ -47,7 +47,7 @@ public:
 		thrust::host_vector<unsigned int>& aEdgeTypes3
 		);
 
-	void appendNode(
+	WFObject appendNode(
 		WFObject &outputObj,
 		unsigned int correspondingEdgeIdObj1,
 		Graph & aGraph,

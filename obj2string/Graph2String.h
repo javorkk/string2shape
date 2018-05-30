@@ -142,5 +142,12 @@ public:
 
 	__host__ void cleanup();
 
+
+	__host__ bool checkSubgraph(
+		WFObject& aObj,
+		thrust::device_vector<unsigned int>& aIntervals,
+		thrust::device_vector<unsigned int>& aNbrIds
+	);
+
 };
 #endif // GRAPH2STRING_H_18BBEE2E_4283_4957_8B2C_8AC609108C63

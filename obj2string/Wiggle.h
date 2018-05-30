@@ -76,6 +76,12 @@ public:
 		const float3& aObjCenter,
 		const float3 & aTranslation,
 		const quaternion4f& aRotation);
+
+	__host__ bool fixEdge(
+		WFObject&		aObj,
+		unsigned int	aObjId1,
+		unsigned int	aObjId2,
+		unsigned int	aMaxIterations);
 };
 
 

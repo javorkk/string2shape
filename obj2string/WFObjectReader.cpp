@@ -729,6 +729,56 @@ size_t WFObject::insertMaterial(const Material& aMaterial)
     return materials.size() - 1u;
 }
 
+float3 WFObject::getObjectCenter(size_t aObjId) const
+{
+	float3 midPoint = make_float3(0.f, 0.f, 0.f);
+
+	if(aObjId >= getNumObjects())
+		return midPoint;
+
+	auto objIt = objects.begin() + aObjId;
+
+	for (int faceId = objIt->x; faceId < objIt->y; ++faceId)
+	{
+		float3 vtx1 = vertices[faces[faceId].vert1];
+		float3 vtx2 = vertices[faces[faceId].vert2];
+		float3 vtx3 = vertices[faces[faceId].vert3];
+		midPoint += vtx1;
+		midPoint += vtx2;
+		midPoint += vtx3;
+	}
+	midPoint *= (0.33333f / (float)(objIt->y - objIt->x));
+
+	return midPoint;
+}
+
+float WFObject::getObjectSize(size_t aObjId) const
+{
+
+	if (aObjId >= getNumObjects())
+		return 0.0f;
+
+	auto objIt = objects.begin() + aObjId;
+	float3 minBound = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
+	float3 maxBound = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	for (int faceId = objIt->x; faceId < objIt->y; ++faceId)
+	{
+		float3 vtx1 = vertices[faces[faceId].vert1];
+		float3 vtx2 = vertices[faces[faceId].vert2];
+		float3 vtx3 = vertices[faces[faceId].vert3];
+		minBound = min(minBound, vtx1);
+		minBound = min(minBound, vtx2);
+		minBound = min(minBound, vtx3);
+		maxBound = max(maxBound, vtx1);
+		maxBound = max(maxBound, vtx2);
+		maxBound = max(maxBound, vtx3);
+	}
+
+	float3 objSize = maxBound - minBound;
+	return  len(objSize);
+}
+
 void WFObject::loadInstances(const char* aFileName)
 {
     std::ifstream input(aFileName, std::ios::in);

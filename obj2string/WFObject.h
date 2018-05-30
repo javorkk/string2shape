@@ -278,6 +278,10 @@ public:
 
     size_t insertMaterial(const Material& aMaterial);
 
+	float3 getObjectCenter(size_t aObjId) const;
+	float getObjectSize(size_t aObjId) const;
+
+
     //Reads the WaveFront3D object from a file
     void read(const char* aFileName);
     void loadWFObj(const char* aFileName);

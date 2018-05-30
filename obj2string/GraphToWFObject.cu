@@ -3,6 +3,9 @@
 
 #include "Algebra.h"
 #include "WFObjUtils.h"
+#include "Graph2String.h"
+#include "CollisionDetector.h"
+#include "Wiggle.h"
 #include "DebugUtils.h"
 
 #include <thrust/reduce.h>
@@ -30,6 +33,15 @@ __host__ WFObject WFObjectGenerator::operator()(
 	thrust::host_vector<float> objSizes2;
 	ObjectCenterExporter()(aObj2, objCenters2, objSizes2);
 
+	GrammarCheck grammarCheck;
+	grammarCheck.init(aObj1, aGraph1.intervals, aGraph1.adjacencyVals);
+	grammarCheck.init(aObj2, aGraph2.intervals, aGraph2.adjacencyVals);
+
+	CollisionDetector detector;
+
+	Wiggle wiggle;
+	wiggle.init(aObj1, aGraph1);
+	wiggle.init(aObj2, aGraph2);
 
 	WFObject outputObj;
 
@@ -55,7 +67,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 	
 	if (correspondingEdgeG1 >= (unsigned)aGraph1.adjacencyKeys.size() && correspondingEdgeG2 >= (unsigned)aGraph2.adjacencyKeys.size())
 	{
-		std::cerr << "Failed to initialize WFObject creation at node " << seedNodeId << "\n";
+		//std::cerr << "Failed to initialize WFObject creation at node " << seedNodeId << "\n";
 		return outputObj;
 	}
 	if (correspondingEdgeG1 < aGraph1.adjacencyKeys.size())
@@ -83,7 +95,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 	thrust::host_vector<unsigned int> nodeIdMap(aGraph3.numNodes(), 0u);
 	nodeIdMap[seedNodeId] = insertedNodeCount++;
 
-	//std::string dbgFileName("../scenes/test_sand_castle/embed_test_");
+	//std::string dbgFileName("embed_test_");
 	//unsigned int numIterations = 0u;
 
 	while (!frontier.empty())
@@ -125,10 +137,45 @@ __host__ WFObject WFObjectGenerator::operator()(
 			thrust::raw_pointer_cast(rotations.data())
 		);
 
-		estimateT(0);
+		////////////////////////////////////////////////////////////////////////////////////////////
+		//pairwise neighbor configurations
+		std::vector<PartOrientationEstimator::PariwiseNeighborConfiguration> neigborConfiguration;
+		size_t faceId = outputObj.objects[nodeIdMap[nodeId]].x;
+		size_t materialId = outputObj.faces[faceId].material;
+		unsigned int typeA = (unsigned int)materialId;
+		const float sizeOfNode = outputObj.getObjectSize(nodeIdMap[nodeId]);
 
-		float3 translationA = translations[0];
-		quaternion4f rotationA = rotations[0];
+		for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
+		{
+			const unsigned int neighborId = adjacencyValsHost[nbrId];
+			if (visited[neighborId] == 1u)
+			{
+				size_t faceId = outputObj.objects[nodeIdMap[neighborId]].x;
+				size_t materialId = outputObj.faces[faceId].material;
+				unsigned int typeNbrB1 = (unsigned int)materialId;
+				float3 nbrB1Center = outputObj.getObjectCenter(insertedNodeCount);
+
+				for (unsigned int nbrId1 = intervalsHost[nodeId]; nbrId1 < nbrId; ++nbrId1)
+				{
+					const unsigned int neighborId1 = adjacencyValsHost[nbrId1];
+					if (visited[neighborId1] == 1u)
+					{
+						size_t faceId = outputObj.objects[nodeIdMap[neighborId1]].x;
+						size_t materialId = outputObj.faces[faceId].material;
+						unsigned int typeNbrB0 = (unsigned int)materialId;
+						float3 nbrB0Center = outputObj.getObjectCenter(nodeIdMap[neighborId1]);
+						PartOrientationEstimator::PariwiseNeighborConfiguration current;
+						current.typeA = typeA;
+						current.typeNbrB0 = typeNbrB0;
+						current.typeNbrB1 = typeNbrB1;
+						current.dist = len(nbrB1Center - nbrB0Center);
+						current.size = sizeOfNode;
+						neigborConfiguration.push_back(current);
+					}
+				}
+			}
+		}
+		////////////////////////////////////////////////////////////////////////////////////////////
 
 		for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
 		{
@@ -142,31 +189,94 @@ __host__ WFObject WFObjectGenerator::operator()(
 				unsigned int reverseEdgeId = getOpositeEdgeId(currentEdgeId, intervalsHost, adjacencyKeysHost, adjacencyValsHost);
 				unsigned int reverseEdgeType = aEdgeTypes3[reverseEdgeId];
 
-				unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType, reverseEdgeType);
-				unsigned int correspondingEdgeIdObj2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, currentEdgeType, reverseEdgeType);
+				for (size_t numAttempts = 0u; numAttempts < 8; ++numAttempts)
+				{
+					estimateT(0);
+
+					float3 translationA = translations[0];
+					quaternion4f rotationA = rotations[0];
+
+					unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType, reverseEdgeType);
+					unsigned int correspondingEdgeIdObj2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, currentEdgeType, reverseEdgeType);
+
+					std::vector<PartOrientationEstimator::PariwiseNeighborConfiguration> currentConfiguration(neigborConfiguration);
+
+					WFObject tmpObj;
+					if (correspondingEdgeIdObj2 != (unsigned)-1 && (randNodeId(mRNG) < numNodes / 2u || correspondingEdgeIdObj1 == (unsigned)-1))
+					{
+						tmpObj = appendNode(outputObj, correspondingEdgeIdObj2, aGraph2, aObj2, objCenters2, mOrientations2, rotationA, translationA);								
+					}
+					else if (correspondingEdgeIdObj1 != (unsigned)-1)
+					{
+						tmpObj = appendNode(outputObj, correspondingEdgeIdObj1, aGraph1, aObj1, objCenters1, mOrientations1, rotationA, translationA);
+					}
+					else
+					{
+						//std::cerr << "Skipping WFObject node " << neighborId << "\n";
+						//std::cerr << "(After inserting " << insertedNodeCount << " nodes.)\n";
+						//std::cerr << "Edge type A->B requested: " << currentEdgeType << "\n";
+						//std::cerr << "Edge type B->A requested: " << reverseEdgeType << "\n";
+						//std::cerr << "Edge id : " << currentEdgeId << " out of " << aEdgeTypes3.size() << "\n";
+						//std::cerr << "Reverse edge id : " << reverseEdgeId << " out of " << aEdgeTypes3.size() << "\n";
+						continue;
+					}
+
+					Graph testGraph = detector.computeCollisionGraph(tmpObj, 0.0f);
+					if (!grammarCheck.checkSubgraph(tmpObj, testGraph.intervals, testGraph.adjacencyVals))
+					{
+						//WFObjectFileExporter()(tmpObj, (dbgFileName + itoa(numIterations++)).c_str());
+						continue;
+					}
+
+					if (!wiggle.fixEdge(tmpObj, nodeIdMap[nodeId], insertedNodeCount, 64))
+					{
+						continue;
+					}
+
+					////////////////////////////////////////////////////////////////////////////////////////////
+					//pairwise neighbor configurations
+					size_t faceId = tmpObj.objects[insertedNodeCount].x;
+					size_t materialId = tmpObj.faces[faceId].material;
+					unsigned int typeNbrB1 = (unsigned int)materialId;
+					float3 nbrB1Center = tmpObj.getObjectCenter(insertedNodeCount);
+
+					for (unsigned int nbrId1 = intervalsHost[nodeId]; nbrId1 < nbrId; ++nbrId1)
+					{
+						const unsigned int neighborId1 = adjacencyValsHost[nbrId1];
+						if (visited[neighborId1] == 1u)
+						{
+							size_t faceId = tmpObj.objects[nodeIdMap[neighborId1]].x;
+							size_t materialId = tmpObj.faces[faceId].material;
+							unsigned int typeNbrB0 = (unsigned int)materialId;
+							float3 nbrB0Center = tmpObj.getObjectCenter(nodeIdMap[neighborId1]);
+							PartOrientationEstimator::PariwiseNeighborConfiguration current;
+							current.typeA = typeA;
+							current.typeNbrB0 = typeNbrB0;
+							current.typeNbrB1 = typeNbrB1;
+							current.dist = len(nbrB1Center - nbrB0Center);
+							current.size = sizeOfNode;
+							currentConfiguration.push_back(current);
+						}
+					}
+					if (!mOrientations1.checkNeighborConfiguration(currentConfiguration)
+						&& !mOrientations2.checkNeighborConfiguration(currentConfiguration))
+					{
+						continue;
+					}
+					else
+					{
+						neigborConfiguration = currentConfiguration;
+					}
+					////////////////////////////////////////////////////////////////////////////////////////////
 				
-				if (correspondingEdgeIdObj2 != (unsigned)-1 && (randNodeId(mRNG) < numNodes / 2u || correspondingEdgeIdObj1 == (unsigned)-1))
-				{
-					appendNode(outputObj, correspondingEdgeIdObj2, aGraph2, aObj2, objCenters2, mOrientations2, rotationA, translationA);
-				}
-				else if (correspondingEdgeIdObj1 != (unsigned)-1)
-				{
-					appendNode(outputObj, correspondingEdgeIdObj1, aGraph1, aObj1, objCenters1, mOrientations1, rotationA, translationA);
-				}
-				else
-				{
-					//std::cerr << "Skipping WFObject node " << neighborId << "\n";
-					//std::cerr << "(After inserting " << insertedNodeCount << " nodes.)\n";
-					//std::cerr << "Edge type A->B requested: " << currentEdgeType << "\n";
-					//std::cerr << "Edge type B->A requested: " << reverseEdgeType << "\n";
-					//std::cerr << "Edge id : " << currentEdgeId << " out of " << aEdgeTypes3.size() << "\n";
-					//std::cerr << "Reverse edge id : " << reverseEdgeId << " out of " << aEdgeTypes3.size() << "\n";
-					continue;
+					outputObj = tmpObj;
+
+					nodeIdMap[neighborId] = insertedNodeCount++;
+					frontier.push_back(neighborId);
+					visited[neighborId] = 1u;
+					break;
 				}
 
-				nodeIdMap[neighborId] = insertedNodeCount++;
-				frontier.push_back(neighborId);
-				visited[neighborId] = 1u;
 			}
 		}
 		//break;
@@ -177,7 +287,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 	return outputObj;
 }
 
-void WFObjectGenerator::appendNode(
+WFObject WFObjectGenerator::appendNode(
 	WFObject &outputObj,
 	unsigned int correspondingEdgeIdObj1,
 	Graph & aGraph,
@@ -199,7 +309,7 @@ void WFObjectGenerator::appendNode(
 
 	thrust::host_vector<unsigned int> subgraphFlags(aObj.getNumObjects(), 0u);
 	subgraphFlags[correspondingNeighborIdObj] = 1u;
-	outputObj = insertPieces(outputObj, aObj, subgraphFlags, translationA, translationA1, relativeR);
+	return insertPieces(outputObj, aObj, subgraphFlags, translationA, translationA1, relativeR);
 }
 
 __host__ WFObject WFObjectGenerator::insertPieces(

@@ -149,11 +149,23 @@ public:
 			dir0.z, dir1.z, dir2.z
 		);
 
-		outRotation[aId] = quaternion4f(
-			dir0.x, dir1.x, dir2.x,
-			dir0.y, dir1.y, dir2.y,
-			dir0.z, dir1.z, dir2.z
-		);
+		if (rotDet < 0.f)
+		{
+			outRotation[aId] = quaternion4f(
+				-dir0.x, dir1.x, dir2.x,
+				-dir0.y, dir1.y, dir2.y,
+				-dir0.z, dir1.z, dir2.z
+			);
+		}
+		else
+		{
+			outRotation[aId] = quaternion4f(
+				dir0.x, dir1.x, dir2.x,
+				dir0.y, dir1.y, dir2.y,
+				dir0.z, dir1.z, dir2.z
+			);
+		}
+
 
 		if (USE_PCA)
 		{
@@ -291,6 +303,27 @@ class PartOrientationEstimator
 	thrust::host_vector<float> mSizes;
 
 public:
+	struct PariwiseNeighborConfiguration
+	{
+		unsigned int typeA;
+		unsigned int typeNbrB0;
+		unsigned int typeNbrB1;
+		float dist;
+		float size;
+
+		bool operator==(const PariwiseNeighborConfiguration& aConfig) const
+		{
+			return typeA == aConfig.typeA
+				&& (typeNbrB0 == aConfig.typeNbrB0 && typeNbrB1 == aConfig.typeNbrB1 || typeNbrB0 == aConfig.typeNbrB1 && typeNbrB1 == aConfig.typeNbrB0)
+				&& fabsf(dist - aConfig.dist) < 0.02f * size;
+		}
+	};
+
+private:
+	//a's neighbor configuration (relations between pairs of b's)
+	std::vector< std::vector<PariwiseNeighborConfiguration> > mNeighborConfigurations;
+
+public:
 
 	__host__ PartOrientationEstimator()
 	{}
@@ -310,6 +343,9 @@ public:
 	__host__ float3 getRelativeTranslation(unsigned int aEdgeId) { return mRelativeTranslation[aEdgeId]; }
 
 	__host__ quaternion4f getRelativeRotation(unsigned int aEdgeId) { return mRelativeRotation[aEdgeId]; }
+
+	//checks if aConfiguration is a subset of an existing configuration
+	__host__ bool checkNeighborConfiguration(const std::vector<PariwiseNeighborConfiguration> aConfiguration) const;
 
 };
 

@@ -388,3 +388,70 @@ __host__ void Wiggle::transformObj(
 	}
 
 }
+
+__host__ bool Wiggle::fixEdge(WFObject & aObj, unsigned int aObjId1, unsigned int aObjId2, unsigned int	aMaxIterations)
+{
+
+	const unsigned int nodeCount = 2u;
+	thrust::host_vector<unsigned int> nodeIds(nodeCount);
+	nodeIds[0] = aObjId1;
+	nodeIds[1] = aObjId2;
+
+	thrust::host_vector<float3> vertexBufferHost;
+	thrust::host_vector<uint2> vtxRanges;
+
+	VertexBufferUnpacker unpackVertices;
+	unpackVertices(aObj, nodeIds, vtxRanges, vertexBufferHost);
+
+	//Use PCA to compute local coordiante system for each object
+	thrust::host_vector<float3> translations(nodeCount);
+	thrust::host_vector<quaternion4f> rotations(nodeCount);
+	thrust::host_vector<double> tmpCovMatrix(nodeCount * 3 * 3, 0.f);
+	thrust::host_vector<double> tmpDiagonalW(nodeCount * 3);
+	thrust::host_vector<double> tmpMatrixV(nodeCount * 3 * 3);
+	thrust::host_vector<double> tmpVecRV(nodeCount * 3);
+
+	LocalCoordsEstimator estimateT(
+		thrust::raw_pointer_cast(vtxRanges.data()),
+		thrust::raw_pointer_cast(vertexBufferHost.data()),
+		thrust::raw_pointer_cast(tmpCovMatrix.data()),
+		thrust::raw_pointer_cast(tmpDiagonalW.data()),
+		thrust::raw_pointer_cast(tmpMatrixV.data()),
+		thrust::raw_pointer_cast(tmpVecRV.data()),
+		thrust::raw_pointer_cast(translations.data()),
+		thrust::raw_pointer_cast(rotations.data())
+	);
+
+	size_t faceId1 = aObj.objects[aObjId1].x;
+	size_t materialId1 = aObj.faces[faceId1].material;
+	const unsigned int typeId1 = (unsigned int)materialId1;
+
+	size_t faceId2 = aObj.objects[aObjId2].x;
+	size_t materialId2 = aObj.faces[faceId2].material;
+	const unsigned int typeId2 = (unsigned int)materialId2;
+
+	for (unsigned int i = 0; i < aMaxIterations; i++)
+	{
+		estimateT(0);
+		estimateT(1);
+
+		quaternion4f rot = rotations[0];
+		float3 relativeT = transformVec(rot.conjugate(), translations[1] - translations[0]);
+		quaternion4f relativeR = rotations[1].conjugate() * rot;
+
+		float3 bestT = relativeT;
+		quaternion4f bestR = relativeR;
+		quaternion4f bestA = relativeR;
+
+		findBestMatch(typeId1, typeId2, relativeT, relativeR, bestT, bestR, bestA);
+		const float angleDelta = fabsf(fabsf((bestR * relativeR.conjugate()).w) - 1.f);
+		if (angleDelta < angleTolerance)
+			return true;
+
+		float3 translateDelta = (0.25f) * transformVec(rot, bestT - relativeT);
+
+		transformObj(aObj, aObjId2, translations[1], translateDelta, rotations[1] * bestR * rot.conjugate());
+	}
+
+	return false;
+}

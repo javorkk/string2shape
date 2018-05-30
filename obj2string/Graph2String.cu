@@ -401,3 +401,78 @@ __host__ void GrammarCheck::cleanup()
 	mNeighborTypes.clear();
 	mNeighborTypeCounts.clear();
 }
+
+__host__ bool GrammarCheck::checkSubgraph(
+	WFObject& aObj,
+	thrust::device_vector<unsigned int>& aIntervals,
+	thrust::device_vector<unsigned int>& aNbrIds)
+{
+	thrust::host_vector<unsigned int> intervals(aIntervals);
+	thrust::host_vector<unsigned int> nbrIds(aNbrIds);
+	thrust::host_vector<unsigned int> nodeTypes(aObj.objects.size(), (unsigned int)aObj.materials.size());
+
+	for (size_t nodeId = 0; nodeId < aObj.objects.size(); ++nodeId)
+	{
+		size_t faceId = aObj.objects[nodeId].x;
+		size_t materialId = aObj.faces[faceId].material;
+		nodeTypes[nodeId] = (unsigned int)materialId;
+	}
+
+	unsigned int numTypes = 1u + thrust::reduce(nodeTypes.begin(), nodeTypes.end(), 0u, thrust::maximum<unsigned int>());
+	if (numTypes > mNumTypes)
+		return false;
+
+	for (size_t i = 0; i < intervals.size() - 1; i++)
+	{
+		unsigned int typeId = nodeTypes[i];
+		unsigned int nbrCount = intervals[i + 1] - intervals[i];
+		bool validCount = false;
+		for (size_t cntId = 0; cntId < mNeighborCounts[typeId].size() && !validCount; ++cntId)
+			if (nbrCount <= mNeighborCounts[typeId][cntId])
+				validCount = true;
+		if (!validCount)
+			return false;
+
+
+		for (size_t nbrId = intervals[i]; nbrId < intervals[i + 1]; nbrId++)
+		{
+			unsigned int nbrTypeId = nodeTypes[nbrIds[nbrId]];
+
+			std::pair<unsigned int, unsigned int> nbrPair1 = std::make_pair(typeId, nbrTypeId);
+			if (mNeighborTypes.find(nbrPair1) == mNeighborTypes.end())
+				return false;
+		}
+
+	}
+
+	////check for diconnected components
+	//size_t numNodes = intervals.size() - 1;
+	//thrust::host_vector<unsigned int> visited(numNodes, 0u);
+
+	//std::deque<unsigned int> frontier;
+	//frontier.push_back(0);
+	//visited[0] = 1u;
+	//size_t visitedCount = 1u;
+	//while (!frontier.empty())
+	//{
+	//	const unsigned int nodeId = frontier.front();
+	//	frontier.pop_front();
+
+	//	for (unsigned int nbrId = intervals[nodeId]; nbrId < intervals[nodeId + 1]; ++nbrId)
+	//	{
+	//		const unsigned int nodeId = nbrIds[nbrId];
+	//		if (visited[nodeId] == 0u)
+	//		{
+	//			frontier.push_back(nodeId);
+	//			visited[nodeId] = 1u;
+	//			++visitedCount;
+	//		}
+	//	}
+	//}
+
+	//if (visitedCount < numNodes)
+	//	return false; // disconnected components
+
+
+	return true;
+}

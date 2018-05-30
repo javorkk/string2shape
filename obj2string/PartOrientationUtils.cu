@@ -105,6 +105,25 @@ __host__ void PartOrientationEstimator::init(WFObject & aObj, Graph & aGraph)
 	for (size_t i = 0; i < mSizes.size(); ++i)
 		mSizes[i] = objSizes[mNeighborIdVals[i]];
 
+	mNeighborConfigurations.resize(aObj.getNumObjects());
+	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
+	for (size_t nodeId = 0; nodeId < aObj.getNumObjects(); ++nodeId)
+	{
+		for (size_t edgeId1 = intervalsHost[nodeId]; edgeId1 < intervalsHost[nodeId + 1]; ++edgeId1)
+		{
+			for (size_t edgeId0 = intervalsHost[nodeId]; edgeId0 < edgeId1; ++edgeId0 )
+			{
+				PariwiseNeighborConfiguration current;
+				current.typeA = nodeTypes[nodeId];
+				current.typeNbrB0 = mNeighborTypeVals[edgeId0];
+				current.typeNbrB1 = mNeighborTypeVals[edgeId1];
+				current.dist = len(objCenters[mNeighborIdVals[edgeId0]] - objCenters[mNeighborIdVals[edgeId1]]);
+				current.size = objSizes[nodeId];
+				mNeighborConfigurations[nodeId].push_back(current);
+			}
+		}
+	}
+
 #ifdef _DEBUG
 	outputHostVector("translations: ", mRelativeTranslation);
 	outputHostVector("rotations: ", mRelativeRotation);
@@ -199,4 +218,36 @@ __host__ quaternion4f PartOrientationEstimator::getAbsoluteRotation(unsigned int
 			return mAbsoluteRotation[i];
 
 	return make_quaternion4f(0.f, 0.f, 0.f, 1.f);
+}
+
+__host__ bool PartOrientationEstimator::checkNeighborConfiguration(const std::vector<PariwiseNeighborConfiguration> aConfiguration) const
+{
+	if (aConfiguration.size() == 0u)
+		return true;
+
+	for (size_t bucketId = 0u; bucketId < mNeighborConfigurations.size(); ++bucketId)
+	{
+		const std::vector<PariwiseNeighborConfiguration> currentConfiguration = mNeighborConfigurations[bucketId];
+		if (currentConfiguration.size() < aConfiguration.size())
+			continue;
+		if (currentConfiguration[0].typeA != aConfiguration[0].typeA)
+			continue;
+
+		bool foundMismatch = false;
+		for (size_t itemId = 0u; itemId < aConfiguration.size() && !foundMismatch; ++itemId)
+		{
+			bool itemFound = false;
+			for (size_t itemId1 = 0u; itemId1 < currentConfiguration.size() && !itemFound; ++itemId1)
+				if (currentConfiguration[itemId1] == aConfiguration[itemId])
+					itemFound = true;
+
+			if (!itemFound)
+				foundMismatch = true;
+		}
+
+		if (!foundMismatch)
+			return true;
+	}
+
+	return false;
 }

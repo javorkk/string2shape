@@ -458,11 +458,16 @@ extern "C" {
 
 			if (grammarCheck.check(hostIntervals, hostNbrIds, nodeTypes) && obj3.getNumObjects() == graph3.numNodes())
 			{
-				if (!embedGraphAsObj.strictEmbeddingFlag)
-					std::cerr << "Found a valid graph embedding using not strictly matching edge category pairs.\n";
 				WFObjectFileExporter()(obj3, aOutFileName);
-				if(obj3.getNumObjects() == graph3.numNodes())
+				if (embedGraphAsObj.strictEmbeddingFlag)
+				{
 					return 0;
+				}
+				else
+				{
+					//std::cerr << "Found a valid graph embedding using not strictly matching edge category pairs.\n";
+					return 1;
+				}
 			}
 			else if (obj3.getNumObjects() > largerstValidSubgraph.getNumObjects())
 			{
@@ -492,7 +497,7 @@ extern "C" {
 
 		//std::cerr << "Failed to find a valid shape embedding. Writing an attempt in " << lastAttemptObjFileName << ".obj\n";
 
-		return 1;
+		return 2;
 	}
 
 

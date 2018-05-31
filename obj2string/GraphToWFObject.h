@@ -74,6 +74,12 @@ public:
 		unsigned int aTargetEdgeType,
 		unsigned int aTargetReverseType);
 
+	__host__ unsigned int findRandomEdgeId(
+		Graph& aGraph,
+		WFObject& aObj,
+		unsigned int aNodeType0,
+		unsigned int aNodeType1);
+
 	__host__ void translateObj(
 		WFObject& aObj,
 		unsigned int aObjId,

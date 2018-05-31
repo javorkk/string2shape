@@ -177,13 +177,19 @@ int main()
 
 
 
-	int embedding_test_result = StringToWFObject(embeddingFile1, embeddingFile2, completeSring.c_str(), embeddingFile3);
+	int embedding_test_result = StringToWFObject(embeddingFile1, embeddingFile2, completeSring_2.c_str(), embeddingFile3);
 	if (embedding_test_result != 0)
 	{
 		std::cerr << "String embedding test failed!" << std::endl;
 		if (embedding_test_result == 1)
 		{
+			std::cerr << "Non-strict embedding attempt succeeded.\n";
+			std::cerr << "Wrote " << embeddingFile3 << ".obj\n";
+		}
+		else if (embedding_test_result == 2)
+		{
 			std::cerr << "Invalid embedding result - does not conform grammar." << std::endl;
+			std::cerr << "Wrote largest valid subgraph in " << embeddingFile3 << "_best_subgraph.obj\n";
 		}
 
 		//return embedding_test_result;

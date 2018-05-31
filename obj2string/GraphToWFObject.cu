@@ -137,6 +137,11 @@ __host__ WFObject WFObjectGenerator::operator()(
 			thrust::raw_pointer_cast(rotations.data())
 		);
 
+		estimateT(0);
+
+		float3 translationA = translations[0];
+		quaternion4f rotationA = rotations[0];
+
 		////////////////////////////////////////////////////////////////////////////////////////////
 		//pairwise neighbor configurations
 		std::vector<PartOrientationEstimator::PariwiseNeighborConfiguration> neigborConfiguration;
@@ -180,6 +185,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 		for (unsigned int nbrId = intervalsHost[nodeId]; nbrId < intervalsHost[nodeId + 1]; ++nbrId)
 		{
 			const unsigned int neighborId = adjacencyValsHost[nbrId];
+			unsigned int typeB = (unsigned)-1;
 			if (visited[neighborId] == 0u)
 			{
 
@@ -189,15 +195,19 @@ __host__ WFObject WFObjectGenerator::operator()(
 				unsigned int reverseEdgeId = getOpositeEdgeId(currentEdgeId, intervalsHost, adjacencyKeysHost, adjacencyValsHost);
 				unsigned int reverseEdgeType = aEdgeTypes3[reverseEdgeId];
 
-				for (size_t numAttempts = 0u; numAttempts < 8; ++numAttempts)
+				for (size_t numAttempts = 0u; numAttempts < 24; ++numAttempts)
 				{
-					estimateT(0);
-
-					float3 translationA = translations[0];
-					quaternion4f rotationA = rotations[0];
 
 					unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType, reverseEdgeType);
 					unsigned int correspondingEdgeIdObj2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, currentEdgeType, reverseEdgeType);
+
+					if (numAttempts >= 16 && typeB != (unsigned)-1) 
+					{
+						//assume wrong requested edge type
+						//try a random edge with matching node types
+						correspondingEdgeIdObj1 = findRandomEdgeId(aGraph1, aObj1, typeA, typeB);
+						correspondingEdgeIdObj2 = findRandomEdgeId(aGraph2, aObj2, typeA, typeB);
+					}
 
 					std::vector<PartOrientationEstimator::PariwiseNeighborConfiguration> currentConfiguration(neigborConfiguration);
 
@@ -221,6 +231,10 @@ __host__ WFObject WFObjectGenerator::operator()(
 						continue;
 					}
 
+					size_t faceId = tmpObj.objects[insertedNodeCount].x;
+					size_t materialId = tmpObj.faces[faceId].material;
+					typeB = (unsigned int)materialId;
+
 					Graph testGraph = detector.computeCollisionGraph(tmpObj, 0.0f);
 					if (!grammarCheck.checkSubgraph(tmpObj, testGraph.intervals, testGraph.adjacencyVals))
 					{
@@ -235,8 +249,6 @@ __host__ WFObject WFObjectGenerator::operator()(
 
 					////////////////////////////////////////////////////////////////////////////////////////////
 					//pairwise neighbor configurations
-					size_t faceId = tmpObj.objects[insertedNodeCount].x;
-					size_t materialId = tmpObj.faces[faceId].material;
 					unsigned int typeNbrB1 = (unsigned int)materialId;
 					float3 nbrB1Center = tmpObj.getObjectCenter(insertedNodeCount);
 
@@ -275,9 +287,9 @@ __host__ WFObject WFObjectGenerator::operator()(
 					frontier.push_back(neighborId);
 					visited[neighborId] = 1u;
 					break;
-				}
+				}//end for number of node embedding attempts
 
-			}
+			}//end if visited neighbor
 		}
 		//break;
 		//WFObjectFileExporter()(outputObj, (dbgFileName + itoa(numIterations++)).c_str());
@@ -363,6 +375,44 @@ __host__ unsigned int WFObjectGenerator::findCorresponingEdgeId(
 	}
 
 	return bestInvalidEdgeId;
+}
+
+__host__ unsigned int WFObjectGenerator::findRandomEdgeId(
+	Graph & aGraph,
+	WFObject & aObj,
+	unsigned int aNodeType0,
+	unsigned int aNodeType1)
+{
+	std::vector<unsigned int> permutedIds(aObj.getNumObjects());
+	for (unsigned int i = 0u; i < permutedIds.size(); ++i)
+		permutedIds[i] = i;
+	std::shuffle(permutedIds.begin(), permutedIds.end(), mRNG);
+
+	thrust::host_vector<unsigned int> intervalsHost(aGraph.intervals);
+	thrust::host_vector<unsigned int> adjacencyValsHost(aGraph.adjacencyVals);
+
+	for (size_t i = 0; i < permutedIds.size(); ++i)
+	{
+		unsigned int nodeId0 = permutedIds[i];
+		size_t faceId = aObj.objects[nodeId0].x;
+		size_t materialId = aObj.faces[faceId].material;
+		unsigned int type0 = (unsigned int)materialId;
+
+		if (type0 != aNodeType0)
+			continue;
+
+		for (unsigned int edgeId = intervalsHost[nodeId0]; edgeId < intervalsHost[nodeId0 + 1]; ++edgeId)
+		{
+			unsigned int nodeId1 = adjacencyValsHost[edgeId];
+			size_t faceId = aObj.objects[nodeId1].x;
+			size_t materialId = aObj.faces[faceId].material;
+			unsigned int type1 = (unsigned int)materialId;
+			if (type1 == aNodeType1)
+				return edgeId;
+		}
+	}
+
+	return (unsigned) -1;
 }
 
 __host__ void WFObjectGenerator::translateObj(WFObject & aObj, unsigned int aObjId, const float3 & aTranslation)

@@ -24,6 +24,8 @@ __host__ WFObject WFObjectGenerator::operator()(
 	thrust::host_vector<unsigned int>& aEdgeTypes2,
 	thrust::host_vector<unsigned int>& aEdgeTypes3)
 {
+	unsigned int numEdgeTypes = 1u + thrust::reduce(aEdgeTypes1.begin(), aEdgeTypes1.end(), 0u, thrust::maximum<unsigned int>());
+
 	mOrientations1.init(aObj1, aGraph1);
 	mOrientations2.init(aObj2, aGraph2);
 	
@@ -190,10 +192,14 @@ __host__ WFObject WFObjectGenerator::operator()(
 			{
 
 				unsigned int currentEdgeId = nbrId;
-				unsigned int currentEdgeType = aEdgeTypes3[currentEdgeId];
+				unsigned int currentEdgeType = aEdgeTypes3[currentEdgeId] < numEdgeTypes ? aEdgeTypes3[currentEdgeId] : (unsigned)-1;
 
 				unsigned int reverseEdgeId = getOpositeEdgeId(currentEdgeId, intervalsHost, adjacencyKeysHost, adjacencyValsHost);
-				unsigned int reverseEdgeType = aEdgeTypes3[reverseEdgeId];
+				unsigned int reverseEdgeType = aEdgeTypes3[reverseEdgeId] < numEdgeTypes ? aEdgeTypes3[reverseEdgeId] : (unsigned)-1;
+
+				typeB = getNodeType(aGraph1, aObj1, aEdgeTypes1, currentEdgeType, typeA);
+				if(typeB == (unsigned)-1)
+					typeB = getNodeType(aGraph1, aObj1, aEdgeTypes1, reverseEdgeType, typeA);
 
 				for (size_t numAttempts = 0u; numAttempts < 24; ++numAttempts)
 				{
@@ -201,7 +207,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 					unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType, reverseEdgeType);
 					unsigned int correspondingEdgeIdObj2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, currentEdgeType, reverseEdgeType);
 
-					if (numAttempts >= 16 && typeB != (unsigned)-1) 
+					if ((numAttempts >= 12 || currentEdgeType == (unsigned)-1) && typeB != (unsigned)-1)
 					{
 						//assume wrong requested edge type
 						//try a random edge with matching node types
@@ -230,10 +236,6 @@ __host__ WFObject WFObjectGenerator::operator()(
 						//std::cerr << "Reverse edge id : " << reverseEdgeId << " out of " << aEdgeTypes3.size() << "\n";
 						continue;
 					}
-
-					size_t faceId = tmpObj.objects[insertedNodeCount].x;
-					size_t materialId = tmpObj.faces[faceId].material;
-					typeB = (unsigned int)materialId;
 
 					Graph testGraph = detector.computeCollisionGraph(tmpObj, 0.0f);
 					if (!grammarCheck.checkSubgraph(tmpObj, testGraph.intervals, testGraph.adjacencyVals))
@@ -270,7 +272,8 @@ __host__ WFObject WFObjectGenerator::operator()(
 							currentConfiguration.push_back(current);
 						}
 					}
-					if (!mOrientations1.checkNeighborConfiguration(currentConfiguration)
+					if (numAttempts < 16 &&
+						!mOrientations1.checkNeighborConfiguration(currentConfiguration)
 						&& !mOrientations2.checkNeighborConfiguration(currentConfiguration))
 					{
 						continue;
@@ -364,11 +367,11 @@ __host__ unsigned int WFObjectGenerator::findCorresponingEdgeId(
 		{
 			return reverseId;
 		}
-		else if (!strictEmbeddingFlag && aEdgeTypes1[edgeId] == aTargetEdgeType)
+		else if ((!strictEmbeddingFlag || aTargetReverseType == (unsigned)-1)  && aEdgeTypes1[edgeId] == aTargetEdgeType)
 		{
 			bestInvalidEdgeId = edgeId;
 		}
-		else if (!strictEmbeddingFlag && aEdgeTypes1[reverseId] == aTargetEdgeType)
+		else if ((!strictEmbeddingFlag || aTargetReverseType == (unsigned)-1) && aEdgeTypes1[reverseId] == aTargetEdgeType)
 		{
 			bestInvalidEdgeId = reverseId;
 		}
@@ -413,6 +416,34 @@ __host__ unsigned int WFObjectGenerator::findRandomEdgeId(
 	}
 
 	return (unsigned) -1;
+}
+
+__host__ unsigned int WFObjectGenerator::getNodeType(
+	Graph& aGraph,
+	WFObject& aObj,
+	thrust::host_vector<unsigned int>& aEdgeTypes,
+	unsigned int aEdgeType,
+	unsigned int aNbrType)
+{
+	for (unsigned int edgeId = 0u; edgeId < aEdgeTypes.size(); ++edgeId)
+	{
+		if (aEdgeTypes[edgeId] != aEdgeType)
+			continue;
+
+		unsigned int nodeIdA = aGraph.adjacencyKeys[edgeId];
+		size_t faceIdA = aObj.objects[nodeIdA].x;
+		unsigned int typeA = (unsigned int)aObj.faces[faceIdA].material;
+
+		unsigned int nodeIdB = aGraph.adjacencyVals[edgeId];
+		size_t faceIdB = aObj.objects[nodeIdB].x;
+		unsigned int typeB = (unsigned int)aObj.faces[faceIdB].material;
+
+		if (typeA == aNbrType)
+			return typeB;
+		else if(typeB == aNbrType)
+			return typeA;
+	}
+	return (unsigned int)-1;
 }
 
 __host__ void WFObjectGenerator::translateObj(WFObject & aObj, unsigned int aObjId, const float3 & aTranslation)

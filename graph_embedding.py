@@ -226,26 +226,26 @@ def main():
 
 
     for num_attempts in range(0,args.num_attempts):
-        target_edge_categories, target_edges = decode_graph(model, tile_grammar, charset, args.in_word, max_length=data_train.shape[1], num_variants=64)
+        target_edge_categories, target_edges = decode_graph(model, tile_grammar, charset, args.in_word, max_length=data_train.shape[1], num_variants=32)
 
-        for edge, cat in zip(target_edges, target_edge_categories):
-            reverse_edge = [edge[1], edge[0]]
-            reverse_cat  = target_edge_categories[target_edges.index(reverse_edge)]
-            if (cat, reverse_cat) not in category_pairs:
-                for pair in category_pairs:
-                    if pair[0] == cat:
-                        node_id = edge[1]
-                        per_node_cats = [edge_cat[1] for edge_cat in zip(target_edges, target_edge_categories) if edge_cat[0][0] == node_id]
-                        if pair[1] not in per_node_cats:
-                            target_edge_categories[target_edges.index(reverse_edge)] = pair[1]
-                            break
-                    elif pair[1] == reverse_cat:
-                        if pair[0] == cat:
-                            node_id = edge[0]
-                            per_node_cats = [edge_cat[1] for edge_cat in zip(target_edges, target_edge_categories) if edge_cat[0][0] == node_id]
-                            if pair[0] not in per_node_cats:
-                                target_edge_categories[target_edges.index(edge)] = pair[0]
-                                break
+        # for edge, cat in zip(target_edges, target_edge_categories):
+        #     reverse_edge = [edge[1], edge[0]]
+        #     reverse_cat  = target_edge_categories[target_edges.index(reverse_edge)]
+        #     if (cat, reverse_cat) not in category_pairs:
+        #         for pair in category_pairs:
+        #             if pair[0] == cat:
+        #                 node_id = edge[1]
+        #                 per_node_cats = [edge_cat[1] for edge_cat in zip(target_edges, target_edge_categories) if edge_cat[0][0] == node_id]
+        #                 if pair[1] not in per_node_cats:
+        #                     target_edge_categories[target_edges.index(reverse_edge)] = pair[1]
+        #                     break
+        #             elif pair[1] == reverse_cat:
+        #                 if pair[0] == cat:
+        #                     node_id = edge[0]
+        #                     per_node_cats = [edge_cat[1] for edge_cat in zip(target_edges, target_edge_categories) if edge_cat[0][0] == node_id]
+        #                     if pair[0] not in per_node_cats:
+        #                         target_edge_categories[target_edges.index(edge)] = pair[0]
+        #                         break
 
         #target_edge_categories, target_edges = file_to_graph_with_categories(random.choice(file_list), cluster_centers, tile_grammar)
 

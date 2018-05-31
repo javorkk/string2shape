@@ -436,13 +436,13 @@ extern "C" {
 		grammarCheck.init(obj2, graph2.intervals, graph2.adjacencyVals);
 		WFObject largerstValidSubgraph;
 
-		for (size_t attempt = 0; attempt < 32; ++attempt)
+		for (size_t attempt = 0; attempt < 16; ++attempt)
 		{
 			WFObject obj3 = embedGraphAsObj(obj1, obj2, graph1, graph2, graph3, edgeTypes1, edgeTypes2, edgeTypes3Host);
 			
 			if (obj3.getNumObjects() <= 0)
 				continue;
-			if (attempt == 24)
+			if (attempt == 8)
 				embedGraphAsObj.strictEmbeddingFlag = false;
 
 			Graph graph3_1 = detector.computeCollisionGraph(obj3, 0.0f);

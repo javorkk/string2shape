@@ -177,7 +177,7 @@ int main()
 
 
 
-	int embedding_test_result = StringToWFObject(embeddingFile1, embeddingFile2, completeSring_2.c_str(), embeddingFile3);
+	int embedding_test_result = StringToWFObject(embeddingFile1, embeddingFile2, completeSring.c_str(), embeddingFile3);
 	if (embedding_test_result != 0)
 	{
 		std::cerr << "String embedding test failed!" << std::endl;

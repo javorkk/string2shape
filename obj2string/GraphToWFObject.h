@@ -80,6 +80,13 @@ public:
 		unsigned int aNodeType0,
 		unsigned int aNodeType1);
 
+	__host__ unsigned int getNodeType(
+		Graph& aGraph,
+		WFObject& aObj,
+		thrust::host_vector<unsigned int>& aEdgeTypes,
+		unsigned int aEdgeType,
+		unsigned int aNbrType);
+
 	__host__ void translateObj(
 		WFObject& aObj,
 		unsigned int aObjId,

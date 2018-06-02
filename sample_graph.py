@@ -40,6 +40,10 @@ def get_arguments():
     return parser.parse_args()
 
 def str_to_file(folder_name, query_word, tiling_grammar):
+    best_match_w = ""
+    best_match_f = ""
+    best_similarity = 1.0
+
     for item_name in os.listdir(folder_name):
         subfolfer_name = os.path.join(folder_name, item_name)
         if os.path.isdir(subfolfer_name):
@@ -48,7 +52,12 @@ def str_to_file(folder_name, query_word, tiling_grammar):
             #current_str = obj_tools.obj2string(folder_name + "/" + item_name)
             current_strings = obj_tools.obj2strings(folder_name + "/" + item_name).split("\n")
 
-            for current_str in current_strings:
+            for current_str_1 in current_strings:
+                current_str = str(current_str_1)
+                if tiling_grammar.word_similarity(query_word, current_str) < best_similarity:
+                    best_match_f = item_name
+                    best_match_w = current_str
+                    best_similarity = tiling_grammar.word_similarity(query_word, current_str)
                 mismatch = False
                 if TREE_GRAMMAR == False:
                     for i in range(len(tiling_grammar.DIGITS)):
@@ -62,7 +71,7 @@ def str_to_file(folder_name, query_word, tiling_grammar):
                 #if tiling_grammar.similar_words(query_word, current_str):
                 if not mismatch:
                     return True, item_name
-    return False, ""
+    return False, best_match_f
 
 def read_latent_data(filename):
     h5f = h5py.File(filename, 'r')
@@ -207,16 +216,28 @@ def build_latent_graph(args):
     selected_ids = []
     words = []
 
-    for idx in permuted_ids:
+    # setup toolbar
+    sys.stdout.write("[%s]" % (" " * 10))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (10+1)) # return to start of line, after '['
+
+
+    for i, idx in enumerate(permuted_ids):
+        if i % (len(permuted_ids) / 10) == 0:
+            sys.stdout.write("#")
+            sys.stdout.flush()
         decoded_data = model.decoder.predict(latent_data[idx].reshape(1, args.latent_dim)).argmax(axis=2)[0]
         word = decode_smiles_from_indexes(decoded_data, charset)
 
         if not tiling_grammar.check_word(word):
             continue
+
         selected_ids.append(idx)
         words.append(word)
         if len(selected_ids) >= args.graph_size:
             break
+
+    sys.stdout.write("\n")
 
     search_graph = nx.Graph()
     #graph nodes
@@ -275,11 +296,7 @@ def sample_path(args):
         file_name_1 = "?"
         if args.folder_name != "":
             found0, file_name_0 = str_to_file(args.folder_name, char_data_0, tiling_grammar)
-            if not found0:
-                continue
             found1, file_name_1 = str_to_file(args.folder_name, char_data_1, tiling_grammar)
-            if not found1:
-                continue
 
         shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
 
@@ -320,8 +337,13 @@ def sample_path(args):
         for w, flag in zip(decoded_words, valid_words)[1:-1]:
             if flag:
                 if args.folder_name != "":
-                    _, file_name_w = str_to_file(args.folder_name, w, tiling_grammar)
-                print("valid  :", w, " file: ", file_name_w)
+                    found, file_name_w = str_to_file(args.folder_name, w, tiling_grammar)
+                    if found:
+                        print("valid  :", w, " file: ", file_name_w)
+                    else:
+                        print("valid  :", w, " closest file: ", file_name_w)
+                else:
+                    print("valid  :", w)
             else:
                 print("invalid:", w)
         print("end    :", decoded_words[-1], " file: ", file_name_1)

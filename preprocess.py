@@ -43,7 +43,8 @@ def get_arguments():
 def main():
     args = get_arguments()
     data = pandas.read_hdf(args.infile, 'table')
-    
+    print ("Number of SMILES strings: ", len(data))
+
     keys = data[args.smiles_column].map(len) < args.word_length + 1
     data = data[keys]
 

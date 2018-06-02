@@ -7,8 +7,9 @@ import numpy as np
 import sys
 import random
 import networkx as nx
+import obj_tools
 
-from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE
+from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_LSTM_VAE_
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, decode_smiles_from_indexes
 from neuralnets.utils import load_dataset
 import neuralnets.grammar as grammar
@@ -20,6 +21,8 @@ GRAPH_SIZE = 10000
 GRAPH_K = 4
 MODEL_TYPE = 'simple'
 
+TREE_GRAMMAR = True
+
 def get_arguments():
     parser = argparse.ArgumentParser(description='Shape sampling network')
     parser.add_argument('input_data', type=str, help='Input sample set.')
@@ -27,6 +30,7 @@ def get_arguments():
     parser.add_argument('grammar', type=str, help='Tiling grammar.')
     parser.add_argument('latent_data', type=str, help='File of latent representation tensors for decoding.')
     parser.add_argument('latent_graph', type=str, help='File of latent graph for sampling.')
+    parser.add_argument('--folder_name', type=str, default="", help='Where to search for pre-built examples.')
     parser.add_argument('--num_samples', type=int, default=NUM_SAMPLES, help='Number of sample paths for data augmentation.')
     parser.add_argument('--graph_size', type=int, default=GRAPH_SIZE, help='Size of latent graph.')
     parser.add_argument('--graph_degree', type=int, default=GRAPH_K, help='Minimum node degree.')
@@ -34,6 +38,31 @@ def get_arguments():
     parser.add_argument('--model_type', type=str, default=MODEL_TYPE, help='What type model to train: simple, lstm.')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Verbose output.')
     return parser.parse_args()
+
+def str_to_file(folder_name, query_word, tiling_grammar):
+    for item_name in os.listdir(folder_name):
+        subfolfer_name = os.path.join(folder_name, item_name)
+        if os.path.isdir(subfolfer_name):
+            str_to_file(subfolfer_name, query_word, tiling_grammar)
+        if not item_name.endswith("_coll_graph.obj") and item_name.endswith(".obj"): 
+            #current_str = obj_tools.obj2string(folder_name + "/" + item_name)
+            current_strings = obj_tools.obj2strings(folder_name + "/" + item_name).split("\n")
+
+            for current_str in current_strings:
+                mismatch = False
+                if TREE_GRAMMAR == False:
+                    for i in range(len(tiling_grammar.DIGITS)):
+                        if(query_word.count(tiling_grammar.DIGITS[i]) != current_str.count(tiling_grammar.DIGITS[i])):
+                            mismatch = True
+                            break#different number of cycles
+                for i in range(1, len(tiling_grammar.charset)):
+                    if(query_word.count(tiling_grammar.charset[i]) != current_str.count(tiling_grammar.charset[i])):
+                        mismatch = True
+                        break
+                #if tiling_grammar.similar_words(query_word, current_str):
+                if not mismatch:
+                    return True, item_name
+    return False, ""
 
 def read_latent_data(filename):
     h5f = h5py.File(filename, 'r')
@@ -66,6 +95,8 @@ def load_input(args):
     model = TilingVAE()
     if args.model_type == 'lstm':
         model = Tiling_LSTM_VAE()
+    elif args.model_type == 'lstm_':
+        model = Tiling_LSTM_VAE_()
 
     if os.path.isfile(args.model):
         model.load(charset, args.model, latent_rep_size = args.latent_dim)
@@ -77,6 +108,9 @@ def load_input(args):
         tiling_grammar.load(args.grammar)
     else:
         raise ValueError("Grammar file %s doesn't exist" % args.grammar)
+    
+    if TREE_GRAMMAR:
+        tiling_grammar.convert_to_tree_grammar()
 
     data = np.append(data_train, data_test, axis=0)
     latent_data = model.encoder.predict(data)
@@ -237,6 +271,16 @@ def sample_path(args):
         if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
             continue
 
+        file_name_0 = "?"
+        file_name_1 = "?"
+        if args.folder_name != "":
+            found0, file_name_0 = str_to_file(args.folder_name, char_data_0, tiling_grammar)
+            if not found0:
+                continue
+            found1, file_name_1 = str_to_file(args.folder_name, char_data_1, tiling_grammar)
+            if not found1:
+                continue
+
         shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
 
         if len(shortest_path) < 5:
@@ -271,13 +315,16 @@ def sample_path(args):
             continue
 
         print("---------------------path sample " + str(i) + "------------------------------------------")
-        print("start  :", decoded_words[0])
+        print("start  :", decoded_words[0]," file: ", file_name_0)
+        file_name_w = "?"
         for w, flag in zip(decoded_words, valid_words)[1:-1]:
             if flag:
-                print("valid  :", w)
+                if args.folder_name != "":
+                    _, file_name_w = str_to_file(args.folder_name, w, tiling_grammar)
+                print("valid  :", w, " file: ", file_name_w)
             else:
                 print("invalid:", w)
-        print("end    :", decoded_words[-1])
+        print("end    :", decoded_words[-1], " file: ", file_name_1)
         print("----------------------------------------------------------------------------------")
 
 def main():

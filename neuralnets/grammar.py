@@ -36,6 +36,12 @@ class TilingGrammar():
         for c in self.charset:
             print([pair for pair in self.neighbor_counts if pair[0] == c])
 
+    def convert_to_tree_grammar(self):
+        for [char, num_neighbors] in self.neighbor_counts:
+            for i in range(1,num_neighbors):
+                if([char, i] not in self.neighbor_counts ):
+                    self.neighbor_counts.append([char, i])
+        self.neighbor_counts.sort()
 
     def _parse_number(self, word, last_non_number, start_char_id = 0, cycle_ids = [], cycle_vals = []):
         next_char_id = start_char_id 

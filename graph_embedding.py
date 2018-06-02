@@ -25,6 +25,8 @@ def most_common_elem(lst):
 LSTM_SIZE = 292
 NUM_ATTEMPTS = 128
 
+TREE_GRAMMAR = True
+
 def get_arguments():
     parser = argparse.ArgumentParser(description='Sequence to sequence autoencoder network')
     parser.add_argument('in_folder', type=str, help='Folder with example objects.')
@@ -165,10 +167,17 @@ def main():
     initial_smiles_strings = []
     initial_smiles_strings.append(str(obj_tools.obj2string(inputA)))
     initial_smiles_strings.append(str(obj_tools.obj2string(inputB)))
-    tile_grammar = TilingGrammar([])
-    tile_grammar.load(args.grammar)
 
-    cluster_centers, node_types = shape_graph.categorize_edges(file_list[:10], tile_grammar)
+    tile_grammar = TilingGrammar([])
+    if os.path.isfile(args.grammar):
+        tile_grammar.load(args.grammar)
+    else:
+        raise ValueError("Grammar file %s doesn't exist" % args.grammar)
+
+    if TREE_GRAMMAR:
+        tile_grammar.convert_to_tree_grammar()
+
+    cluster_centers, node_types = shape_graph.categorize_edges(file_list[:100], tile_grammar)
 
     all_edge_categories_a, all_edges_a =  file_to_graph_with_categories(inputA, cluster_centers, tile_grammar)
 

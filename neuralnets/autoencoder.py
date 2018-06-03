@@ -310,17 +310,19 @@ class Tiling_LSTM_VAE_():
             self.encoder.load_weights(weights_file, by_name = True)
             self.decoder.load_weights(weights_file, by_name = True)
 
-        optim = optimizers.Adam(lr=0.0001, amsgrad=True)
+        #optim = optimizers.Adam(lr=0.0001, amsgrad=True)
+        optim = optimizers.Adam(lr=0.0005, amsgrad=True)
         self.autoencoder.compile(optimizer = optim,
                                  loss = vae_loss,
                                  metrics = ['accuracy'])
 
     def _buildEncoder(self, x, latent_rep_size, max_length, epsilon_std = 0.01):
-        lstm_0_f = LSTM(512, return_sequences=True, name='lstm_0_f')(x)
-        lstm_0_b = LSTM(512, return_sequences=True, name='lstm_0_b', go_backwards=True)(x)
+        lstm_0_f = LSTM(1024, return_sequences=True, name='lstm_0_f')(x)
+        lstm_0_b = LSTM(1024, return_sequences=True, name='lstm_0_b', go_backwards=True)(x)
         x = Concatenate(name='concatenate')([lstm_0_f, lstm_0_b])
         h = LSTM(512, return_sequences = True, name='in_lstm_1')(x)
         h = LSTM(512, return_sequences = True, name='in_lstm_2')(x)
+        h = LSTM(512, return_sequences = True, name='in_lstm_3')(x)
         h = Flatten(name='flatten_1')(h)
         h = Dense(1024, name='dense_1')(h)
         h = LeakyReLU(0.3)(h)

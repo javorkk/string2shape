@@ -8,6 +8,7 @@ import sys
 import random
 import networkx as nx
 import obj_tools
+import pandas
 
 from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_LSTM_VAE_
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, decode_smiles_from_indexes
@@ -37,6 +38,7 @@ def get_arguments():
     parser.add_argument('--latent_dim', type=int, metavar='N', default=LATENT_DIM, help='Dimensionality of the latent representation.')
     parser.add_argument('--model_type', type=str, default=MODEL_TYPE, help='What type model to train: simple, lstm.')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Verbose output.')
+    parser.add_argument('--no_decoding', dest='no_decoding', action='store_true', help='Use SMILES strings directly instead of decoding them.')
     return parser.parse_args()
 
 def str_to_file(folder_name, query_word, tiling_grammar):
@@ -268,6 +270,63 @@ def build_latent_graph(args):
 
     nx.write_graphml(search_graph, args.latent_graph)
 
+def build_graph_from_strings(args):
+
+    if args.graph_degree >= args.graph_size:
+        raise ValueError("Requested graph degree %s larger than graph size %s" % (args.graph_degree, args.model))
+
+    if not os.path.isfile(args.input_data):
+        raise ValueError("Input file %s doesn't exist" % args.input_data)
+
+    tiling_grammar = grammar.TilingGrammar([])
+    if os.path.isfile(args.grammar):
+        tiling_grammar.load(args.grammar)
+    else:
+        raise ValueError("Grammar file %s doesn't exist" % args.grammar)
+    
+    if TREE_GRAMMAR:
+        tiling_grammar.convert_to_tree_grammar()
+
+    data = pandas.read_hdf(args.input_data, 'table')
+    print ("Number of SMILES strings: ", len(data))
+
+    if args.graph_size <= len(data):
+        data = data.sample(n=args.graph_size)
+
+    data = data.reset_index(drop=True)
+    words = data["structure"]
+
+    selected_ids = range(0,len(data))
+
+    search_graph = nx.Graph()
+    #graph nodes
+    search_graph.add_nodes_from(selected_ids)
+    #graph edges
+    for i, idx in enumerate(selected_ids):
+        #add an edge to each similar word
+        for j, idy in enumerate(selected_ids):
+            if tiling_grammar.similar_words(words[i], words[j]):
+                search_graph.add_edge(idx, idy, weight=0.0)
+
+        #connect to k-nearest points in latent space
+        dist_id_pairs = []
+        for j in range(len(selected_ids)):
+            dist = tiling_grammar.word_similarity(words[i], words[j])
+            dist_id_pairs.append((dist, j))
+            if len(dist_id_pairs) % args.graph_degree == 0:
+                dist_id_pairs = sorted(dist_id_pairs)
+                dist_id_pairs = dist_id_pairs[:args.graph_degree]
+
+        dist_id_pairs = sorted(dist_id_pairs)
+        dist_id_pairs = dist_id_pairs[:args.graph_degree]
+
+        for d, j in dist_id_pairs:
+            similarity = tiling_grammar.word_similarity(words[i], words[j])
+            idy = selected_ids[j]
+            search_graph.add_edge(idx, idy, weight=similarity)
+
+    nx.write_graphml(search_graph, args.latent_graph)
+
 def sample_path(args):
 
     latent_data, charset = read_latent_data(args.latent_data)
@@ -351,6 +410,13 @@ def sample_path(args):
 
 def main():
     args = get_arguments()
+
+    if args.no_decoding:
+        if not os.path.isfile(args.latent_graph):
+            print("Generating graph from SMILES strings...")
+            build_graph_from_strings(args)
+        sample_path(args)
+        return
 
     if not os.path.isfile(args.latent_data):
         print("Creating latent sample locations...")

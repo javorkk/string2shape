@@ -219,7 +219,7 @@ def build_latent_graph(args):
     words = []
 
     # setup toolbar
-    sys.stdout.write("[%s]" % (" " * 10))
+    sys.stdout.write("Decoding samples [%s]" % (" " * 10))
     sys.stdout.flush()
     sys.stdout.write("\b" * (10+1)) # return to start of line, after '['
 
@@ -241,11 +241,19 @@ def build_latent_graph(args):
 
     sys.stdout.write("\n")
 
+    # setup toolbar
+    sys.stdout.write("Inserting graph nodes [%s]" % (" " * 10))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (10+1)) # return to start of line, after '['
+
     search_graph = nx.Graph()
     #graph nodes
     search_graph.add_nodes_from(selected_ids)
     #graph edges
     for i, idx in enumerate(selected_ids):
+        if i % (len(selected_ids) / 10) == 0:
+            sys.stdout.write("#")
+            sys.stdout.flush()
         #add an edge to each similar word
         for j, idy in enumerate(selected_ids):
             if tiling_grammar.similar_words(words[i], words[j]):
@@ -268,6 +276,7 @@ def build_latent_graph(args):
             idy = selected_ids[j]
             search_graph.add_edge(idx, idy, weight=similarity)
 
+    sys.stdout.write("\n")
     nx.write_graphml(search_graph, args.latent_graph)
 
 def build_graph_from_strings(args):
@@ -298,11 +307,19 @@ def build_graph_from_strings(args):
 
     selected_ids = range(0,len(data))
 
+    # setup toolbar
+    sys.stdout.write("Inserting graph nodes [%s]" % (" " * 10))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (10+1)) # return to start of line, after '['
+
     search_graph = nx.Graph()
     #graph nodes
     search_graph.add_nodes_from(selected_ids)
     #graph edges
     for i, idx in enumerate(selected_ids):
+        if i % (len(selected_ids) / 10) == 0:
+            sys.stdout.write("#")
+            sys.stdout.flush()
         #add an edge to each similar word
         for j, idy in enumerate(selected_ids):
             if tiling_grammar.similar_words(words[i], words[j]):
@@ -324,6 +341,8 @@ def build_graph_from_strings(args):
             similarity = tiling_grammar.word_similarity(words[i], words[j])
             idy = selected_ids[j]
             search_graph.add_edge(idx, idy, weight=similarity)
+
+    sys.stdout.write("\n")
 
     nx.write_graphml(search_graph, args.latent_graph)
 

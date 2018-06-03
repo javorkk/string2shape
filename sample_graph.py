@@ -22,7 +22,7 @@ GRAPH_SIZE = 10000
 GRAPH_K = 4
 MODEL_TYPE = 'simple'
 
-TREE_GRAMMAR = True
+TREE_GRAMMAR = False
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Shape sampling network')
@@ -225,7 +225,7 @@ def build_latent_graph(args):
 
 
     for i, idx in enumerate(permuted_ids):
-        if i % (len(permuted_ids) / 10) == 0:
+        if i % (len(permuted_ids) / 10) == len(permuted_ids) / 10 - 1:
             sys.stdout.write("#")
             sys.stdout.flush()
         decoded_data = model.decoder.predict(latent_data[idx].reshape(1, args.latent_dim)).argmax(axis=2)[0]
@@ -251,7 +251,7 @@ def build_latent_graph(args):
     search_graph.add_nodes_from(selected_ids)
     #graph edges
     for i, idx in enumerate(selected_ids):
-        if i % (len(selected_ids) / 10) == 0:
+        if i % (len(selected_ids) / 10) == len(selected_ids) / 10 - 1:
             sys.stdout.write("#")
             sys.stdout.flush()
         #add an edge to each similar word
@@ -275,6 +275,11 @@ def build_latent_graph(args):
             similarity = tiling_grammar.word_similarity(words[i], words[j])
             idy = selected_ids[j]
             search_graph.add_edge(idx, idy, weight=similarity)
+
+    complement = list(nx.k_edge_augmentation(search_graph, k=1, partial=True))
+    for (n_i, n_j) in complement:
+        similarity = tiling_grammar.word_similarity(words[int(n_i)], words[int(n_j)])
+        search_graph.add_edge(n_i, n_j, weight=similarity)
 
     sys.stdout.write("\n")
     nx.write_graphml(search_graph, args.latent_graph)
@@ -302,10 +307,10 @@ def build_graph_from_strings(args):
     if args.graph_size <= len(data):
         data = data.sample(n=args.graph_size)
 
-    data = data.reset_index(drop=True)
     words = data["structure"]
 
-    selected_ids = range(0,len(data))
+    tmp_ids =  data.index.tolist()
+    selected_ids = [int(x) for x in tmp_ids]
 
     # setup toolbar
     sys.stdout.write("Inserting graph nodes [%s]" % (" " * 10))
@@ -317,19 +322,22 @@ def build_graph_from_strings(args):
     search_graph.add_nodes_from(selected_ids)
     #graph edges
     for i, idx in enumerate(selected_ids):
-        if i % (len(selected_ids) / 10) == 0:
+        if i % (len(selected_ids) / 10) == len(selected_ids) / 10 - 1:
             sys.stdout.write("#")
             sys.stdout.flush()
         #add an edge to each similar word
         for j, idy in enumerate(selected_ids):
-            if tiling_grammar.similar_words(words[i], words[j]):
+            if tiling_grammar.similar_words(words[idx], words[idy]):
                 search_graph.add_edge(idx, idy, weight=0.0)
 
         #connect to k-nearest points in latent space
         dist_id_pairs = []
         for j in range(len(selected_ids)):
-            dist = tiling_grammar.word_similarity(words[i], words[j])
-            dist_id_pairs.append((dist, j))
+            idy = selected_ids[j]
+            if idx == idy:
+                continue
+            dist = tiling_grammar.word_similarity(words[idx], words[idy])
+            dist_id_pairs.append((dist, idy))
             if len(dist_id_pairs) % args.graph_degree == 0:
                 dist_id_pairs = sorted(dist_id_pairs)
                 dist_id_pairs = dist_id_pairs[:args.graph_degree]
@@ -337,14 +345,96 @@ def build_graph_from_strings(args):
         dist_id_pairs = sorted(dist_id_pairs)
         dist_id_pairs = dist_id_pairs[:args.graph_degree]
 
-        for d, j in dist_id_pairs:
-            similarity = tiling_grammar.word_similarity(words[i], words[j])
-            idy = selected_ids[j]
+        for d, idy in dist_id_pairs:
+            similarity = tiling_grammar.word_similarity(words[idx], words[idy])
             search_graph.add_edge(idx, idy, weight=similarity)
+
+    complement = list(nx.k_edge_augmentation(search_graph, k=1, partial=True))
+    for (n_i, n_j) in complement:
+        similarity = tiling_grammar.word_similarity(words[int(n_i)], words[int(n_j)])
+        search_graph.add_edge(n_i, n_j, weight=similarity)
+
 
     sys.stdout.write("\n")
 
     nx.write_graphml(search_graph, args.latent_graph)
+
+def sample_path_from_strings(args):
+
+    if not os.path.isfile(args.input_data):
+        raise ValueError("Input file %s doesn't exist" % args.input_data)
+
+    tiling_grammar = grammar.TilingGrammar([])
+    if os.path.isfile(args.grammar):
+        tiling_grammar.load(args.grammar)
+    else:
+        raise ValueError("Grammar file %s doesn't exist" % args.grammar)
+
+    if TREE_GRAMMAR:
+        tiling_grammar.convert_to_tree_grammar()
+
+    data = pandas.read_hdf(args.input_data, 'table')
+    words = data["structure"]
+
+    if not os.path.isfile(args.latent_graph):
+        raise ValueError("Search graph file %s doesn't exist" % args.latent_graph)
+
+    search_graph = nx.read_graphml(args.latent_graph)
+    node_list = [int(x) for x in list(search_graph.nodes)]
+
+    for i in range(args.num_samples):
+        samples = np.random.randint(0, len(node_list), 2)
+        sample_ids = [node_list[samples[0]], node_list[samples[1]]]
+
+        char_data_0 = words[sample_ids[0]]
+        char_data_1 = words[sample_ids[1]]
+
+        if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
+            continue
+
+        file_name_0 = "?"
+        file_name_1 = "?"
+        if args.folder_name != "":
+            found0, file_name_0 = str_to_file(args.folder_name, char_data_0, tiling_grammar)
+            found1, file_name_1 = str_to_file(args.folder_name, char_data_1, tiling_grammar)
+
+        shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
+
+        if len(shortest_path) < 5:
+            continue
+
+        decoded_words = [char_data_0]
+        valid_words = [True]
+
+        for pt_id in shortest_path[1:-1]:
+            word =  words[int(pt_id)]
+            decoded_words.append(word)
+            valid_words.append(True)
+
+        decoded_words.append(char_data_1)
+        valid_words.append(True)
+
+        if valid_words.count(True) < 5:
+            continue
+
+        print("---------------------path sample " + str(i) + "------------------------------------------")
+        print("start  :", decoded_words[0]," file: ", file_name_0)
+        file_name_w = "?"
+        for w, flag in zip(decoded_words, valid_words)[1:-1]:
+            if flag:
+                if args.folder_name != "":
+                    found, file_name_w = str_to_file(args.folder_name, w, tiling_grammar)
+                    if found:
+                        print("valid  :", w, " file: ", file_name_w)
+                    else:
+                        print("valid  :", w, " closest file: ", file_name_w)
+                else:
+                    print("valid  :", w)
+            else:
+                print("invalid:", w)
+        print("end    :", decoded_words[-1], " file: ", file_name_1)
+        print("----------------------------------------------------------------------------------")
+
 
 def sample_path(args):
 
@@ -434,7 +524,7 @@ def main():
         if not os.path.isfile(args.latent_graph):
             print("Generating graph from SMILES strings...")
             build_graph_from_strings(args)
-        sample_path(args)
+        sample_path_from_strings(args)
         return
 
     if not os.path.isfile(args.latent_data):

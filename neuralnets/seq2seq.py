@@ -118,6 +118,44 @@ class Seq2SeqRNN():
     def load(self, input_charset, output_charset, weights_file, lstm_size=292):
         self.create(input_charset, output_charset, weights_file=weights_file, lstm_size=lstm_size)
 
+class Seq2SeqDeepRNN():
+
+    rnn = None
+
+    def create(self,
+               input_charset,
+               output_charset,
+               lstm_size=292,
+               weights_file = None):
+
+        num_encoder_tokens = len(input_charset)
+        num_decoder_tokens = len(output_charset)
+
+        inputs = Input(shape=(None, num_encoder_tokens), name='input')
+        lstm_0_f = LSTM(lstm_size, return_sequences=True, name='lstm_0_f')(inputs)
+        lstm_0_b = LSTM(lstm_size, return_sequences=True, name='lstm_0_b', go_backwards=True)(inputs)
+        lstm_0 = Concatenate(name='concatenate')([lstm_0_f, lstm_0_b])
+        #lstm_0 = LSTM(lstm_size, return_sequences=True, name='lstm_0')(inputs)
+        lstm_1 = LSTM(lstm_size, return_sequences=True, name='lstm_1')(lstm_0)
+        lstm_2 = LSTM(lstm_size, return_sequences=True, name='lstm_2')(lstm_1)
+        dense  = Dense(num_decoder_tokens, activation=None, name='dense')(lstm_0)#masks
+        masks = Input(shape=(None, num_decoder_tokens), name='masks')#masks
+        masked = Multiply(name='masking')([dense, masks])#masks
+        outputs = Activation('softmax', name='output')(masked)#masks
+
+        self.rnn = Model([inputs, masks], outputs)
+
+        if weights_file:
+            self.rnn.load_weights(weights_file)
+
+        self.rnn.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    def save(self, filename):
+        self.rnn.save_weights(filename)
+    
+    def load(self, input_charset, output_charset, weights_file, lstm_size=292):
+        self.create(input_charset, output_charset, weights_file=weights_file, lstm_size=lstm_size)
+
 class Seq2SeqNoMaskRNN():
 
     rnn = None

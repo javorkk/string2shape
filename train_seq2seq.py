@@ -58,7 +58,7 @@ import argparse
 import os
 import numpy as np
 
-from neuralnets.seq2seq import Seq2SeqAE, Seq2SeqRNN, Seq2SeqNoMaskRNN
+from neuralnets.seq2seq import Seq2SeqAE, Seq2SeqRNN, Seq2SeqNoMaskRNN, Seq2SeqDeepRNN
 from neuralnets.grammar import TilingGrammar
 from neuralnets.utils import load_categories_dataset, decode_smiles_from_indexes, from_one_hot_array
 from neuralnets.shape_graph import smiles_variations
@@ -118,7 +118,7 @@ class PlotLearning(Callback):
 
 NUM_EPOCHS = 1
 BATCH_SIZE = 200
-LSTM_SIZE = 292
+LSTM_SIZE = 512
 WORD_LENGTH = 120
 MODEL = 'rnn'
 
@@ -129,7 +129,7 @@ def get_arguments():
                         help='Where to save the trained model. If this file exists, it will be opened and resumed.')
     parser.add_argument('grammar', type=str, help='The HDF5 file with the tiling grammar.')
     parser.add_argument('--model', type=str, default=MODEL,
-                        help='What model to train: autoencoder, rnn, no_mask_rnn.')
+                        help='What model to train: autoencoder, rnn, deep_rnn, no_mask_rnn.')
     parser.add_argument('--epochs', type=int, metavar='N', default=NUM_EPOCHS,
                         help='Number of epochs to run during training.')
     parser.add_argument('--word_length', type=int, metavar='N', default=WORD_LENGTH,
@@ -505,6 +505,86 @@ def main():
             num_smiles_variants = 32
             decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, max_length=args.word_length, num_variants=num_smiles_variants)
             print ('(test, decoded_1, decoded_' + str(num_smiles_variants) + ') categories :', zip(test_sequence, decoded_seq_1, decoded_seq_2))
+
+
+    ###############################################################################################################
+    #Deep RNN
+    ###############################################################################################################
+    elif args.model == 'deep_rnn':
+
+        model = Seq2SeqDeepRNN()
+        if os.path.isfile(args.out):
+            model.load(charset, charset_cats, args.out, lstm_size=LSTM_SIZE)
+        else:
+            model.create(charset, charset_cats, lstm_size=LSTM_SIZE)
+
+        if args.epochs > 0:
+            checkpointer = ModelCheckpoint(filepath=args.out,
+                                        verbose=1,
+                                        save_best_only=True)
+
+            reduce_lr = ReduceLROnPlateau(monitor = 'val_loss',
+                                            factor = 0.2,
+                                            patience = 3,
+                                            min_lr = 0.000001)
+
+            filename, ext = os.path.splitext(args.out)
+            plot_model(model.rnn, to_file=filename + '_rnn.pdf', show_shapes=True)
+            plot = PlotLearning()
+            plot.set_filename(filename)
+
+            history = model.rnn.fit([encoder_input_data, decoder_input_masks], decoder_input_data,
+                                batch_size=args.batch_size,
+                                epochs=args.epochs,
+                                validation_split=0.2,
+                                callbacks=[checkpointer, reduce_lr, plot])
+
+            # Save model
+            model.rnn.save(args.out)
+
+        #test-decode a couple of train examples
+        sample_ids = np.random.randint(0, len(data_train), 2)
+        for word_id in sample_ids:
+            print ('===============================')
+            train_string = decode_smiles_from_indexes(map(from_one_hot_array, data_train[word_id]), charset)
+            print ('train string: ', train_string)
+
+            train_sequence = []
+            for char_id in range(categories_train[word_id].shape[0]):
+                token_index = np.argmax(categories_train[word_id][char_id, :])
+                train_category = charset_cats[token_index]
+                train_sequence.append(train_category)
+
+            input_seq = encoder_input_data[word_id: word_id + 1]
+            input_mask = decoder_input_masks[word_id: word_id + 1]
+            decoded_seq_1 = decode_sequence_rnn(model, input_seq, len(train_string), charset_cats, input_mask)
+
+            print ('(train, decoded) categories :', zip(train_sequence, decoded_seq_1))
+
+
+        #test-decode a couple of test examples
+        sample_ids = np.random.randint(0, len(data_test), 2)
+        for word_id in sample_ids:
+            print ('===============================')
+            test_string = decode_smiles_from_indexes(map(from_one_hot_array, data_test[word_id]), charset)
+            print ('test string: ', test_string)
+
+            test_sequence = []
+            for char_id in range(categories_test[word_id].shape[0]):
+                token_index = np.argmax(categories_test[word_id][char_id, :])
+                test_category = charset_cats[token_index]
+                test_sequence.append(test_category)
+
+            input_seq = encoder_test_data[word_id: word_id + 1]
+            input_mask = decoder_test_masks[word_id: word_id + 1]
+            decoded_seq_1 = decode_sequence_rnn(model, input_seq, len(test_string), charset_cats, input_mask)
+            
+            print ('(test, decoded) categories :', zip(test_sequence, decoded_seq_1))
+
+            num_smiles_variants = 32
+            decoded_seq_2 = decode_sequence(model, tile_grammar, charset, test_string, max_length=args.word_length, num_variants=num_smiles_variants)
+            print ('(test, decoded_1, decoded_' + str(num_smiles_variants) + ') categories :', zip(test_sequence, decoded_seq_1, decoded_seq_2))
+
     ###############################################################################################################
     #Simple RNN without masking
     ###############################################################################################################

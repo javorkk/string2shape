@@ -87,7 +87,7 @@ class Seq2SeqRNN():
     def create(self,
                input_charset,
                output_charset,
-               lstm_size=292,
+               lstm_size=512,
                weights_file = None):
 
         num_encoder_tokens = len(input_charset)
@@ -115,7 +115,7 @@ class Seq2SeqRNN():
     def save(self, filename):
         self.rnn.save_weights(filename)
     
-    def load(self, input_charset, output_charset, weights_file, lstm_size=292):
+    def load(self, input_charset, output_charset, weights_file, lstm_size=512):
         self.create(input_charset, output_charset, weights_file=weights_file, lstm_size=lstm_size)
 
 class Seq2SeqDeepRNN():
@@ -125,7 +125,7 @@ class Seq2SeqDeepRNN():
     def create(self,
                input_charset,
                output_charset,
-               lstm_size=292,
+               lstm_size=512,
                weights_file = None):
 
         num_encoder_tokens = len(input_charset)
@@ -153,7 +153,7 @@ class Seq2SeqDeepRNN():
     def save(self, filename):
         self.rnn.save_weights(filename)
     
-    def load(self, input_charset, output_charset, weights_file, lstm_size=292):
+    def load(self, input_charset, output_charset, weights_file, lstm_size=512):
         self.create(input_charset, output_charset, weights_file=weights_file, lstm_size=lstm_size)
 
 class Seq2SeqNoMaskRNN():
@@ -189,5 +189,5 @@ class Seq2SeqNoMaskRNN():
     def save(self, filename):
         self.rnn.save_weights(filename)
     
-    def load(self, input_charset, output_charset, weights_file, lstm_size=292):
+    def load(self, input_charset, output_charset, weights_file, lstm_size=512):
         self.create(input_charset, output_charset, weights_file=weights_file, lstm_size=lstm_size)

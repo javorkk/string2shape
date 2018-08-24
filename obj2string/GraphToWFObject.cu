@@ -207,7 +207,7 @@ __host__ WFObject WFObjectGenerator::operator()(
 					unsigned int correspondingEdgeIdObj1 = findCorresponingEdgeId(aGraph1, aEdgeTypes1, currentEdgeType, reverseEdgeType);
 					unsigned int correspondingEdgeIdObj2 = findCorresponingEdgeId(aGraph2, aEdgeTypes2, currentEdgeType, reverseEdgeType);
 
-					if ((numAttempts >= 12 || currentEdgeType == (unsigned)-1) && typeB != (unsigned)-1)
+					if ((numAttempts >= 22 || currentEdgeType == (unsigned)-1) && typeB != (unsigned)-1)
 					{
 						//assume wrong requested edge type
 						//try a random edge with matching node types

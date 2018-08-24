@@ -22,7 +22,7 @@ GRAPH_SIZE = 10000
 GRAPH_K = 4
 MODEL_TYPE = 'simple'
 
-TREE_GRAMMAR = False
+TREE_GRAMMAR = True
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Shape sampling network')
@@ -389,7 +389,31 @@ def sample_path_from_strings(args):
         char_data_0 = words[sample_ids[0]]
         char_data_1 = words[sample_ids[1]]
 
+        print("---------------------path sample " + str(i) + "------------------------------------------")
         if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
+            print("invalid words")
+            continue
+
+        shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
+
+        if len(shortest_path) < 5:
+            print("path too short")
+            continue
+
+        decoded_words = [char_data_0]
+        valid_words = [True]
+
+        for pt_id in shortest_path[1:-1]:
+            word =  words[int(pt_id)]
+            if word not in decoded_words:
+                decoded_words.append(word)
+                valid_words.append(True)
+
+        decoded_words.append(char_data_1)
+        valid_words.append(True)
+
+        if valid_words.count(True) < 4:
+            print("too few valid words")
             continue
 
         file_name_0 = "?"
@@ -398,26 +422,7 @@ def sample_path_from_strings(args):
             found0, file_name_0 = str_to_file(args.folder_name, char_data_0, tiling_grammar)
             found1, file_name_1 = str_to_file(args.folder_name, char_data_1, tiling_grammar)
 
-        shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
-
-        if len(shortest_path) < 5:
-            continue
-
-        decoded_words = [char_data_0]
-        valid_words = [True]
-
-        for pt_id in shortest_path[1:-1]:
-            word =  words[int(pt_id)]
-            decoded_words.append(word)
-            valid_words.append(True)
-
-        decoded_words.append(char_data_1)
-        valid_words.append(True)
-
-        if valid_words.count(True) < 5:
-            continue
-
-        print("---------------------path sample " + str(i) + "------------------------------------------")
+        #print("---------------------path sample " + str(i) + "------------------------------------------")
         print("start  :", decoded_words[0]," file: ", file_name_0)
         file_name_w = "?"
         for w, flag in zip(decoded_words, valid_words)[1:-1]:
@@ -460,12 +465,6 @@ def sample_path(args):
         if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
             continue
 
-        file_name_0 = "?"
-        file_name_1 = "?"
-        if args.folder_name != "":
-            found0, file_name_0 = str_to_file(args.folder_name, char_data_0, tiling_grammar)
-            found1, file_name_1 = str_to_file(args.folder_name, char_data_1, tiling_grammar)
-
         shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
 
         if len(shortest_path) < 5:
@@ -498,6 +497,13 @@ def sample_path(args):
 
         if valid_words.count(True) < 5:
             continue
+
+        file_name_0 = "?"
+        file_name_1 = "?"
+        if args.folder_name != "":
+            found0, file_name_0 = str_to_file(args.folder_name, char_data_0, tiling_grammar)
+            found1, file_name_1 = str_to_file(args.folder_name, char_data_1, tiling_grammar)
+
 
         print("---------------------path sample " + str(i) + "------------------------------------------")
         print("start  :", decoded_words[0]," file: ", file_name_0)

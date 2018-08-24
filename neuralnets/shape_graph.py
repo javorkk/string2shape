@@ -356,6 +356,9 @@ def smiles_to_all_edge_categories(word, node_ids, cluster_centers, graph, t_gram
 
     return edge_categories, output_edges
 
+#TODO implement
+#def smiles_to_bidir_edge_categories(word, node_ids, cluster_centers, graph, t_grammar):
+
 def smiles_substring(node_id, visited, adjacency_lists, cycle_ids, node_types, t_grammar):
     visited[node_id] = 1
     neighbor_list = adjacency_lists[node_id]

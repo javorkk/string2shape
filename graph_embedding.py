@@ -22,13 +22,13 @@ def most_common_elem(lst):
     return data.most_common(1)[0][0]
 
 
-LSTM_SIZE = 292
+LSTM_SIZE = 512
 NUM_ATTEMPTS = 128
 
 TREE_GRAMMAR = True
 
 def get_arguments():
-    parser = argparse.ArgumentParser(description='Sequence to sequence autoencoder network')
+    parser = argparse.ArgumentParser(description='Shape embedding in 3D from strings')
     parser.add_argument('in_folder', type=str, help='Folder with example objects.')
     parser.add_argument('model', type=str, help='The trained seq2seq model.')
     parser.add_argument('data', type=str, help='The HDF5 file containing preprocessed data.')

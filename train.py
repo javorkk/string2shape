@@ -5,7 +5,7 @@ import os
 import h5py
 import numpy as np
 
-from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_GRU_VAE, Tiling_LSTM_VAE_
+from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_LSTM_VAE_XL
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, \
     decode_smiles_from_indexes, load_dataset
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
@@ -99,7 +99,7 @@ def main():
     elif args.type == 'gru':
         model = Tiling_GRU_VAE()
     elif args.type == 'lstm_':
-        model = Tiling_LSTM_VAE_()
+        model = Tiling_LSTM_VAE_XL()
     else:
         model = TilingVAE()
 

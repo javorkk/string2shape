@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense, Multiply, Activation, Bidirectional, Concatenate
+from keras.layers import Input, LSTM, Dense, Multiply, Activation, Bidirectional, Concatenate, LeakyReLU
 
 class Seq2SeqAE():
 
@@ -137,8 +137,8 @@ class Seq2SeqDeepRNN():
         lstm_0 = Concatenate(name='concatenate')([lstm_0_f, lstm_0_b])
         #lstm_0 = LSTM(lstm_size, return_sequences=True, name='lstm_0')(inputs)
         lstm_1 = LSTM(lstm_size, return_sequences=True, name='lstm_1')(lstm_0)
-        lstm_2 = LSTM(lstm_size, return_sequences=True, name='lstm_2')(lstm_1)
-        dense  = Dense(num_decoder_tokens, activation=None, name='dense')(lstm_0)#masks
+        dense = Dense(num_decoder_tokens, activation=None, name='dense')(lstm_0)#masks
+        dense = LeakyReLU(0.3)(dense)
         masks = Input(shape=(None, num_decoder_tokens), name='masks')#masks
         masked = Multiply(name='masking')([dense, masks])#masks
         outputs = Activation('softmax', name='output')(masked)#masks
@@ -163,7 +163,7 @@ class Seq2SeqNoMaskRNN():
     def create(self,
                input_charset,
                output_charset,
-               lstm_size=292,
+               lstm_size=512,
                weights_file = None):
 
         num_encoder_tokens = len(input_charset)

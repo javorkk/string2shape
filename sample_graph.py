@@ -10,7 +10,7 @@ import networkx as nx
 import obj_tools
 import pandas
 
-from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_LSTM_VAE_
+from neuralnets.autoencoder import TilingVAE, Tiling_LSTM_VAE, Tiling_LSTM_VAE_XL
 from neuralnets.utils import one_hot_array, one_hot_index, from_one_hot_array, decode_smiles_from_indexes
 from neuralnets.utils import load_dataset
 import neuralnets.grammar as grammar
@@ -20,9 +20,9 @@ TARGET = 'autoencoder'
 NUM_SAMPLES = 1000
 GRAPH_SIZE = 10000
 GRAPH_K = 4
-MODEL_TYPE = 'simple'
+MODEL_TYPE = 'lstm'
 
-TREE_GRAMMAR = True
+TREE_GRAMMAR = False
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Shape sampling network')
@@ -107,7 +107,7 @@ def load_input(args):
     if args.model_type == 'lstm':
         model = Tiling_LSTM_VAE()
     elif args.model_type == 'lstm_':
-        model = Tiling_LSTM_VAE_()
+        model = Tiling_LSTM_VAE_XL()
 
     if os.path.isfile(args.model):
         model.load(charset, args.model, latent_rep_size = args.latent_dim)

@@ -25,7 +25,7 @@ def most_common_elem(lst):
 LSTM_SIZE = 512
 NUM_ATTEMPTS = 128
 
-TREE_GRAMMAR = True
+TREE_GRAMMAR = False
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Shape embedding in 3D from strings')

@@ -277,9 +277,10 @@ def build_latent_graph(args):
             search_graph.add_edge(idx, idy, weight=similarity)
 
     complement = list(nx.k_edge_augmentation(search_graph, k=1, partial=True))
-    for (n_i, n_j) in complement:
-        similarity = tiling_grammar.word_similarity(words[int(n_i)], words[int(n_j)])
-        search_graph.add_edge(n_i, n_j, weight=similarity)
+    if len(complement) >= 2:
+        for (n_i, n_j) in complement:
+            similarity = tiling_grammar.word_similarity(words[int(n_i)], words[int(n_j)])
+            search_graph.add_edge(n_i, n_j, weight=similarity)
 
     sys.stdout.write("\n")
     nx.write_graphml(search_graph, args.latent_graph)

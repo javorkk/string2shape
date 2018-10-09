@@ -241,7 +241,7 @@ class Tiling_Triplet_LSTM_VAE():
             neg_z = K.flatten(latent_z)
             d_pos = lat_x - pos_y
             d_neg = lat_x - neg_z
-            tr_loss = K.maximum(0.0, 0.001 + K.sum(d_pos * d_pos) - K.sum(d_neg * d_neg))
+            tr_loss = K.maximum(0.0, 0.0 + K.sum(d_pos * d_pos) - K.sum(d_neg * d_neg))
             return tr_loss
 
         def combined_loss(x_in, x_pred):
@@ -257,7 +257,7 @@ class Tiling_Triplet_LSTM_VAE():
                                  loss = combined_loss,
                                  metrics = [triplet_loss, vae_loss, 'accuracy'])
 
-    def _buildEncoder(self, x, latent_rep_size, max_length, epsilon_std = 0.01):
+    def _buildEncoder(self, x, latent_rep_size, max_length, epsilon_std = 1.0):
         #x,y,z = input_triple
         h = LSTM(301, return_sequences = True, name='in_lstm_1')(x)
         h = LSTM(301, return_sequences = True, name='in_lstm_2')(h)

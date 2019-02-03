@@ -276,13 +276,23 @@ def build_latent_graph(args):
             idy = selected_ids[j]
             search_graph.add_edge(idx, idy, weight=similarity)
 
+    sys.stdout.write("\n")
+
+    
+    print("number of connected components before augmentation: ", nx.number_connected_components(search_graph))
+
     complement = list(nx.k_edge_augmentation(search_graph, k=1, partial=True))
     if len(complement) >= 2:
         for (n_i, n_j) in complement:
-            similarity = tiling_grammar.word_similarity(words[int(n_i)], words[int(n_j)])
+            decoded_data_i = model.decoder.predict(latent_data[int(n_i)].reshape(1, args.latent_dim)).argmax(axis=2)[0]
+            word_i = decode_smiles_from_indexes(decoded_data_i, charset)
+
+            decoded_data_j = model.decoder.predict(latent_data[int(n_j)].reshape(1, args.latent_dim)).argmax(axis=2)[0]
+            word_j = decode_smiles_from_indexes(decoded_data_j, charset)
+
+            similarity = tiling_grammar.word_similarity(word_i, word_j)
             search_graph.add_edge(n_i, n_j, weight=similarity)
 
-    sys.stdout.write("\n")
     nx.write_graphml(search_graph, args.latent_graph)
 
 def build_graph_from_strings(args):
@@ -331,7 +341,7 @@ def build_graph_from_strings(args):
             if tiling_grammar.similar_words(words[idx], words[idy]):
                 search_graph.add_edge(idx, idy, weight=0.0)
 
-        #connect to k-nearest points in latent space
+        #connect to k-nearest points in "string" space
         dist_id_pairs = []
         for j in range(len(selected_ids)):
             idy = selected_ids[j]
@@ -350,13 +360,14 @@ def build_graph_from_strings(args):
             similarity = tiling_grammar.word_similarity(words[idx], words[idy])
             search_graph.add_edge(idx, idy, weight=similarity)
 
+    sys.stdout.write("\n")
+
+    print("number of connected components before augmentation: ", nx.number_connected_components(search_graph))
+
     complement = list(nx.k_edge_augmentation(search_graph, k=1, partial=True))
     for (n_i, n_j) in complement:
         similarity = tiling_grammar.word_similarity(words[int(n_i)], words[int(n_j)])
         search_graph.add_edge(n_i, n_j, weight=similarity)
-
-
-    sys.stdout.write("\n")
 
     nx.write_graphml(search_graph, args.latent_graph)
 
@@ -383,6 +394,7 @@ def sample_path_from_strings(args):
     search_graph = nx.read_graphml(args.latent_graph)
     node_list = [int(x) for x in list(search_graph.nodes)]
 
+    path_weights = []
     for i in range(args.num_samples):
         samples = np.random.randint(0, len(node_list), 2)
         sample_ids = [node_list[samples[0]], node_list[samples[1]]]
@@ -394,8 +406,11 @@ def sample_path_from_strings(args):
         if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
             print("invalid words")
             continue
-
-        shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
+            
+        try:
+            shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
+        except nx.exception.NetworkXNoPath:
+            print("no path between sample nodes")
 
         if len(shortest_path) < 5:
             print("path too short")
@@ -413,9 +428,12 @@ def sample_path_from_strings(args):
         decoded_words.append(char_data_1)
         valid_words.append(True)
 
-        if valid_words.count(True) < 4:
+        if valid_words.count(True) < 5:
             print("too few valid words")
             continue
+
+        decoded_valid_words = [w for w, flag in zip (decoded_words, valid_words) if flag]
+        edge_weights = [tiling_grammar.word_similarity(w1, w2) for w1, w2 in zip(decoded_valid_words[:-1], decoded_valid_words[1:]) ]
 
         file_name_0 = "?"
         file_name_1 = "?"
@@ -439,8 +457,15 @@ def sample_path_from_strings(args):
             else:
                 print("invalid:", w)
         print("end    :", decoded_words[-1], " file: ", file_name_1)
+        path_weights.append(sum(edge_weights))
+        print("edge weights: ", edge_weights)
         print("----------------------------------------------------------------------------------")
+        
 
+    print("----------------------------------------------------------------------------------")
+    print("average accumulated path weight: ", sum(path_weights) / len(path_weights))
+    print("max accumulated path weight: ", max(path_weights))
+    print("----------------------------------------------------------------------------------")
 
 def sample_path(args):
 
@@ -454,6 +479,7 @@ def sample_path(args):
     search_graph = nx.read_graphml(args.latent_graph)
     node_list = [int(x) for x in list(search_graph.nodes)]
 
+    path_weights = []
     for i in range(args.num_samples):
         samples = np.random.randint(0, len(node_list), 2)
         sample_ids = [node_list[samples[0]], node_list[samples[1]]]
@@ -466,9 +492,13 @@ def sample_path(args):
         if not (tiling_grammar.check_word(char_data_0) and tiling_grammar.check_word(char_data_1)) :
             continue
 
-        shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
+        try:
+            shortest_path = nx.shortest_path(search_graph, source=str(sample_ids[0]), target=str(sample_ids[1]), weight='weight')
+        except nx.exception.NetworkXNoPath:
+            print("no path between sample nodes")
 
-        if len(shortest_path) < 5:
+        if len(shortest_path) < 4:
+            print("path too short")
             continue
 
         decoded_words = [char_data_0]
@@ -496,8 +526,12 @@ def sample_path(args):
         decoded_words.append(char_data_1)
         valid_words.append(True)
 
-        if valid_words.count(True) < 5:
+        if valid_words.count(True) < 4:
+            print("too few valid words")
             continue
+
+        decoded_valid_words = [w for w, flag in zip (decoded_words, valid_words) if flag]
+        edge_weights = [tiling_grammar.word_similarity(w1, w2) for w1, w2 in zip(decoded_valid_words[:-1], decoded_valid_words[1:]) ]
 
         file_name_0 = "?"
         file_name_1 = "?"
@@ -522,7 +556,15 @@ def sample_path(args):
             else:
                 print("invalid:", w)
         print("end    :", decoded_words[-1], " file: ", file_name_1)
+        path_weights.append(sum(edge_weights))
+        print("edge weights: ", edge_weights)
         print("----------------------------------------------------------------------------------")
+
+    print("----------------------------------------------------------------------------------")
+    print("average accumulated path weight: ", sum(path_weights) / len(path_weights))
+    print("max accumulated path weight: ", max(path_weights))
+    print("----------------------------------------------------------------------------------")
+
 
 def main():
     args = get_arguments()

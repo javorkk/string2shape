@@ -132,7 +132,7 @@ python setup.py install --user</Command>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -166,7 +166,7 @@ python setup.py install --user</Command>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA</Defines>
+      <Defines>THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP</Defines>
       <AdditionalCompilerOptions>/openmp</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>

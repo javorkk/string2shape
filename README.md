@@ -11,7 +11,7 @@ The obj2string project is set up to use OpenMP as parallelization backend.
 To switch to CUDA or TBB right-click on the project in Visual Studio, go to CUDA C++ -> Host -> Preprocessor Definitions and set THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA (or ..._TBB)
 The same can be done with cmake via USE_OPENMP
 
-After succesfull build, the code can be tested by running the "tests" project (see tests/main.cu). or in a python 2.7 environment by running for example
+After succesfull build, the code can be tested by running the "tests" project (see tests/main.cu). or in a python 2.7 environment by running the following:
 
 Generate new shape variants using: augment_dataset.py
 

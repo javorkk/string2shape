@@ -28,3 +28,5 @@ TilingAutoencoder-Debug.creator.user
 build-debug/
 build-release/
 .vscode/
+*coll_graph.mtl
+*coll_graph.obj
